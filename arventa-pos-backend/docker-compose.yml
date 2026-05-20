@@ -1,0 +1,22 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: arventa-pos-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: arventa_pos
+      MYSQL_USER: arventa
+      MYSQL_PASSWORD: arventa_secret
+      MYSQL_ROOT_PASSWORD: root_secret
+    ports:
+      - "3307:3306"
+    volumes:
+      - arventa_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  arventa_mysql_data:
