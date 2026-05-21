@@ -1,0 +1,108 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Product;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class ProductUnitTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_admin_can_store_product_with_ml_unit(): void
+    {
+        $this->seed();
+
+        $response = $this->from('/admin/products')->post('/admin/products', [
+            'name' => 'Susu Botol',
+            'sku' => 'SUSU-ML-001',
+            'type' => 'product',
+            'unit' => 'ml',
+            'price' => 100,
+            'stock' => 500.5,
+            'is_active' => 1,
+        ]);
+
+        $response->assertRedirect('/admin/products');
+
+        $this->assertDatabaseHas('products', [
+            'name' => 'Susu Botol',
+            'unit' => 'ml',
+            'stock' => 500.5,
+        ]);
+    }
+
+    public function test_transaction_can_use_decimal_ml_quantity_and_reduce_stock(): void
+    {
+        $this->seed();
+
+        $cashier = User::query()->create([
+            'name' => 'Kasir ML',
+            'email' => 'kasir-ml@example.test',
+            'username' => 'kasir_ml',
+            'password' => bcrypt('password'),
+            'role' => 'cashier',
+            'is_active' => true,
+        ]);
+
+        $product = Product::query()->create([
+            'name' => 'Susu Botol',
+            'type' => 'product',
+            'unit' => 'ml',
+            'price' => 100,
+            'stock' => 500.5,
+            'is_active' => true,
+        ]);
+
+        $response = $this
+            ->actingAs($cashier, 'sanctum')
+            ->postJson('/api/transactions', [
+                'items' => [
+                    ['product_id' => $product->id, 'quantity' => 125.5],
+                ],
+                'paid_amount' => 20000,
+                'payment_method' => 'cash',
+            ]);
+
+        $response->assertCreated();
+        $this->assertDatabaseHas('sale_items', [
+            'product_id' => $product->id,
+            'unit' => 'ml',
+            'quantity' => 125.5,
+        ]);
+        $this->assertEquals(375.0, (float) $product->refresh()->stock);
+    }
+
+    public function test_admin_can_update_existing_product_unit_to_ml(): void
+    {
+        $this->seed();
+
+        $product = Product::query()->create([
+            'name' => 'Air Mineral',
+            'type' => 'product',
+            'unit' => 'pcs',
+            'price' => 1000,
+            'stock' => 10,
+            'is_active' => true,
+        ]);
+
+        $response = $this->from('/admin/products')->put("/admin/products/{$product->id}", [
+            'name' => 'Air Mineral',
+            'sku' => null,
+            'type' => 'product',
+            'unit' => 'ml',
+            'price' => 1000,
+            'stock' => 10000,
+            'is_active' => 1,
+        ]);
+
+        $response->assertRedirect('/admin/products');
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'unit' => 'ml',
+            'stock' => 10000,
+        ]);
+    }
+}

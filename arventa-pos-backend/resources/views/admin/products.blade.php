@@ -4,6 +4,20 @@
     title="Katalog"
     subtitle="Kelola produk dan layanan yang akan tersedia di aplikasi kasir Android."
 >
+    @php
+        $unitOptions = [
+            'pcs' => 'Pcs / layanan',
+            'ml' => 'Mililiter (ml)',
+            'gram' => 'Gram',
+            'kg' => 'Kilogram',
+            'meter' => 'Meter',
+        ];
+        $typeOptions = [
+            'product' => 'Produk',
+            'service' => 'Layanan',
+        ];
+    @endphp
+
     <section class="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
         <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 class="text-lg font-semibold text-slate-950">Tambah Produk atau Layanan</h2>
@@ -53,19 +67,19 @@
                     <div>
                         <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Tipe</label>
                         <select name="type" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
-                            <option value="product">Produk</option>
-                            <option value="service">Layanan</option>
+                            @foreach ($typeOptions as $value => $label)
+                                <option value="{{ $value }}" @selected(old('type', 'product') === $value)>{{ $label }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div>
                         <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Satuan</label>
                         <select name="unit" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
-                            <option value="pcs">Pcs / layanan</option>
-                            <option value="ml">Mililiter (ml)</option>
-                            <option value="gram">Gram</option>
-                            <option value="kg">Kilogram</option>
-                            <option value="meter">Meter</option>
+                            @foreach ($unitOptions as $value => $label)
+                                <option value="{{ $value }}" @selected(old('unit', 'pcs') === $value)>{{ $label }}</option>
+                            @endforeach
                         </select>
+                        @error('unit')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Harga</label>
@@ -113,14 +127,14 @@
                                 <th class="px-6 py-3 text-right">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100">
+                        <tbody class="divide-y divide-slate-100" x-data="{ editing: null }">
                             @foreach ($products as $product)
                                 <tr class="transition hover:bg-blue-50/60">
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-3">
                                             <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 text-slate-400 ring-1 ring-slate-200">
                                                 @if ($product->image_path)
-                                                    <img src="{{ Storage::disk('public')->url($product->image_path) }}" alt="{{ $product->name }}" class="h-full w-full object-cover">
+                                                    <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($product->image_path) }}" alt="{{ $product->name }}" class="h-full w-full object-cover">
                                                 @else
                                                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>
                                                 @endif
@@ -132,15 +146,74 @@
                                         </div>
                                     </td>
                                     <td class="px-4 py-4">{{ $product->type }}</td>
-                                    <td class="px-4 py-4">{{ $product->unit }}</td>
+                                    <td class="px-4 py-4">
+                                        <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{{ $unitOptions[$product->unit] ?? $product->unit }}</span>
+                                    </td>
                                     <td class="px-4 py-4 font-semibold">Rp {{ number_format((float) $product->price, 0, ',', '.') }}</td>
                                     <td class="px-4 py-4">{{ $product->stock !== null ? rtrim(rtrim(number_format((float) $product->stock, 3, ',', '.'), '0'), ',').' '.$product->unit : '-' }}</td>
                                     <td class="px-4 py-4"><span class="rounded-full {{ $product->is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600' }} px-2.5 py-1 text-xs font-semibold">{{ $product->is_active ? 'Aktif' : 'Nonaktif' }}</span></td>
                                     <td class="px-6 py-4 text-right">
-                                        <form method="post" action="{{ route('admin.products.destroy', $product) }}">
+                                        <div class="flex justify-end gap-2">
+                                            <button type="button" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 active:scale-[0.97]" @click="editing = editing === {{ $product->id }} ? null : {{ $product->id }}">
+                                                Edit
+                                            </button>
+                                            <form method="post" action="{{ route('admin.products.destroy', $product) }}">
+                                                @csrf
+                                                @method('delete')
+                                                <button class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 active:scale-[0.97]">Hapus</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr x-cloak x-show="editing === {{ $product->id }}" x-transition>
+                                    <td colspan="7" class="bg-slate-50 px-6 py-5">
+                                        <form method="post" action="{{ route('admin.products.update', $product) }}" enctype="multipart/form-data" class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-2">
                                             @csrf
-                                            @method('delete')
-                                            <button class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 active:scale-[0.97]">Hapus</button>
+                                            @method('put')
+                                            <div>
+                                                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Nama item</label>
+                                                <input name="name" value="{{ old('name', $product->name) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
+                                            </div>
+                                            <div>
+                                                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">SKU</label>
+                                                <input name="sku" value="{{ old('sku', $product->sku) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
+                                            </div>
+                                            <div>
+                                                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Tipe</label>
+                                                <select name="type" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
+                                                    @foreach ($typeOptions as $value => $label)
+                                                        <option value="{{ $value }}" @selected(old('type', $product->type) === $value)>{{ $label }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Satuan</label>
+                                                <select name="unit" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
+                                                    @foreach ($unitOptions as $value => $label)
+                                                        <option value="{{ $value }}" @selected(old('unit', $product->unit) === $value)>{{ $label }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Harga</label>
+                                                <input name="price" type="number" step="0.01" value="{{ old('price', $product->price) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
+                                            </div>
+                                            <div>
+                                                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Stok sesuai satuan</label>
+                                                <input name="stock" type="number" step="0.001" value="{{ old('stock', $product->stock) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
+                                            </div>
+                                            <div class="sm:col-span-2">
+                                                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Ganti foto opsional</label>
+                                                <input name="image" type="file" accept="image/jpeg,image/png,image/webp" class="mt-1 w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-950 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white">
+                                            </div>
+                                            <label class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-700">
+                                                <input type="checkbox" name="is_active" value="1" class="rounded border-slate-300 text-blue-600" @checked(old('is_active', $product->is_active))>
+                                                Aktif
+                                            </label>
+                                            <div class="flex justify-end gap-2">
+                                                <button type="button" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50" @click="editing = null">Batal</button>
+                                                <button class="rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-95 active:scale-[0.97]" style="background-color: var(--accent)">Simpan Perubahan</button>
+                                            </div>
                                         </form>
                                     </td>
                                 </tr>

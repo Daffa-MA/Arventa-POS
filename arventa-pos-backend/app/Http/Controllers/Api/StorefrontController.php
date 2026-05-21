@@ -12,8 +12,18 @@ class StorefrontController extends Controller
 {
     public function sync(): JsonResponse
     {
+        $setting = StoreSetting::query()->first();
+
+        if ($setting?->logo_path) {
+            $setting->setAttribute('logo_url', Storage::disk('public')->url($setting->logo_path));
+        }
+
+        if ($setting?->qris_image_path) {
+            $setting->setAttribute('qris_image_url', Storage::disk('public')->url($setting->qris_image_path));
+        }
+
         return response()->json([
-            'store' => StoreSetting::query()->first(),
+            'store' => $setting,
             'products' => Product::query()
                 ->where('is_active', true)
                 ->orderBy('name')

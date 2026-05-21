@@ -28,6 +28,16 @@
                     <h2 class="text-lg font-semibold text-slate-950">Kode Pairing Aktif</h2>
                     <p class="mt-1 text-sm text-slate-500">Scan QR dari app kasir atau input kode 6 digit.</p>
                 </div>
+                @if ($expiredPairingCodeCount > 0)
+                    <form method="post" action="{{ route('admin.devices.pairing-codes.expired.destroy') }}">
+                        @csrf
+                        @method('delete')
+                        <button class="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100 active:scale-[0.97]">
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-.8 14.2A2 2 0 0 1 16.2 22H7.8a2 2 0 0 1-2-1.8L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                            Hapus expired
+                        </button>
+                    </form>
+                @endif
             </div>
 
             <div class="mt-6 grid gap-4 md:grid-cols-2">
@@ -38,22 +48,60 @@
                             'code' => $pairing->code,
                             'api_url' => url('/api/pairing/connect'),
                         ]);
-                        $isExpired = $pairing->expires_at->isPast();
+                        $isPaired = (bool) $pairing->paired_at;
                     @endphp
                     <div
-                        x-data="{ qrPayload: @js($payload), qrId: 'qr-{{ $pairing->id }}' }"
-                        x-init="$nextTick(() => window.QRCode && new QRCode(document.getElementById(qrId), { text: qrPayload, width: 148, height: 148 }))"
-                        class="rounded-2xl border {{ $pairing->paired_at || $isExpired ? 'border-slate-200 bg-slate-50 opacity-70' : 'border-blue-100 bg-white' }} p-4"
+                        x-data="{
+                            qrPayload: @js($payload),
+                            qrId: 'qr-{{ $pairing->id }}',
+                            isPaired: @js($isPaired),
+                            expiresAt: new Date(@js($pairing->expires_at->toIso8601String())).getTime(),
+                            remaining: 0,
+                            visible: true,
+                            timer: null,
+                            init() {
+                                this.$nextTick(() => window.QRCode && new QRCode(document.getElementById(this.qrId), { text: this.qrPayload, width: 148, height: 148 }))
+                                this.tick()
+                                this.timer = setInterval(() => this.tick(), 1000)
+                            },
+                            tick() {
+                                if (this.isPaired) {
+                                    this.remaining = 0
+                                    return
+                                }
+                                this.remaining = Math.max(0, Math.floor((this.expiresAt - Date.now()) / 1000))
+                                if (this.remaining <= 0 && this.visible) {
+                                    this.visible = false
+                                    clearInterval(this.timer)
+                                    this.deleteExpired()
+                                }
+                            },
+                            remainingText() {
+                                const minutes = Math.floor(this.remaining / 60).toString().padStart(2, '0')
+                                const seconds = (this.remaining % 60).toString().padStart(2, '0')
+                                return `${minutes}:${seconds}`
+                            },
+                            deleteExpired() {
+                                fetch(@js(route('admin.devices.pairing-codes.destroy', $pairing)), {
+                                    method: 'DELETE',
+                                    headers: {
+                                        'Accept': 'application/json',
+                                        'X-CSRF-TOKEN': @js(csrf_token()),
+                                    },
+                                }).catch(() => {})
+                            }
+                        }"
+                        x-show="visible"
+                        x-transition.opacity.scale.95
+                        class="rounded-2xl border {{ $isPaired ? 'border-emerald-100 bg-emerald-50/30' : 'border-blue-100 bg-white' }} p-4"
                     >
                         <div class="flex items-start justify-between gap-3">
                             <div>
                                 <p class="font-semibold text-slate-950">{{ $pairing->cashier_name }}</p>
                                 <p class="text-xs text-slate-500">{{ $pairing->device_label ?: 'Tanpa label perangkat' }}</p>
                             </div>
-                            @if ($pairing->paired_at)
+                            @if ($isPaired)
                                 <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Terhubung</span>
-                            @elseif ($isExpired)
-                                <span class="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">Expired</span>
                             @else
                                 <span class="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">Aktif</span>
                             @endif
@@ -63,7 +111,21 @@
                             <div>
                                 <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Kode</p>
                                 <p class="mt-1 font-mono text-3xl font-bold tracking-widest text-slate-950">{{ $pairing->code }}</p>
-                                <p class="mt-2 text-xs text-slate-500">Berlaku sampai {{ $pairing->expires_at->format('H:i') }}</p>
+                                @if ($isPaired)
+                                    <p class="mt-2 text-xs font-semibold text-emerald-700">Sudah terhubung</p>
+                                    <p class="mt-1 text-[11px] text-slate-400">Pairing {{ $pairing->paired_at->format('H:i') }}</p>
+                                @else
+                                    <p class="mt-2 text-xs text-slate-500">Sisa waktu <span class="font-semibold text-slate-700" x-text="remainingText()">--:--</span></p>
+                                    <p class="mt-1 text-[11px] text-slate-400">QR ini akan berakhir dalam 10 menit.</p>
+                                    <form method="post" action="{{ route('admin.devices.pairing-codes.destroy', $pairing) }}" class="mt-3">
+                                        @csrf
+                                        @method('delete')
+                                        <button class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 active:scale-[0.97]">
+                                            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-.8 14.2A2 2 0 0 1 16.2 22H7.8a2 2 0 0 1-2-1.8L5 6"/></svg>
+                                            Batalkan QR
+                                        </button>
+                                    </form>
+                                @endif
                             </div>
                         </div>
                     </div>

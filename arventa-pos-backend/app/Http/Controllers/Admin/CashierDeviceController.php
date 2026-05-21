@@ -15,10 +15,39 @@ class CashierDeviceController extends Controller
 {
     public function index(): View
     {
+        CashierPairingCode::query()
+            ->whereNull('paired_at')
+            ->where('expires_at', '<=', now())
+            ->delete();
+
         return view('admin.devices', [
             'setting' => StoreSetting::query()->firstOrFail(),
-            'pairingCodes' => CashierPairingCode::query()->with('pairedUser')->latest()->limit(10)->get(),
-            'devices' => CashierDevice::query()->with('user')->latest()->get(),
+            'pairingCodes' => CashierPairingCode::query()
+                ->where(function ($query): void {
+                    $query
+                        ->where(function ($pending): void {
+                            $pending->whereNull('paired_at')
+                                ->where('expires_at', '>', now());
+                        })
+                        ->orWhere(function ($paired): void {
+                            $paired->whereNotNull('paired_at')
+                                ->whereHas('pairedUser.cashierDevices', function ($devices): void {
+                                    $devices->whereNull('revoked_at');
+                                });
+                        });
+                })
+                ->latest()
+                ->limit(10)
+                ->get(),
+            'expiredPairingCodeCount' => CashierPairingCode::query()
+                ->whereNull('paired_at')
+                ->where('expires_at', '<=', now())
+                ->count(),
+            'devices' => CashierDevice::query()
+                ->with('user')
+                ->whereNull('revoked_at')
+                ->latest()
+                ->get(),
         ]);
     }
 
@@ -41,6 +70,27 @@ class CashierDeviceController extends Controller
         ]);
 
         return back()->with('status', "Kode pairing {$code} berhasil dibuat.");
+    }
+
+    public function destroyExpiredPairingCodes(): RedirectResponse
+    {
+        $deleted = CashierPairingCode::query()
+            ->whereNull('paired_at')
+            ->where('expires_at', '<=', now())
+            ->delete();
+
+        return back()->with('status', "{$deleted} QR pairing expired berhasil dihapus.");
+    }
+
+    public function destroyPairingCode(CashierPairingCode $pairingCode): RedirectResponse
+    {
+        if ($pairingCode->paired_at) {
+            return back()->withErrors('QR pairing yang sudah terhubung tidak bisa dihapus dari daftar aktif.');
+        }
+
+        $pairingCode->delete();
+
+        return back()->with('status', 'QR pairing berhasil dihapus.');
     }
 
     public function revoke(CashierDevice $device): RedirectResponse

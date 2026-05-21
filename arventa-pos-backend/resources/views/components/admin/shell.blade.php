@@ -8,6 +8,9 @@
 @php
     $adminPrimary = $setting->admin_theme_color ?? '#0F172A';
     $appPrimary = $setting->theme_color;
+    $adminBrandName = $setting->admin_brand_name ?: 'Arventa POS';
+    $adminConsoleLabel = $setting->admin_console_label ?: 'Admin Console';
+    $logoUrl = $setting->logo_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($setting->logo_path) : null;
     $firstError = $errors->first();
     $navItems = [
         ['key' => 'dashboard', 'label' => 'Dashboard', 'href' => route('admin.dashboard'), 'icon' => 'layout-dashboard'],
@@ -19,7 +22,7 @@
     ];
 @endphp
 
-<x-layouts.admin title="Arventa POS Admin">
+<x-layouts.admin :title="$adminBrandName.' Admin'">
     <div
         x-data="{
             sidebarOpen: false,
@@ -50,10 +53,16 @@
             :style="admin.sidebarStyle === 'accent' ? `background-color: ${admin.themeColor}` : ''"
         >
             <div class="flex h-16 items-center gap-3 border-b border-slate-200/70 px-5">
-                <div class="flex h-10 w-10 items-center justify-center rounded-lg text-sm font-bold text-white shadow-sm" style="background-color: var(--accent)">A</div>
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg text-sm font-bold text-white shadow-sm" style="background-color: var(--accent)">
+                    @if ($logoUrl)
+                        <img src="{{ $logoUrl }}" alt="{{ $adminBrandName }} logo" class="h-full w-full object-cover">
+                    @else
+                        {{ strtoupper(mb_substr($adminBrandName, 0, 1)) }}
+                    @endif
+                </div>
                 <div>
-                    <p class="text-sm font-semibold" :class="admin.sidebarStyle === 'light' ? 'text-slate-950' : 'text-white'">Arventa POS</p>
-                    <p class="text-xs" :class="admin.sidebarStyle === 'light' ? 'text-slate-500' : 'text-white/65'">Admin Console</p>
+                    <p class="text-sm font-semibold" :class="admin.sidebarStyle === 'light' ? 'text-slate-950' : 'text-white'">{{ $adminBrandName }}</p>
+                    <p class="text-xs" :class="admin.sidebarStyle === 'light' ? 'text-slate-500' : 'text-white/65'">{{ $adminConsoleLabel }}</p>
                 </div>
             </div>
 
@@ -107,7 +116,7 @@
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
                         </button>
                         <div>
-                            <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Arventa POS</p>
+                            <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ $adminBrandName }}</p>
                             <h1 class="text-lg font-semibold text-slate-950 sm:text-xl">{{ $title }}</h1>
                         </div>
                     </div>

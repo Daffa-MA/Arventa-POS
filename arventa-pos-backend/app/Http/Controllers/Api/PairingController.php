@@ -33,6 +33,14 @@ class PairingController extends Controller
         }
 
         $result = DB::transaction(function () use ($pairing, $payload): array {
+            $existingDevice = ! empty($payload['device_uid'])
+                ? CashierDevice::query()->with('user')->where('device_uid', $payload['device_uid'])->first()
+                : null;
+
+            if ($existingDevice?->user) {
+                $existingDevice->user->tokens()->delete();
+            }
+
             $username = 'cashier_'.Str::lower(Str::random(10));
             $user = User::query()->create([
                 'name' => $pairing->cashier_name,
@@ -43,13 +51,21 @@ class PairingController extends Controller
                 'is_active' => true,
             ]);
 
-            $device = CashierDevice::query()->create([
+            $deviceData = [
                 'user_id' => $user->id,
                 'device_name' => $payload['device_name'],
                 'device_uid' => $payload['device_uid'] ?? null,
                 'paired_at' => now(),
                 'last_seen_at' => now(),
-            ]);
+                'revoked_at' => null,
+            ];
+
+            if ($existingDevice) {
+                $existingDevice->update($deviceData);
+                $device = $existingDevice->refresh();
+            } else {
+                $device = CashierDevice::query()->create($deviceData);
+            }
 
             $pairing->update([
                 'paired_at' => now(),
