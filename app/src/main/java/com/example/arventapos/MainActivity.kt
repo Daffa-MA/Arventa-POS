@@ -200,6 +200,29 @@ data class PrinterDevice(
     val bonded: Boolean = false,
 )
 
+private object PrinterStore {
+    private const val PREF = "arventa_printer"
+
+    fun load(context: Context): PrinterDevice? {
+        val pref = context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+        val address = pref.getString("address", null) ?: return null
+        val name = pref.getString("name", "Printer Bluetooth") ?: "Printer Bluetooth"
+        return PrinterDevice(name = name, address = address, bonded = pref.getBoolean("bonded", false))
+    }
+
+    fun save(context: Context, printer: PrinterDevice) {
+        context.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()
+            .putString("name", printer.name)
+            .putString("address", printer.address)
+            .putBoolean("bonded", printer.bonded)
+            .apply()
+    }
+
+    fun clear(context: Context) {
+        context.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit().clear().apply()
+    }
+}
+
 private val demoSetting = StoreSetting(
     storeName = "Arventa POS",
     businessType = "Retail",
@@ -1417,87 +1440,21 @@ private fun ReceiptDialog(setting: StoreSetting, sale: SaleReceipt, onDone: () -
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var printMessage by remember { mutableStateOf<String?>(null) }
-    var printerPickerOpen by remember { mutableStateOf(false) }
-    var printers by remember { mutableStateOf<List<PrinterDevice>>(emptyList()) }
-    var scanning by remember { mutableStateOf(false) }
     var printing by remember { mutableStateOf(false) }
-    var scanReceiver by remember { mutableStateOf<BroadcastReceiver?>(null) }
 
-    fun stopScan() {
-        runCatching {
-            BluetoothReceiptPrinter.stopScan(context)
+    fun printDefault() {
+        val printer = PrinterStore.load(context)
+        if (printer == null) {
+            printMessage = "Printer belum dipilih. Buka ikon printer di header POS untuk pairing/test printer."
+            return
         }
-        scanReceiver?.let { receiver ->
-            runCatching { context.unregisterReceiver(receiver) }
-        }
-        scanReceiver = null
-        scanning = false
-    }
 
-    fun openPrinterPicker() {
-        runCatching {
-            printers = BluetoothReceiptPrinter.pairedPrinters(context)
-            printerPickerOpen = true
-            printMessage = if (printers.isEmpty()) "Belum ada printer paired. Tekan Cari Printer." else null
-        }.onFailure {
-            printMessage = it.message ?: "Gagal membaca daftar printer."
-        }
-    }
-
-    fun startScan() {
-        stopScan()
-        runCatching {
-            val receiver = BluetoothReceiptPrinter.startScan(
-                context = context,
-                onFound = { found ->
-                    printers = (printers + found)
-                        .distinctBy { it.address }
-                        .sortedWith(compareByDescending<PrinterDevice> { it.bonded }.thenBy { it.name.lowercase(Locale.US) })
-                    printMessage = null
-                },
-                onFinished = {
-                    scanning = false
-                    printMessage = if (printers.isEmpty()) "Printer belum ditemukan. Pastikan printer menyala dan mode discoverable." else null
-                },
-            )
-            scanReceiver = receiver
-            scanning = true
-            printMessage = "Mencari printer Bluetooth..."
-        }.onFailure {
-            scanning = false
-            printMessage = it.message ?: "Gagal scan printer."
-        }
-    }
-
-    val bluetoothPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
-        val granted = bluetoothRuntimePermissions().all { grants[it] == true || ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
-        if (granted) {
-            openPrinterPicker()
-        } else {
-            printMessage = "Izin Bluetooth/Location dibutuhkan untuk scan dan cetak printer."
-        }
-    }
-
-    fun requestPrint() {
-        val missing = bluetoothRuntimePermissions()
-            .filter { ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }
-
-        if (missing.isNotEmpty()) {
-            bluetoothPermissionLauncher.launch(missing.toTypedArray())
-        } else {
-            openPrinterPicker()
-        }
-    }
-
-    fun printTo(device: PrinterDevice) {
-        stopScan()
-        printerPickerOpen = false
         printing = true
-        printMessage = "Mengirim struk ke ${device.name}..."
+        printMessage = "Mengirim struk ke ${printer.name}..."
         scope.launch {
             try {
-                BluetoothReceiptPrinter.print(context, device.address, setting, sale)
-                printMessage = "Struk terkirim ke ${device.name}."
+                BluetoothReceiptPrinter.print(context, printer.address, setting, sale)
+                printMessage = "Struk terkirim ke ${printer.name}."
             } catch (error: Exception) {
                 printMessage = error.message ?: "Gagal mencetak struk."
             } finally {
@@ -1506,8 +1463,24 @@ private fun ReceiptDialog(setting: StoreSetting, sale: SaleReceipt, onDone: () -
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose { stopScan() }
+    val bluetoothPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+        val granted = bluetoothPrintPermissions().all { grants[it] == true || ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
+        if (granted) {
+            printDefault()
+        } else {
+            printMessage = "Izin Bluetooth dibutuhkan untuk mencetak struk."
+        }
+    }
+
+    fun requestPrint() {
+        val missing = bluetoothPrintPermissions()
+            .filter { ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }
+
+        if (missing.isNotEmpty()) {
+            bluetoothPermissionLauncher.launch(missing.toTypedArray())
+        } else {
+            printDefault()
+        }
     }
 
     AlertDialog(
@@ -1556,64 +1529,6 @@ private fun ReceiptDialog(setting: StoreSetting, sale: SaleReceipt, onDone: () -
             }
         },
     )
-
-    if (printerPickerOpen) {
-        AlertDialog(
-            onDismissRequest = { if (!printing) printerPickerOpen = false },
-            containerColor = Color.White,
-            titleContentColor = setting.textColor,
-            textContentColor = setting.textColor,
-            title = { Text("Pilih Printer", color = setting.textColor, fontWeight = FontWeight.Bold) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(
-                        onClick = { startScan() },
-                        enabled = !printing && !scanning,
-                        colors = ButtonDefaults.buttonColors(containerColor = setting.themeColor, contentColor = bestContentColor(setting.themeColor)),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        if (scanning) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = bestContentColor(setting.themeColor))
-                            Spacer(Modifier.width(8.dp))
-                        }
-                        Text(if (scanning) "Mencari..." else "Cari Printer")
-                    }
-                    if (printers.isEmpty()) {
-                        Text("Belum ada printer. Nyalakan printer lalu tekan Cari Printer.", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
-                    } else {
-                        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items(printers) { device ->
-                                Card(
-                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-                                    modifier = Modifier.fillMaxWidth().clickable(enabled = !printing) { printTo(device) },
-                                    shape = RoundedCornerShape(12.dp),
-                                ) {
-                                    Column(Modifier.padding(12.dp)) {
-                                        Text(device.name, color = setting.textColor, fontWeight = FontWeight.SemiBold)
-                                        Text(if (device.bonded) "Paired" else "Ditemukan", color = setting.themeColor, style = MaterialTheme.typography.bodySmall)
-                                        Text(device.address, color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        stopScan()
-                        printerPickerOpen = false
-                    },
-                    enabled = !printing,
-                    colors = ButtonDefaults.textButtonColors(contentColor = setting.secondaryTextColor),
-                ) {
-                    Text("Batal")
-                }
-            },
-        )
-    }
 }
 
 @Composable
@@ -1621,6 +1536,7 @@ private fun PrinterSetupDialog(setting: StoreSetting, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var printers by remember { mutableStateOf<List<PrinterDevice>>(emptyList()) }
+    var selectedPrinter by remember { mutableStateOf(PrinterStore.load(context)) }
     var scanning by remember { mutableStateOf(false) }
     var testing by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
@@ -1689,6 +1605,12 @@ private fun PrinterSetupDialog(setting: StoreSetting, onDismiss: () -> Unit) {
         }
     }
 
+    fun selectPrinter(device: PrinterDevice) {
+        PrinterStore.save(context, device)
+        selectedPrinter = device
+        message = "Printer aktif: ${device.name}. Tombol Cetak Struk akan memakai printer ini."
+    }
+
     fun testPrint(device: PrinterDevice) {
         stopScan()
         testing = true
@@ -1696,7 +1618,9 @@ private fun PrinterSetupDialog(setting: StoreSetting, onDismiss: () -> Unit) {
         scope.launch {
             try {
                 BluetoothReceiptPrinter.printTest(context, device.address, setting)
-                message = "Test print terkirim ke ${device.name}."
+                PrinterStore.save(context, device)
+                selectedPrinter = device
+                message = "Test print terkirim. Printer aktif: ${device.name}."
             } catch (error: Exception) {
                 message = error.message ?: "Test print gagal."
             } finally {
@@ -1726,7 +1650,20 @@ private fun PrinterSetupDialog(setting: StoreSetting, onDismiss: () -> Unit) {
         title = { Text("Printer Struk", color = setting.textColor, fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Pilih printer, lalu test print sebelum transaksi.", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
+                Text("Pilih printer default di sini. Setelah itu tombol Cetak Struk akan langsung memakai printer aktif.", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
+                selectedPrinter?.let { device ->
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = setting.themeColor.copy(alpha = 0.08f)),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("Printer aktif", color = setting.themeColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                            Text(device.name, color = setting.textColor, fontWeight = FontWeight.SemiBold)
+                            Text(device.address, color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                } ?: Text("Belum ada printer aktif.", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
                 Button(
                     onClick = { ensurePermissionThen { startScan() } },
                     enabled = !scanning && !testing,
@@ -1755,9 +1692,23 @@ private fun PrinterSetupDialog(setting: StoreSetting, onDismiss: () -> Unit) {
                                 Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Column(Modifier.weight(1f)) {
                                         Text(device.name, color = setting.textColor, fontWeight = FontWeight.SemiBold)
-                                        Text(if (device.bonded) "Paired" else "Ditemukan", color = setting.themeColor, style = MaterialTheme.typography.bodySmall)
+                                        Text(
+                                            if (selectedPrinter?.address == device.address) "Aktif" else if (device.bonded) "Paired" else "Ditemukan",
+                                            color = setting.themeColor,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = if (selectedPrinter?.address == device.address) FontWeight.Bold else FontWeight.Normal,
+                                        )
                                         Text(device.address, color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
                                     }
+                                    OutlinedButton(
+                                        onClick = { selectPrinter(device) },
+                                        enabled = !testing && !scanning && selectedPrinter?.address != device.address,
+                                        border = BorderStroke(1.dp, setting.themeColor.copy(alpha = 0.45f)),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = setting.themeColor),
+                                    ) {
+                                        Text(if (selectedPrinter?.address == device.address) "Aktif" else "Pilih")
+                                    }
+                                    Spacer(Modifier.width(8.dp))
                                     Button(
                                         onClick = { testPrint(device) },
                                         enabled = !testing && !scanning,
@@ -2262,6 +2213,14 @@ private fun bluetoothRuntimePermissions(): List<String> {
         listOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN)
     } else {
         listOf(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
+}
+
+private fun bluetoothPrintPermissions(): List<String> {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        listOf(Manifest.permission.BLUETOOTH_CONNECT)
+    } else {
+        emptyList()
     }
 }
 
