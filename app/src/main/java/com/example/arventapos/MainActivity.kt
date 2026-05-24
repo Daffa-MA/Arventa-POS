@@ -512,6 +512,7 @@ fun PosScreen(
     var checkoutLoading by remember { mutableStateOf(false) }
     var checkoutError by remember { mutableStateOf<String?>(null) }
     var receipt by remember { mutableStateOf<SaleReceipt?>(null) }
+    var printerSetupOpen by remember { mutableStateOf(false) }
 
     val checkoutLines = cart.entries.mapNotNull { (id, qty) ->
         allItems.firstOrNull { it.id == id }?.let { item ->
@@ -563,7 +564,7 @@ fun PosScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        topBar = { StoreHeader(setting, cashierName, onRefresh, onDisconnect) },
+        topBar = { StoreHeader(setting, cashierName, onRefresh, { printerSetupOpen = true }, onDisconnect) },
         bottomBar = {
             if (setting.checkoutPosition == "bottom" && !useSideCart) {
                 CheckoutBar(setting, subtotal, tax, service, total, openCheckout)
@@ -636,10 +637,17 @@ fun PosScreen(
             onDone = { receipt = null },
         )
     }
+
+    if (printerSetupOpen) {
+        PrinterSetupDialog(
+            setting = setting,
+            onDismiss = { printerSetupOpen = false },
+        )
+    }
 }
 
 @Composable
-private fun StoreHeader(setting: StoreSetting, cashierName: String, onRefresh: () -> Unit, onDisconnect: () -> Unit) {
+private fun StoreHeader(setting: StoreSetting, cashierName: String, onRefresh: () -> Unit, onPrinterSetup: () -> Unit, onDisconnect: () -> Unit) {
     Surface(color = setting.themeColor, shadowElevation = 2.dp) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 18.dp),
@@ -662,6 +670,17 @@ private fun StoreHeader(setting: StoreSetting, cashierName: String, onRefresh: (
             }
             Box(
                 modifier = Modifier
+                    .padding(start = 2.dp, end = 8.dp)
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color.White.copy(alpha = 0.16f))
+                    .clickable(onClick = onPrinterSetup),
+                contentAlignment = Alignment.Center,
+            ) {
+                PrinterGlyph(Color.White)
+            }
+            Box(
+                modifier = Modifier
                     .size(36.dp)
                     .clip(RoundedCornerShape(999.dp))
                     .background(Color.White.copy(alpha = 0.16f))
@@ -671,6 +690,35 @@ private fun StoreHeader(setting: StoreSetting, cashierName: String, onRefresh: (
                 LogoutGlyph(Color.White)
             }
         }
+    }
+}
+
+@Composable
+private fun PrinterGlyph(color: Color) {
+    Canvas(modifier = Modifier.size(18.dp)) {
+        val stroke = Stroke(width = 2.0f)
+        drawRoundRect(
+            color = color,
+            topLeft = androidx.compose.ui.geometry.Offset(size.width * 0.25f, size.height * 0.08f),
+            size = androidx.compose.ui.geometry.Size(size.width * 0.5f, size.height * 0.28f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(1.5f, 1.5f),
+            style = stroke,
+        )
+        drawRoundRect(
+            color = color,
+            topLeft = androidx.compose.ui.geometry.Offset(size.width * 0.12f, size.height * 0.34f),
+            size = androidx.compose.ui.geometry.Size(size.width * 0.76f, size.height * 0.42f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.2f, 2.2f),
+            style = stroke,
+        )
+        drawRoundRect(
+            color = color,
+            topLeft = androidx.compose.ui.geometry.Offset(size.width * 0.28f, size.height * 0.62f),
+            size = androidx.compose.ui.geometry.Size(size.width * 0.44f, size.height * 0.3f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(1.5f, 1.5f),
+            style = stroke,
+        )
+        drawCircle(color = color, radius = 1.3f, center = center.copy(x = size.width * 0.72f, y = size.height * 0.5f))
     }
 }
 
@@ -1569,6 +1617,178 @@ private fun ReceiptDialog(setting: StoreSetting, sale: SaleReceipt, onDone: () -
 }
 
 @Composable
+private fun PrinterSetupDialog(setting: StoreSetting, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var printers by remember { mutableStateOf<List<PrinterDevice>>(emptyList()) }
+    var scanning by remember { mutableStateOf(false) }
+    var testing by remember { mutableStateOf(false) }
+    var message by remember { mutableStateOf<String?>(null) }
+    var scanReceiver by remember { mutableStateOf<BroadcastReceiver?>(null) }
+
+    fun stopScan() {
+        runCatching { BluetoothReceiptPrinter.stopScan(context) }
+        scanReceiver?.let { receiver ->
+            runCatching { context.unregisterReceiver(receiver) }
+        }
+        scanReceiver = null
+        scanning = false
+    }
+
+    fun loadPairedPrinters() {
+        runCatching {
+            printers = BluetoothReceiptPrinter.pairedPrinters(context)
+            message = if (printers.isEmpty()) "Belum ada printer paired. Tekan Cari Printer." else null
+        }.onFailure {
+            message = it.message ?: "Gagal membaca daftar printer."
+        }
+    }
+
+    fun startScan() {
+        stopScan()
+        runCatching {
+            val receiver = BluetoothReceiptPrinter.startScan(
+                context = context,
+                onFound = { found ->
+                    printers = (printers + found)
+                        .distinctBy { it.address }
+                        .sortedWith(compareByDescending<PrinterDevice> { it.bonded }.thenBy { it.name.lowercase(Locale.US) })
+                    message = null
+                },
+                onFinished = {
+                    scanning = false
+                    message = if (printers.isEmpty()) "Printer belum ditemukan. Pastikan printer menyala dan mode discoverable." else null
+                },
+            )
+            scanReceiver = receiver
+            scanning = true
+            message = "Mencari printer Bluetooth..."
+        }.onFailure {
+            scanning = false
+            message = it.message ?: "Gagal scan printer."
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+        val granted = bluetoothRuntimePermissions().all { grants[it] == true || ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
+        if (granted) {
+            loadPairedPrinters()
+        } else {
+            message = "Izin Bluetooth/Location dibutuhkan untuk scan dan test printer."
+        }
+    }
+
+    fun ensurePermissionThen(action: () -> Unit) {
+        val missing = bluetoothRuntimePermissions()
+            .filter { ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }
+
+        if (missing.isEmpty()) {
+            action()
+        } else {
+            permissionLauncher.launch(missing.toTypedArray())
+        }
+    }
+
+    fun testPrint(device: PrinterDevice) {
+        stopScan()
+        testing = true
+        message = "Mengirim test print ke ${device.name}..."
+        scope.launch {
+            try {
+                BluetoothReceiptPrinter.printTest(context, device.address, setting)
+                message = "Test print terkirim ke ${device.name}."
+            } catch (error: Exception) {
+                message = error.message ?: "Test print gagal."
+            } finally {
+                testing = false
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        ensurePermissionThen { loadPairedPrinters() }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { stopScan() }
+    }
+
+    AlertDialog(
+        onDismissRequest = {
+            if (!testing) {
+                stopScan()
+                onDismiss()
+            }
+        },
+        containerColor = Color.White,
+        titleContentColor = setting.textColor,
+        textContentColor = setting.textColor,
+        title = { Text("Printer Struk", color = setting.textColor, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Pilih printer, lalu test print sebelum transaksi.", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
+                Button(
+                    onClick = { ensurePermissionThen { startScan() } },
+                    enabled = !scanning && !testing,
+                    colors = ButtonDefaults.buttonColors(containerColor = setting.themeColor, contentColor = bestContentColor(setting.themeColor)),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (scanning) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = bestContentColor(setting.themeColor))
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text(if (scanning) "Mencari..." else "Cari Printer")
+                }
+                message?.let {
+                    Text(it, color = setting.themeColor, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                }
+                if (printers.isEmpty()) {
+                    Text("Belum ada printer di daftar.", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(printers) { device ->
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text(device.name, color = setting.textColor, fontWeight = FontWeight.SemiBold)
+                                        Text(if (device.bonded) "Paired" else "Ditemukan", color = setting.themeColor, style = MaterialTheme.typography.bodySmall)
+                                        Text(device.address, color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
+                                    }
+                                    Button(
+                                        onClick = { testPrint(device) },
+                                        enabled = !testing && !scanning,
+                                        colors = ButtonDefaults.buttonColors(containerColor = setting.themeColor, contentColor = bestContentColor(setting.themeColor)),
+                                    ) {
+                                        Text("Test")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(
+                onClick = {
+                    stopScan()
+                    onDismiss()
+                },
+                enabled = !testing,
+                colors = ButtonDefaults.textButtonColors(contentColor = setting.secondaryTextColor),
+            ) {
+                Text("Tutup")
+            }
+        },
+    )
+}
+
+@Composable
 private fun SummaryLine(label: String, value: Number, labelColor: Color, valueColor: Color, bold: Boolean = false) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, color = labelColor, style = MaterialTheme.typography.bodySmall)
@@ -1905,6 +2125,29 @@ private object BluetoothReceiptPrinter {
                 output.flush()
             }
         }
+    }
+
+    suspend fun printTest(context: Context, address: String, setting: StoreSetting) {
+        val sale = SaleReceipt(
+            invoiceNumber = "TEST-PRINT",
+            subtotal = 1000.0,
+            taxTotal = 0.0,
+            serviceTotal = 0.0,
+            grandTotal = 1000.0,
+            paidAmount = 1000.0,
+            changeAmount = 0.0,
+            paymentMethod = "test",
+            items = listOf(
+                SaleReceiptItem(
+                    name = "Test Printer",
+                    unit = "pcs",
+                    quantity = 1.0,
+                    lineTotal = 1000.0,
+                ),
+            ),
+        )
+
+        print(context, address, setting, sale)
     }
 
     private fun ensureBluetoothPermission(context: Context) {
