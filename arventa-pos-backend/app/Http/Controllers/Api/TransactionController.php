@@ -17,30 +17,58 @@ class TransactionController extends Controller
     {
         $payload = $request->validate([
             'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
+            'items.*.product_id' => ['nullable', 'integer', 'exists:products,id'],
+            'items.*.name' => ['nullable', 'string', 'max:120'],
+            'items.*.unit' => ['nullable', 'string', 'max:20'],
+            'items.*.unit_price' => ['nullable', 'numeric', 'min:0'],
             'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
             'paid_amount' => ['required', 'numeric', 'min:0'],
             'payment_method' => ['nullable', 'string', 'max:40'],
         ]);
 
         $setting = StoreSetting::query()->firstOrFail();
+        $productIds = collect($payload['items'])->pluck('product_id')->filter()->values();
         $products = Product::query()
-            ->whereIn('id', collect($payload['items'])->pluck('product_id'))
+            ->whereIn('id', $productIds)
             ->get()
             ->keyBy('id');
 
         $lines = collect($payload['items'])->map(function (array $item) use ($products): array {
-            $product = $products[$item['product_id']];
-            $lineTotal = (float) $product->price * $item['quantity'];
+            $productId = $item['product_id'] ?? null;
 
-            if ($product->stock !== null && (float) $product->stock < (float) $item['quantity']) {
+            if ($productId) {
+                $product = $products[$productId];
+                $lineTotal = (float) $product->price * $item['quantity'];
+
+                if ($product->stock !== null && (float) $product->stock < (float) $item['quantity']) {
+                    throw ValidationException::withMessages([
+                        'items' => ["Stok {$product->name} tidak cukup."],
+                    ]);
+                }
+
+                return [
+                    'product' => $product,
+                    'name' => $product->name,
+                    'unit' => $product->unit,
+                    'unit_price' => (float) $product->price,
+                    'quantity' => $item['quantity'],
+                    'line_total' => $lineTotal,
+                ];
+            }
+
+            if (empty($item['name']) || empty($item['unit']) || ! isset($item['unit_price']) || (float) $item['unit_price'] <= 0) {
                 throw ValidationException::withMessages([
-                    'items' => ["Stok {$product->name} tidak cukup."],
+                    'items' => ['Item custom wajib memiliki nama, satuan, dan harga lebih dari 0.'],
                 ]);
             }
 
+            $lineTotal = (float) $item['unit_price'] * $item['quantity'];
+
             return [
-                'product' => $product,
+                'product' => null,
+                'name' => $item['name'],
+                'unit' => $item['unit'],
+                'unit_price' => (float) $item['unit_price'],
                 'quantity' => $item['quantity'],
                 'line_total' => $lineTotal,
             ];
@@ -73,15 +101,15 @@ class TransactionController extends Controller
             foreach ($lines as $line) {
                 $product = $line['product'];
                 $sale->items()->create([
-                    'product_id' => $product->id,
-                    'name' => $product->name,
-                    'unit_price' => $product->price,
+                    'product_id' => $product?->id,
+                    'name' => $line['name'],
+                    'unit_price' => $line['unit_price'],
                     'quantity' => $line['quantity'],
-                    'unit' => $product->unit,
+                    'unit' => $line['unit'],
                     'line_total' => $line['line_total'],
                 ]);
 
-                if ($product->stock !== null) {
+                if ($product?->stock !== null) {
                     $product->decrement('stock', $line['quantity']);
                 }
             }
