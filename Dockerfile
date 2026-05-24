@@ -52,7 +52,8 @@ COPY arventa-pos-backend/ ./
 COPY --from=assets /app/public/build ./public/build
 COPY docker/entrypoint.sh /usr/local/bin/arventa-entrypoint
 
-RUN composer install \
+RUN test -f public/build/manifest.json \
+    && composer install \
         --no-dev \
         --no-interaction \
         --prefer-dist \
