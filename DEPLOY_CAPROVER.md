@@ -84,6 +84,15 @@ The image build will:
 - run `npm ci && npm run build`
 - serve `/var/www/html/public`
 - listen on port `80`
+- consume `CAPROVER_GIT_COMMIT_SHA` to invalidate Docker cache for changed Laravel files and Vite assets
+
+If the admin page appears as plain unstyled HTML, the Vite CSS was not loaded. Check:
+
+```text
+https://arventa.arventa.my.id/build/manifest.json
+```
+
+Then redeploy the latest commit. During a good rebuild, the layers after `CAPROVER_GIT_COMMIT_SHA` should not stay stuck on old cached app files.
 
 ## Run Migrations and Seeders
 

@@ -5,6 +5,9 @@ WORKDIR /app
 COPY arventa-pos-backend/package*.json ./
 RUN npm ci
 
+ARG CAPROVER_GIT_COMMIT_SHA=local
+RUN echo "$CAPROVER_GIT_COMMIT_SHA" > /tmp/caprover-git-sha
+
 COPY arventa-pos-backend/resources ./resources
 COPY arventa-pos-backend/vite.config.js ./vite.config.js
 COPY arventa-pos-backend/public ./public
@@ -47,6 +50,9 @@ RUN apt-get update \
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
+
+ARG CAPROVER_GIT_COMMIT_SHA=local
+RUN echo "$CAPROVER_GIT_COMMIT_SHA" > /tmp/caprover-git-sha
 
 COPY arventa-pos-backend/ ./
 COPY --from=assets /app/public/build ./public/build
