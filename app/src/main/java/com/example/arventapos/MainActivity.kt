@@ -1,6 +1,8 @@
 package com.example.arventapos
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -86,12 +88,15 @@ import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
+import java.io.ByteArrayOutputStream
 import java.io.BufferedReader
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
+import java.nio.charset.Charset
 import java.text.NumberFormat
 import java.util.Locale
+import java.util.UUID
 import java.util.concurrent.Executors
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
@@ -183,6 +188,11 @@ data class SaleReceiptItem(
     val unit: String,
     val quantity: Double,
     val lineTotal: Double,
+)
+
+data class PrinterDevice(
+    val name: String,
+    val address: String,
 )
 
 private val demoSetting = StoreSetting(
@@ -1351,7 +1361,60 @@ private fun PaymentMethodButton(label: String, selected: Boolean, accent: Color,
 
 @Composable
 private fun ReceiptDialog(setting: StoreSetting, sale: SaleReceipt, onDone: () -> Unit) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var printMessage by remember { mutableStateOf<String?>(null) }
+    var printerPickerOpen by remember { mutableStateOf(false) }
+    var printers by remember { mutableStateOf<List<PrinterDevice>>(emptyList()) }
+    var printing by remember { mutableStateOf(false) }
+
+    fun openPrinterPicker() {
+        runCatching {
+            printers = BluetoothReceiptPrinter.pairedPrinters(context)
+            if (printers.isEmpty()) {
+                printMessage = "Belum ada printer Bluetooth yang dipair di Android."
+            } else {
+                printerPickerOpen = true
+                printMessage = null
+            }
+        }.onFailure {
+            printMessage = it.message ?: "Gagal membaca daftar printer."
+        }
+    }
+
+    val bluetoothPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            openPrinterPicker()
+        } else {
+            printMessage = "Izin Bluetooth dibutuhkan untuk mencetak struk."
+        }
+    }
+
+    fun requestPrint() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
+        ) {
+            bluetoothPermissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+        } else {
+            openPrinterPicker()
+        }
+    }
+
+    fun printTo(device: PrinterDevice) {
+        printerPickerOpen = false
+        printing = true
+        printMessage = "Mengirim struk ke ${device.name}..."
+        scope.launch {
+            try {
+                BluetoothReceiptPrinter.print(context, device.address, setting, sale)
+                printMessage = "Struk terkirim ke ${device.name}."
+            } catch (error: Exception) {
+                printMessage = error.message ?: "Gagal mencetak struk."
+            } finally {
+                printing = false
+            }
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDone,
@@ -1379,10 +1442,15 @@ private fun ReceiptDialog(setting: StoreSetting, sale: SaleReceipt, onDone: () -
         },
         confirmButton = {
             Button(
-                onClick = { printMessage = "Struk siap dicetak. Integrasi printer Bluetooth bisa dipasang di tahap berikutnya." },
+                onClick = { requestPrint() },
+                enabled = !printing,
                 colors = ButtonDefaults.buttonColors(containerColor = setting.themeColor, contentColor = bestContentColor(setting.themeColor)),
             ) {
-                Text("Cetak Struk")
+                if (printing) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = bestContentColor(setting.themeColor))
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(if (printing) "Mencetak..." else "Cetak Struk")
             }
         },
         dismissButton = {
@@ -1394,6 +1462,42 @@ private fun ReceiptDialog(setting: StoreSetting, sale: SaleReceipt, onDone: () -
             }
         },
     )
+
+    if (printerPickerOpen) {
+        AlertDialog(
+            onDismissRequest = { if (!printing) printerPickerOpen = false },
+            containerColor = Color.White,
+            titleContentColor = setting.textColor,
+            textContentColor = setting.textColor,
+            title = { Text("Pilih Printer", color = setting.textColor, fontWeight = FontWeight.Bold) },
+            text = {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(printers) { device ->
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                            modifier = Modifier.fillMaxWidth().clickable(enabled = !printing) { printTo(device) },
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Column(Modifier.padding(12.dp)) {
+                                Text(device.name, color = setting.textColor, fontWeight = FontWeight.SemiBold)
+                                Text(device.address, color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(
+                    onClick = { printerPickerOpen = false },
+                    enabled = !printing,
+                    colors = ButtonDefaults.textButtonColors(contentColor = setting.secondaryTextColor),
+                ) {
+                    Text("Batal")
+                }
+            },
+        )
+    }
 }
 
 @Composable
@@ -1623,6 +1727,143 @@ private object PosRepository {
                 json.optString("message", "Request gagal.")
             }
         }.getOrElse { "Request gagal." }
+    }
+}
+
+private object BluetoothReceiptPrinter {
+    private val sppUuid: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+    private val charset: Charset = Charset.forName("CP437")
+
+    @SuppressLint("MissingPermission")
+    fun pairedPrinters(context: Context): List<PrinterDevice> {
+        ensureBluetoothPermission(context)
+        val adapter = BluetoothAdapter.getDefaultAdapter()
+            ?: throw IllegalStateException("Bluetooth tidak tersedia di perangkat ini.")
+
+        if (!adapter.isEnabled) {
+            throw IllegalStateException("Bluetooth belum aktif.")
+        }
+
+        return adapter.bondedDevices
+            .map { device ->
+                PrinterDevice(
+                    name = device.name?.takeIf { it.isNotBlank() } ?: "Printer Bluetooth",
+                    address = device.address,
+                )
+            }
+            .sortedBy { it.name.lowercase(Locale.US) }
+    }
+
+    @SuppressLint("MissingPermission")
+    suspend fun print(context: Context, address: String, setting: StoreSetting, sale: SaleReceipt) = withContext(Dispatchers.IO) {
+        ensureBluetoothPermission(context)
+        val adapter = BluetoothAdapter.getDefaultAdapter()
+            ?: throw IllegalStateException("Bluetooth tidak tersedia di perangkat ini.")
+
+        if (!adapter.isEnabled) {
+            throw IllegalStateException("Bluetooth belum aktif.")
+        }
+
+        val device = adapter.getRemoteDevice(address)
+        adapter.cancelDiscovery()
+
+        device.createRfcommSocketToServiceRecord(sppUuid).use { socket ->
+            socket.connect()
+            socket.outputStream.use { output ->
+                output.write(buildReceipt(setting, sale))
+                output.flush()
+            }
+        }
+    }
+
+    private fun ensureBluetoothPermission(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
+        ) {
+            throw IllegalStateException("Izin Bluetooth belum diberikan.")
+        }
+    }
+
+    private fun buildReceipt(setting: StoreSetting, sale: SaleReceipt): ByteArray {
+        val buffer = ByteArrayOutputStream()
+        fun command(vararg bytes: Int) {
+            buffer.write(bytes.map { it.toByte() }.toByteArray())
+        }
+        fun text(value: String = "") {
+            buffer.write(sanitizeReceiptText(value).toByteArray(charset))
+            buffer.write('\n'.code)
+        }
+
+        command(0x1B, 0x40)
+        command(0x1B, 0x61, 0x01)
+        command(0x1B, 0x21, 0x08)
+        text(setting.storeName)
+        command(0x1B, 0x21, 0x00)
+        text(setting.businessType)
+        text(line())
+        command(0x1B, 0x61, 0x00)
+        text("Invoice: ${sale.invoiceNumber}")
+        text("Pembayaran: ${sale.paymentMethod.uppercase(Locale.US)}")
+        text(line())
+
+        sale.items.forEach { item ->
+            wrapReceiptLine("${formatQuantity(item.quantity)} ${item.unit} x ${item.name}").forEach(::text)
+            text(twoColumn("", formatRupiah(item.lineTotal)))
+        }
+
+        text(line())
+        text(twoColumn("Subtotal", formatRupiah(sale.subtotal)))
+        if (sale.taxTotal > 0.0) text(twoColumn("Pajak", formatRupiah(sale.taxTotal)))
+        if (sale.serviceTotal > 0.0) text(twoColumn("Service", formatRupiah(sale.serviceTotal)))
+        text(twoColumn("Total", formatRupiah(sale.grandTotal)))
+        text(twoColumn("Dibayar", formatRupiah(sale.paidAmount)))
+        text(twoColumn("Kembali", formatRupiah(sale.changeAmount)))
+        text(line())
+        command(0x1B, 0x61, 0x01)
+        wrapReceiptLine(setting.receiptFooter.ifBlank { "Terima kasih." }).forEach(::text)
+        text()
+        text()
+        command(0x1D, 0x56, 0x42, 0x00)
+
+        return buffer.toByteArray()
+    }
+
+    private fun sanitizeReceiptText(value: String): String {
+        return value
+            .replace("–", "-")
+            .replace("—", "-")
+            .replace("’", "'")
+            .replace("“", "\"")
+            .replace("”", "\"")
+    }
+
+    private fun line(): String = "-".repeat(32)
+
+    private fun twoColumn(left: String, right: String): String {
+        val cleanLeft = sanitizeReceiptText(left).take(32)
+        val cleanRight = sanitizeReceiptText(right).take(32)
+        val spaces = (32 - cleanLeft.length - cleanRight.length).coerceAtLeast(1)
+        return cleanLeft + " ".repeat(spaces) + cleanRight
+    }
+
+    private fun wrapReceiptLine(value: String): List<String> {
+        val words = sanitizeReceiptText(value).split(" ")
+        val lines = mutableListOf<String>()
+        var current = ""
+
+        words.forEach { word ->
+            current = when {
+                current.isBlank() -> word.take(32)
+                current.length + 1 + word.length <= 32 -> "$current $word"
+                else -> {
+                    lines += current
+                    word.take(32)
+                }
+            }
+        }
+
+        if (current.isNotBlank()) lines += current
+        return lines.ifEmpty { listOf(value.take(32)) }
     }
 }
 
