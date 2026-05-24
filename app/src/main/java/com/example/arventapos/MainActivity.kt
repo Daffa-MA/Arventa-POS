@@ -259,7 +259,7 @@ fun ArventaApp() {
 private fun PairingScreen(onConnected: (PairingSession) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var baseUrl by remember { mutableStateOf("http://10.0.2.2:8000") }
+    var baseUrl by remember { mutableStateOf("https://arventa.arventa.my.id") }
     var pairingInput by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
@@ -357,7 +357,7 @@ private fun PairingScreen(onConnected: (PairingSession) -> Unit) {
                         Text(it, color = Color(0xFFDC2626), style = MaterialTheme.typography.bodySmall)
                     }
                     Text(
-                        "Emulator Android memakai http://10.0.2.2:8000 untuk mengakses Laravel di komputer. HP fisik pakai IP laptop di jaringan yang sama.",
+                        "Gunakan https://arventa.arventa.my.id untuk server production. Untuk backend lokal di emulator, pakai http://10.0.2.2:8000.",
                         color = Color(0xFF64748B),
                         style = MaterialTheme.typography.bodySmall,
                     )
