@@ -8,6 +8,8 @@
 /build
 /captures
 /local.properties
+/.env
+/.env.*
 *.iml
 
 arventa-pos-backend/.env
@@ -22,4 +24,5 @@ arventa-pos-backend/storage/logs/*.log
 arventa-pos-backend/storage/framework/cache/*
 arventa-pos-backend/storage/framework/sessions/*
 arventa-pos-backend/storage/framework/views/*
+arventa-pos-backend/bootstrap/cache/*.php
 arventa-pos-backend/.phpunit.result.cache

@@ -66,8 +66,9 @@ RUN composer install \
         bootstrap/cache \
     && rm -rf public/storage \
     && ln -s /var/www/html/storage/app/public public/storage \
-    && chown -R www-data:www-data storage bootstrap/cache public/build \
+    && chown -R www-data:www-data storage bootstrap/cache public/build public/storage \
     && chmod -R ug+rwX storage bootstrap/cache \
+    && find bootstrap/cache -type f ! -name packages.php ! -name services.php -delete \
     && chmod +x /usr/local/bin/arventa-entrypoint
 
 EXPOSE 80

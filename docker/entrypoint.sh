@@ -14,11 +14,16 @@ mkdir -p \
 chown -R www-data:www-data storage bootstrap/cache
 chmod -R ug+rwX storage bootstrap/cache
 
-if [ ! -L public/storage ]; then
+php artisan config:clear --no-interaction || true
+php artisan cache:clear --no-interaction || true
+php artisan route:clear --no-interaction || true
+php artisan view:clear --no-interaction || true
+php artisan storage:link --force --no-interaction || {
   rm -rf public/storage
   ln -s /var/www/html/storage/app/public public/storage
-fi
+}
 
-php artisan optimize:clear --no-interaction >/dev/null 2>&1 || true
+chown -R www-data:www-data storage bootstrap/cache
+chmod -R ug+rwX storage bootstrap/cache
 
 exec "$@"

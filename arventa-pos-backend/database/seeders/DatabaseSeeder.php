@@ -17,15 +17,17 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::factory()->create([
-            'name' => 'Admin Arventa',
+        User::query()->firstOrCreate([
             'email' => 'admin@arventa.test',
+        ], [
+            'name' => 'Admin Arventa',
             'username' => 'admin',
+            'password' => 'password',
             'role' => 'admin',
             'is_active' => true,
         ]);
 
-        $setting = StoreSetting::query()->create([
+        $setting = StoreSetting::query()->firstOrCreate([], [
             'store_name' => 'Arventa POS',
             'business_type' => 'retail',
             'admin_brand_name' => 'Arventa POS',
@@ -54,7 +56,9 @@ class DatabaseSeeder extends Seeder
             'currency' => 'IDR',
         ]);
 
-        PosInstance::query()->create([
+        PosInstance::query()->firstOrCreate([
+            'subdomain' => 'arventa-pos',
+        ], [
             'store_name' => $setting->store_name,
             'owner_name' => 'Demo Arventa',
             'owner_phone' => null,

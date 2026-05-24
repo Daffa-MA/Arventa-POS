@@ -42,7 +42,7 @@ APP_DEBUG=false
 APP_URL=https://arventa.arventa.my.id
 APP_KEY=base64:CHANGE_THIS
 
-LOG_CHANNEL=stderr
+LOG_CHANNEL=stack
 LOG_LEVEL=info
 
 DB_CONNECTION=mysql
@@ -52,9 +52,9 @@ DB_DATABASE=arventa_pos
 DB_USERNAME=arventa_user
 DB_PASSWORD=arventa
 
-CACHE_STORE=database
-SESSION_DRIVER=database
-QUEUE_CONNECTION=database
+CACHE_STORE=file
+SESSION_DRIVER=file
+QUEUE_CONNECTION=sync
 FILESYSTEM_DISK=public
 ```
 
@@ -93,6 +93,8 @@ After the first successful deploy, run this inside the `arventa` app container:
 php artisan migrate --seed --force
 ```
 
+The Docker entrypoint does not run migrations automatically. This keeps deploys from modifying the database before you have checked the runtime configuration.
+
 In CapRover:
 
 1. Open **Apps > arventa**.
@@ -106,12 +108,58 @@ If your CapRover UI does not expose a terminal, SSH into the server and run:
 docker exec -it $(docker ps --filter "name=srv-captain--arventa" --format "{{.ID}}" | head -n 1) php artisan migrate --seed --force
 ```
 
+The `/admin` route reads the `store_settings`, `products`, and `sales` tables. If those tables do not exist yet, or the seed data has not created a `store_settings` row, Laravel can return a 500 error in production. The seeders are safe to run more than once.
+
+## Debug 500 Runtime Errors
+
+SSH into the CapRover server and find the running app container:
+
+```bash
+docker ps
+```
+
+Open a shell in the `srv-captain--arventa` container:
+
+```bash
+docker exec -it CONTAINER_ID bash
+```
+
+Run these inside the container:
+
+```bash
+cd /var/www/html
+tail -n 100 storage/logs/laravel.log
+php artisan migrate --seed
+php artisan config:clear
+php artisan cache:clear
+php artisan route:clear
+php artisan view:clear
+php artisan storage:link
+```
+
+Use `--force` for migrations in production if Laravel asks for confirmation:
+
+```bash
+php artisan migrate --seed --force
+```
+
+Common 500 causes:
+
+- Missing or invalid `APP_KEY`.
+- Wrong `DB_HOST`, `DB_DATABASE`, `DB_USERNAME`, or `DB_PASSWORD`.
+- Migrations have not been run, so `/admin` cannot query its tables.
+- `storage` or `bootstrap/cache` is not writable by `www-data`.
+- Old cached config still points to previous environment values.
+
 ## Laravel Cache Commands
 
 When changing environment variables:
 
 ```bash
-php artisan optimize:clear
+php artisan config:clear
+php artisan cache:clear
+php artisan route:clear
+php artisan view:clear
 ```
 
 To cache production config after env variables are correct:
@@ -125,10 +173,13 @@ php artisan view:cache
 If something behaves strangely after changing env values, clear cache again:
 
 ```bash
-php artisan optimize:clear
+php artisan config:clear
+php artisan cache:clear
+php artisan route:clear
+php artisan view:clear
 ```
 
-The container entrypoint runs `php artisan optimize:clear` on startup so CapRover env changes are picked up safely.
+The container entrypoint runs these clear commands on startup so CapRover env changes are picked up safely.
 
 ## Storage Link
 
