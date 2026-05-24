@@ -3,7 +3,11 @@ package com.example.arventapos
 import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -193,6 +197,7 @@ data class SaleReceiptItem(
 data class PrinterDevice(
     val name: String,
     val address: String,
+    val bonded: Boolean = false,
 )
 
 private val demoSetting = StoreSetting(
@@ -1366,41 +1371,78 @@ private fun ReceiptDialog(setting: StoreSetting, sale: SaleReceipt, onDone: () -
     var printMessage by remember { mutableStateOf<String?>(null) }
     var printerPickerOpen by remember { mutableStateOf(false) }
     var printers by remember { mutableStateOf<List<PrinterDevice>>(emptyList()) }
+    var scanning by remember { mutableStateOf(false) }
     var printing by remember { mutableStateOf(false) }
+    var scanReceiver by remember { mutableStateOf<BroadcastReceiver?>(null) }
+
+    fun stopScan() {
+        runCatching {
+            BluetoothReceiptPrinter.stopScan(context)
+        }
+        scanReceiver?.let { receiver ->
+            runCatching { context.unregisterReceiver(receiver) }
+        }
+        scanReceiver = null
+        scanning = false
+    }
 
     fun openPrinterPicker() {
         runCatching {
             printers = BluetoothReceiptPrinter.pairedPrinters(context)
-            if (printers.isEmpty()) {
-                printMessage = "Belum ada printer Bluetooth yang dipair di Android."
-            } else {
-                printerPickerOpen = true
-                printMessage = null
-            }
+            printerPickerOpen = true
+            printMessage = if (printers.isEmpty()) "Belum ada printer paired. Tekan Cari Printer." else null
         }.onFailure {
             printMessage = it.message ?: "Gagal membaca daftar printer."
         }
     }
 
-    val bluetoothPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+    fun startScan() {
+        stopScan()
+        runCatching {
+            val receiver = BluetoothReceiptPrinter.startScan(
+                context = context,
+                onFound = { found ->
+                    printers = (printers + found)
+                        .distinctBy { it.address }
+                        .sortedWith(compareByDescending<PrinterDevice> { it.bonded }.thenBy { it.name.lowercase(Locale.US) })
+                    printMessage = null
+                },
+                onFinished = {
+                    scanning = false
+                    printMessage = if (printers.isEmpty()) "Printer belum ditemukan. Pastikan printer menyala dan mode discoverable." else null
+                },
+            )
+            scanReceiver = receiver
+            scanning = true
+            printMessage = "Mencari printer Bluetooth..."
+        }.onFailure {
+            scanning = false
+            printMessage = it.message ?: "Gagal scan printer."
+        }
+    }
+
+    val bluetoothPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+        val granted = bluetoothRuntimePermissions().all { grants[it] == true || ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
         if (granted) {
             openPrinterPicker()
         } else {
-            printMessage = "Izin Bluetooth dibutuhkan untuk mencetak struk."
+            printMessage = "Izin Bluetooth/Location dibutuhkan untuk scan dan cetak printer."
         }
     }
 
     fun requestPrint() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
-        ) {
-            bluetoothPermissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+        val missing = bluetoothRuntimePermissions()
+            .filter { ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }
+
+        if (missing.isNotEmpty()) {
+            bluetoothPermissionLauncher.launch(missing.toTypedArray())
         } else {
             openPrinterPicker()
         }
     }
 
     fun printTo(device: PrinterDevice) {
+        stopScan()
         printerPickerOpen = false
         printing = true
         printMessage = "Mengirim struk ke ${device.name}..."
@@ -1414,6 +1456,10 @@ private fun ReceiptDialog(setting: StoreSetting, sale: SaleReceipt, onDone: () -
                 printing = false
             }
         }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { stopScan() }
     }
 
     AlertDialog(
@@ -1471,16 +1517,35 @@ private fun ReceiptDialog(setting: StoreSetting, sale: SaleReceipt, onDone: () -
             textContentColor = setting.textColor,
             title = { Text("Pilih Printer", color = setting.textColor, fontWeight = FontWeight.Bold) },
             text = {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(printers) { device ->
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-                            modifier = Modifier.fillMaxWidth().clickable(enabled = !printing) { printTo(device) },
-                            shape = RoundedCornerShape(12.dp),
-                        ) {
-                            Column(Modifier.padding(12.dp)) {
-                                Text(device.name, color = setting.textColor, fontWeight = FontWeight.SemiBold)
-                                Text(device.address, color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Button(
+                        onClick = { startScan() },
+                        enabled = !printing && !scanning,
+                        colors = ButtonDefaults.buttonColors(containerColor = setting.themeColor, contentColor = bestContentColor(setting.themeColor)),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        if (scanning) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = bestContentColor(setting.themeColor))
+                            Spacer(Modifier.width(8.dp))
+                        }
+                        Text(if (scanning) "Mencari..." else "Cari Printer")
+                    }
+                    if (printers.isEmpty()) {
+                        Text("Belum ada printer. Nyalakan printer lalu tekan Cari Printer.", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
+                    } else {
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(printers) { device ->
+                                Card(
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                                    modifier = Modifier.fillMaxWidth().clickable(enabled = !printing) { printTo(device) },
+                                    shape = RoundedCornerShape(12.dp),
+                                ) {
+                                    Column(Modifier.padding(12.dp)) {
+                                        Text(device.name, color = setting.textColor, fontWeight = FontWeight.SemiBold)
+                                        Text(if (device.bonded) "Paired" else "Ditemukan", color = setting.themeColor, style = MaterialTheme.typography.bodySmall)
+                                        Text(device.address, color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
+                                    }
+                                }
                             }
                         }
                     }
@@ -1489,7 +1554,10 @@ private fun ReceiptDialog(setting: StoreSetting, sale: SaleReceipt, onDone: () -
             confirmButton = {},
             dismissButton = {
                 TextButton(
-                    onClick = { printerPickerOpen = false },
+                    onClick = {
+                        stopScan()
+                        printerPickerOpen = false
+                    },
                     enabled = !printing,
                     colors = ButtonDefaults.textButtonColors(contentColor = setting.secondaryTextColor),
                 ) {
@@ -1749,9 +1817,72 @@ private object BluetoothReceiptPrinter {
                 PrinterDevice(
                     name = device.name?.takeIf { it.isNotBlank() } ?: "Printer Bluetooth",
                     address = device.address,
+                    bonded = true,
                 )
             }
             .sortedBy { it.name.lowercase(Locale.US) }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun startScan(context: Context, onFound: (PrinterDevice) -> Unit, onFinished: () -> Unit): BroadcastReceiver {
+        ensureScanPermission(context)
+        val adapter = BluetoothAdapter.getDefaultAdapter()
+            ?: throw IllegalStateException("Bluetooth tidak tersedia di perangkat ini.")
+
+        if (!adapter.isEnabled) {
+            throw IllegalStateException("Bluetooth belum aktif.")
+        }
+
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(receiverContext: Context, intent: Intent) {
+                when (intent.action) {
+                    BluetoothDevice.ACTION_FOUND -> {
+                        val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                        }
+
+                        if (device != null) {
+                            onFound(
+                                PrinterDevice(
+                                    name = device.name?.takeIf { it.isNotBlank() } ?: "Printer Bluetooth",
+                                    address = device.address,
+                                    bonded = device.bondState == BluetoothDevice.BOND_BONDED,
+                                ),
+                            )
+                        }
+                    }
+
+                    BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> onFinished()
+                }
+            }
+        }
+
+        val filter = IntentFilter().apply {
+            addAction(BluetoothDevice.ACTION_FOUND)
+            addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
+        }
+        ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+
+        if (adapter.isDiscovering) {
+            adapter.cancelDiscovery()
+        }
+
+        if (!adapter.startDiscovery()) {
+            runCatching { context.unregisterReceiver(receiver) }
+            throw IllegalStateException("Gagal memulai scan Bluetooth.")
+        }
+
+        return receiver
+    }
+
+    @SuppressLint("MissingPermission")
+    fun stopScan(context: Context) {
+        if (hasScanPermission(context)) {
+            BluetoothAdapter.getDefaultAdapter()?.takeIf { it.isDiscovering }?.cancelDiscovery()
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -1782,6 +1913,20 @@ private object BluetoothReceiptPrinter {
         ) {
             throw IllegalStateException("Izin Bluetooth belum diberikan.")
         }
+    }
+
+    private fun ensureScanPermission(context: Context) {
+        val missing = bluetoothRuntimePermissions()
+            .filter { ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }
+
+        if (missing.isNotEmpty()) {
+            throw IllegalStateException("Izin Bluetooth scan belum diberikan.")
+        }
+    }
+
+    private fun hasScanPermission(context: Context): Boolean {
+        return bluetoothRuntimePermissions()
+            .all { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
     }
 
     private fun buildReceipt(setting: StoreSetting, sale: SaleReceipt): ByteArray {
@@ -1868,6 +2013,14 @@ private object BluetoothReceiptPrinter {
 }
 
 private fun normalizeBaseUrl(value: String): String = value.trim().trimEnd('/')
+
+private fun bluetoothRuntimePermissions(): List<String> {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        listOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN)
+    } else {
+        listOf(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
+}
 
 private fun parseColor(value: String): Color {
     return runCatching { Color(android.graphics.Color.parseColor(value)) }.getOrDefault(Color(0xFF2563EB))
