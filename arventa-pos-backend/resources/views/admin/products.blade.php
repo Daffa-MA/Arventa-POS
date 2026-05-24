@@ -16,24 +16,51 @@
         $typeOptions = [
             'product' => 'Produk',
             'service' => 'Layanan',
+            'custom' => 'Item Fleksibel',
+        ];
+        $typeLabels = [
+            'product' => 'Produk',
+            'service' => 'Layanan',
             'discount' => 'Diskon',
             'fee' => 'Biaya Tambahan',
             'custom' => 'Item Fleksibel',
         ];
+        $pricingRuleOptions = [
+            'normal' => [
+                'label' => 'Harga normal',
+                'description' => 'Produk atau layanan dihitung sesuai harga dan jumlah.',
+            ],
+            'free_threshold' => [
+                'label' => 'Batas gratis',
+                'description' => 'Gratis sampai batas tertentu. Jika lewat batas, seluruh jumlah ditagih.',
+            ],
+            'discount' => [
+                'label' => 'Diskon nominal',
+                'description' => 'Muncul di menu Diskon pada Cart Android, bukan di grid produk.',
+            ],
+            'fee' => [
+                'label' => 'Biaya tambahan',
+                'description' => 'Tambahan nominal transaksi dari katalog.',
+            ],
+        ];
+        $createOldType = old('type', 'product');
+        $createItemType = in_array($createOldType, array_keys($typeOptions), true) ? $createOldType : 'product';
+        $createPricingRule = old('pricing_rule', in_array($createOldType, ['discount', 'fee'], true) ? $createOldType : ((old('free_quantity') !== null && old('free_quantity') !== '') ? 'free_threshold' : 'normal'));
     @endphp
 
     <section class="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
         <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 class="text-lg font-semibold text-slate-950">Tambah Item Katalog</h2>
-            <p class="mt-1 text-sm leading-6 text-slate-500">Gunakan tipe Diskon dengan harga minus, atau isi Batas Gratis untuk rule mutlak seperti alkohol gratis sampai 100ml.</p>
+            <p class="mt-1 text-sm leading-6 text-slate-500">Produk tetap dibuat dari katalog. Diskon dan batas gratis diatur sebagai aturan harga agar pemakaiannya lebih rapi di aplikasi kasir.</p>
             <form
                 method="post"
                 action="{{ route('admin.products.store') }}"
                 enctype="multipart/form-data"
-                x-data="{ imagePreview: null }"
+                x-data="{ imagePreview: null, itemType: @js($createItemType), pricingRule: @js($createPricingRule) }"
                 class="mt-6 grid gap-4"
             >
                 @csrf
+                <input type="hidden" name="type" :value="pricingRule === 'discount' ? 'discount' : (pricingRule === 'fee' ? 'fee' : itemType)">
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div class="sm:col-span-2">
                         <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Foto barang</label>
@@ -70,36 +97,52 @@
                         <input name="sku" value="{{ old('sku') }}" placeholder="ARV-ITEM-001" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
                     </div>
                     <div>
-                        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Tipe</label>
-                        <select name="type" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
+                        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Tipe item</label>
+                        <select x-model="itemType" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium" :disabled="pricingRule === 'discount' || pricingRule === 'fee'">
                             @foreach ($typeOptions as $value => $label)
-                                <option value="{{ $value }}" @selected(old('type', 'product') === $value)>{{ $label }}</option>
+                                <option value="{{ $value }}">{{ $label }}</option>
                             @endforeach
                         </select>
+                        <p class="mt-1 text-xs text-slate-500" x-show="pricingRule === 'discount' || pricingRule === 'fee'">Tipe transaksi otomatis mengikuti aturan harga.</p>
                     </div>
                     <div>
                         <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Satuan</label>
-                        <select name="unit" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
+                        <select name="unit" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium" :disabled="pricingRule === 'discount' || pricingRule === 'fee'">
                             @foreach ($unitOptions as $value => $label)
                                 <option value="{{ $value }}" @selected(old('unit', 'pcs') === $value)>{{ $label }}</option>
                             @endforeach
                         </select>
+                        <input type="hidden" name="unit" value="trx" x-show="pricingRule === 'discount' || pricingRule === 'fee'" :disabled="pricingRule !== 'discount' && pricingRule !== 'fee'">
                         @error('unit')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Harga / nominal</label>
-                        <input name="price" type="number" step="0.01" value="{{ old('price') }}" placeholder="18000 atau -5000 untuk diskon" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
-                        <p class="mt-1 text-xs text-slate-500">Isi minus untuk diskon, positif untuk produk/layanan/biaya.</p>
+                        <input name="price" type="number" step="0.01" value="{{ old('price') }}" placeholder="18000" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
+                        <p class="mt-1 text-xs text-slate-500" x-text="pricingRule === 'discount' ? 'Isi nominal positif, sistem akan menyimpannya sebagai minus.' : 'Harga per satuan atau nominal transaksi.'"></p>
                     </div>
                     <div>
                         <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Stok</label>
-                        <input name="stock" type="number" step="0.001" value="{{ old('stock') }}" placeholder="Kosongkan untuk layanan" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
+                        <input name="stock" type="number" step="0.001" value="{{ old('stock') }}" placeholder="Kosongkan untuk layanan" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium" :disabled="pricingRule === 'discount' || pricingRule === 'fee'">
                     </div>
                     <div class="sm:col-span-2 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
-                        <label class="text-xs font-semibold uppercase tracking-wide text-blue-700">Batas gratis opsional</label>
-                        <input name="free_quantity" type="number" step="0.001" value="{{ old('free_quantity') }}" placeholder="Contoh: 100 untuk gratis sampai 100ml" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
-                        <p class="mt-2 text-xs leading-5 text-blue-700">Kosongkan untuk harga normal. Jika jumlah transaksi masih di bawah atau sama dengan batas ini, item menjadi Rp0. Jika melewati batas, seluruh jumlah ditagih.</p>
-                        <p class="mt-1 text-xs leading-5 text-slate-500">Contoh: harga Rp1.000/ml, batas gratis 100ml. Input 100ml = Rp0, input 150ml = Rp150.000.</p>
+                        <label class="text-xs font-semibold uppercase tracking-wide text-blue-700">Aturan harga</label>
+                        <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                            @foreach ($pricingRuleOptions as $value => $option)
+                                <label class="flex cursor-pointer gap-3 rounded-xl border bg-white p-3 text-sm transition" :class="pricingRule === '{{ $value }}' ? 'border-blue-300 ring-2 ring-blue-100' : 'border-slate-200 hover:border-slate-300'">
+                                    <input type="radio" name="pricing_rule" value="{{ $value }}" x-model="pricingRule" class="mt-1 border-slate-300 text-blue-600">
+                                    <span>
+                                        <span class="block font-semibold text-slate-950">{{ $option['label'] }}</span>
+                                        <span class="mt-1 block text-xs leading-5 text-slate-500">{{ $option['description'] }}</span>
+                                    </span>
+                                </label>
+                            @endforeach
+                        </div>
+                        <div class="mt-4" x-show="pricingRule === 'free_threshold'">
+                            <label class="text-xs font-semibold uppercase tracking-wide text-blue-700">Batas gratis</label>
+                            <input name="free_quantity" type="number" step="0.001" value="{{ old('free_quantity') }}" placeholder="Contoh: 100 untuk gratis sampai 100ml" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium" :disabled="pricingRule !== 'free_threshold'">
+                            <p class="mt-2 text-xs leading-5 text-blue-700">Jika jumlah transaksi masih di bawah atau sama dengan batas ini, item menjadi Rp0. Jika melewati batas, seluruh jumlah ditagih.</p>
+                            <p class="mt-1 text-xs leading-5 text-slate-500">Contoh: harga Rp1.000/ml, batas gratis 100ml. Input 100ml = Rp0, input 150ml = Rp150.000.</p>
+                        </div>
                         @error('free_quantity')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                     </div>
                     <label class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-700 sm:col-span-2">
@@ -161,7 +204,7 @@
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-4 py-4">{{ $typeOptions[$product->type] ?? $product->type }}</td>
+                                    <td class="px-4 py-4">{{ $typeLabels[$product->type] ?? $product->type }}</td>
                                     <td class="px-4 py-4">
                                         <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{{ $unitOptions[$product->unit] ?? $product->unit }}</span>
                                     </td>
@@ -183,9 +226,21 @@
                                 </tr>
                                 <tr x-cloak x-show="editing === {{ $product->id }}" x-transition>
                                     <td colspan="7" class="bg-slate-50 px-6 py-5">
-                                        <form method="post" action="{{ route('admin.products.update', $product) }}" enctype="multipart/form-data" class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-2">
+                                        @php
+                                            $editOldType = old('type', $product->type);
+                                            $editItemType = in_array($editOldType, array_keys($typeOptions), true) ? $editOldType : 'product';
+                                            $editPricingRule = old('pricing_rule', in_array($editOldType, ['discount', 'fee'], true) ? $editOldType : (((float) old('free_quantity', $product->free_quantity) > 0) ? 'free_threshold' : 'normal'));
+                                        @endphp
+                                        <form
+                                            method="post"
+                                            action="{{ route('admin.products.update', $product) }}"
+                                            enctype="multipart/form-data"
+                                            x-data="{ itemType: @js($editItemType), pricingRule: @js($editPricingRule) }"
+                                            class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-2"
+                                        >
                                             @csrf
                                             @method('put')
+                                            <input type="hidden" name="type" :value="pricingRule === 'discount' ? 'discount' : (pricingRule === 'fee' ? 'fee' : itemType)">
                                             <div>
                                                 <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Nama item</label>
                                                 <input name="name" value="{{ old('name', $product->name) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
@@ -195,34 +250,49 @@
                                                 <input name="sku" value="{{ old('sku', $product->sku) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
                                             </div>
                                             <div>
-                                                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Tipe</label>
-                                                <select name="type" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
+                                                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Tipe item</label>
+                                                <select x-model="itemType" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium" :disabled="pricingRule === 'discount' || pricingRule === 'fee'">
                                                     @foreach ($typeOptions as $value => $label)
-                                                        <option value="{{ $value }}" @selected(old('type', $product->type) === $value)>{{ $label }}</option>
+                                                        <option value="{{ $value }}">{{ $label }}</option>
                                                     @endforeach
                                                 </select>
                                             </div>
                                             <div>
                                                 <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Satuan</label>
-                                                <select name="unit" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
+                                                <select name="unit" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium" :disabled="pricingRule === 'discount' || pricingRule === 'fee'">
                                                     @foreach ($unitOptions as $value => $label)
                                                         <option value="{{ $value }}" @selected(old('unit', $product->unit) === $value)>{{ $label }}</option>
                                                     @endforeach
                                                 </select>
+                                                <input type="hidden" name="unit" value="trx" x-show="pricingRule === 'discount' || pricingRule === 'fee'" :disabled="pricingRule !== 'discount' && pricingRule !== 'fee'">
                                             </div>
                                             <div>
                                                 <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Harga / nominal</label>
                                                 <input name="price" type="number" step="0.01" value="{{ old('price', $product->price) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
-                                                <p class="mt-1 text-xs text-slate-500">Boleh minus untuk tipe Diskon.</p>
+                                                <p class="mt-1 text-xs text-slate-500" x-text="pricingRule === 'discount' ? 'Isi nominal positif, sistem akan menyimpannya sebagai minus.' : 'Harga per satuan atau nominal transaksi.'"></p>
                                             </div>
                                             <div>
                                                 <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Stok sesuai satuan</label>
-                                                <input name="stock" type="number" step="0.001" value="{{ old('stock', $product->stock) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
+                                                <input name="stock" type="number" step="0.001" value="{{ old('stock', $product->stock) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium" :disabled="pricingRule === 'discount' || pricingRule === 'fee'">
                                             </div>
-                                            <div class="sm:col-span-2">
-                                                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Batas gratis opsional</label>
-                                                <input name="free_quantity" type="number" step="0.001" value="{{ old('free_quantity', $product->free_quantity) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
-                                                <p class="mt-1 text-xs text-slate-500">Rule tetap per transaksi. Jika jumlah melewati batas, seluruh jumlah ditagih. Contoh batas 100ml: 100ml = Rp0, 150ml = 150ml x harga/ml.</p>
+                                            <div class="sm:col-span-2 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
+                                                <label class="text-xs font-semibold uppercase tracking-wide text-blue-700">Aturan harga</label>
+                                                <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                                                    @foreach ($pricingRuleOptions as $value => $option)
+                                                        <label class="flex cursor-pointer gap-3 rounded-xl border bg-white p-3 text-sm transition" :class="pricingRule === '{{ $value }}' ? 'border-blue-300 ring-2 ring-blue-100' : 'border-slate-200 hover:border-slate-300'">
+                                                            <input type="radio" name="pricing_rule" value="{{ $value }}" x-model="pricingRule" class="mt-1 border-slate-300 text-blue-600">
+                                                            <span>
+                                                                <span class="block font-semibold text-slate-950">{{ $option['label'] }}</span>
+                                                                <span class="mt-1 block text-xs leading-5 text-slate-500">{{ $option['description'] }}</span>
+                                                            </span>
+                                                        </label>
+                                                    @endforeach
+                                                </div>
+                                                <div class="mt-4" x-show="pricingRule === 'free_threshold'">
+                                                    <label class="text-xs font-semibold uppercase tracking-wide text-blue-700">Batas gratis</label>
+                                                    <input name="free_quantity" type="number" step="0.001" value="{{ old('free_quantity', $product->free_quantity) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium" :disabled="pricingRule !== 'free_threshold'">
+                                                    <p class="mt-1 text-xs text-slate-500">Rule tetap per transaksi. Jika jumlah melewati batas, seluruh jumlah ditagih. Contoh batas 100ml: 100ml = Rp0, 150ml = 150ml x harga/ml.</p>
+                                                </div>
                                             </div>
                                             <div class="sm:col-span-2">
                                                 <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Ganti foto opsional</label>

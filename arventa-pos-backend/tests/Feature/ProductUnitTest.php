@@ -113,10 +113,11 @@ class ProductUnitTest extends TestCase
         $response = $this->from('/admin/products')->post('/admin/products', [
             'name' => 'Diskon Member',
             'sku' => 'DISC-MEMBER',
-            'type' => 'discount',
-            'unit' => 'trx',
-            'price' => -5000,
-            'stock' => null,
+            'type' => 'product',
+            'pricing_rule' => 'discount',
+            'unit' => 'pcs',
+            'price' => 5000,
+            'stock' => 10,
             'is_active' => 1,
         ]);
 
@@ -126,6 +127,7 @@ class ProductUnitTest extends TestCase
             'type' => 'discount',
             'unit' => 'trx',
             'price' => -5000,
+            'stock' => null,
         ]);
     }
 

@@ -523,6 +523,8 @@ fun PosScreen(
     val scope = rememberCoroutineScope()
     val setting = state.setting
     val items = state.items
+    val saleItems = remember(items) { items.filterNot { it.type == "discount" } }
+    val discountItems = remember(items) { items.filter { it.type == "discount" && it.price < 0.0 } }
     val cart = remember { mutableStateMapOf<Int, Double>() }
     val subtotal = cart.entries.sumOf { (id, qty) -> items.firstOrNull { it.id == id }?.let { catalogLineTotal(it, qty) } ?: 0.0 }
     val chargeableSubtotal = subtotal.coerceAtLeast(0.0)
@@ -603,14 +605,14 @@ fun PosScreen(
             } else {
                 if (useSideCart) {
                     Row(Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        ProductCatalog(setting, items, cart, Modifier.weight(1f).fillMaxSize())
-                        CartPanel(setting, items, cart, subtotal, tax, service, total, checkoutLines.isNotEmpty(), openCheckout, Modifier.width(260.dp))
+                        ProductCatalog(setting, saleItems, cart, Modifier.weight(1f).fillMaxSize())
+                        CartPanel(setting, items, discountItems, cart, subtotal, tax, service, total, checkoutLines.isNotEmpty(), openCheckout, Modifier.width(260.dp))
                     }
                 } else {
                     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        ProductCatalog(setting, items, cart, Modifier.weight(1f))
+                        ProductCatalog(setting, saleItems, cart, Modifier.weight(1f))
                         if (setting.showCart) {
-                            CartPanel(setting, items, cart, subtotal, tax, service, total, checkoutLines.isNotEmpty(), openCheckout, Modifier.fillMaxWidth())
+                            CartPanel(setting, items, discountItems, cart, subtotal, tax, service, total, checkoutLines.isNotEmpty(), openCheckout, Modifier.fillMaxWidth())
                         }
                     }
                 }
@@ -1089,7 +1091,8 @@ private fun CustomQuantityDialog(
 private fun CartPanel(
     setting: StoreSetting,
     items: List<PosItem>,
-    cart: Map<Int, Double>,
+    discountItems: List<PosItem>,
+    cart: MutableMap<Int, Double>,
     subtotal: Double,
     tax: Double,
     service: Double,
@@ -1099,19 +1102,43 @@ private fun CartPanel(
     modifier: Modifier = Modifier,
 ) {
     val selected = cart.entries.mapNotNull { (id, qty) -> items.firstOrNull { it.id == id }?.let { it to qty } }
+    var discountDialogOpen by remember { mutableStateOf(false) }
     Card(modifier = modifier, shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Cart", color = setting.textColor, fontWeight = FontWeight.Bold)
                 Text("${formatQuantity(selected.sumOf { it.second })} item", color = setting.secondaryTextColor)
             }
+            if (discountItems.isNotEmpty()) {
+                OutlinedButton(
+                    onClick = { discountDialogOpen = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = setting.themeColor),
+                    border = BorderStroke(1.dp, setting.themeColor.copy(alpha = 0.24f)),
+                ) {
+                    Text("Diskon")
+                }
+            }
             if (selected.isEmpty()) {
                 Text("Belum ada item dipilih", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
             } else {
-                selected.take(3).forEach { (item, qty) ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-                        Text("${formatQuantity(qty)} ${item.unit} x ${item.name}", color = setting.secondaryTextColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                        Text(formatRupiah(catalogLineTotal(item, qty)), color = setting.priceTextColor, fontWeight = FontWeight.SemiBold)
+                selected.forEach { (item, qty) ->
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+                            Text("${formatQuantity(qty)} ${item.unit} x ${item.name}", color = setting.secondaryTextColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                            Text(formatRupiah(catalogLineTotal(item, qty)), color = setting.priceTextColor, fontWeight = FontWeight.SemiBold)
+                        }
+                        if (item.type == "discount") {
+                            TextButton(
+                                onClick = { cart.remove(item.id) },
+                                contentPadding = PaddingValues(0.dp),
+                                modifier = Modifier.height(28.dp),
+                                colors = ButtonDefaults.textButtonColors(contentColor = setting.secondaryTextColor),
+                            ) {
+                                Text("Hapus diskon", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
                     }
                 }
             }
@@ -1125,6 +1152,51 @@ private fun CartPanel(
                 CheckoutActionButton(setting, canCheckout, onCheckout, Modifier.fillMaxWidth(), "Checkout")
             }
         }
+    }
+    if (discountDialogOpen) {
+        AlertDialog(
+            onDismissRequest = { discountDialogOpen = false },
+            containerColor = Color.White,
+            title = { Text("Pilih Diskon", color = setting.textColor, fontWeight = FontWeight.Bold) },
+            text = {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(discountItems) { discount ->
+                        val applied = cart.containsKey(discount.id)
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    cart[discount.id] = 1.0
+                                    discountDialogOpen = false
+                                },
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (applied) setting.themeColor.copy(alpha = 0.08f) else Color(0xFFF8FAFC),
+                            border = BorderStroke(1.dp, if (applied) setting.themeColor.copy(alpha = 0.35f) else Color(0xFFE2E8F0)),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(discount.name, color = setting.textColor, fontWeight = FontWeight.SemiBold)
+                                    Text(if (applied) "Sudah masuk cart" else "Tap untuk pakai diskon", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
+                                }
+                                Text(formatRupiah(discount.price), color = setting.priceTextColor, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { discountDialogOpen = false },
+                    colors = ButtonDefaults.textButtonColors(contentColor = setting.secondaryTextColor),
+                ) {
+                    Text("Tutup")
+                }
+            },
+        )
     }
 }
 
