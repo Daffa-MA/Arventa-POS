@@ -2128,7 +2128,8 @@ private fun catalogLineTotal(item: PosItem, quantity: Double): Double {
 }
 
 private fun catalogChargedQuantity(item: PosItem, quantity: Double): Double {
-    return (quantity - (item.freeQuantity ?: 0.0)).coerceAtLeast(0.0)
+    val freeQuantity = item.freeQuantity ?: 0.0
+    return if (freeQuantity > 0.0 && quantity <= freeQuantity) 0.0 else quantity
 }
 
 private fun checkoutRuleDescription(line: CheckoutLine): String? {

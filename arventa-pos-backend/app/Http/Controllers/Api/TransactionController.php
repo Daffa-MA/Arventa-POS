@@ -38,7 +38,9 @@ class TransactionController extends Controller
 
             if ($productId) {
                 $product = $products[$productId];
-                $paidQuantity = max(0, (float) $item['quantity'] - (float) ($product->free_quantity ?? 0));
+                $quantity = (float) $item['quantity'];
+                $freeQuantity = (float) ($product->free_quantity ?? 0);
+                $paidQuantity = $freeQuantity > 0 && $quantity <= $freeQuantity ? 0 : $quantity;
                 $lineTotal = (float) $product->price * $paidQuantity;
 
                 if ($product->stock !== null && (float) $product->stock < (float) $item['quantity']) {

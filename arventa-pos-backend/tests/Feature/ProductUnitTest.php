@@ -206,7 +206,7 @@ class ProductUnitTest extends TestCase
         ]);
     }
 
-    public function test_transaction_charges_only_quantity_above_free_quantity(): void
+    public function test_transaction_charges_full_quantity_once_above_free_quantity(): void
     {
         $this->seed();
 
@@ -235,21 +235,65 @@ class ProductUnitTest extends TestCase
                 'items' => [
                     ['product_id' => $product->id, 'quantity' => 150],
                 ],
-                'paid_amount' => 6000,
+                'paid_amount' => 20000,
                 'payment_method' => 'cash',
             ]);
 
         $response->assertCreated()
-            ->assertJsonPath('sale.subtotal', '5000.00')
-            ->assertJsonPath('sale.grand_total', '5550.00');
+            ->assertJsonPath('sale.subtotal', '15000.00')
+            ->assertJsonPath('sale.grand_total', '16650.00');
 
         $this->assertDatabaseHas('sale_items', [
             'product_id' => $product->id,
             'unit' => 'ml',
             'unit_price' => 100,
             'quantity' => 150,
-            'line_total' => 5000,
+            'line_total' => 15000,
         ]);
         $this->assertEquals(850.0, (float) $product->refresh()->stock);
+    }
+
+    public function test_transaction_keeps_line_free_at_or_below_free_quantity(): void
+    {
+        $this->seed();
+
+        $cashier = User::query()->create([
+            'name' => 'Kasir Free',
+            'email' => 'kasir-free@example.test',
+            'username' => 'kasir_free',
+            'password' => bcrypt('password'),
+            'role' => 'cashier',
+            'is_active' => true,
+        ]);
+
+        $product = Product::query()->create([
+            'name' => 'Alkohol Parfum',
+            'type' => 'product',
+            'unit' => 'ml',
+            'price' => 100,
+            'stock' => 1000,
+            'free_quantity' => 100,
+            'is_active' => true,
+        ]);
+
+        $response = $this
+            ->actingAs($cashier, 'sanctum')
+            ->postJson('/api/transactions', [
+                'items' => [
+                    ['product_id' => $product->id, 'quantity' => 100],
+                ],
+                'paid_amount' => 0,
+                'payment_method' => 'cash',
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('sale.subtotal', '0.00')
+            ->assertJsonPath('sale.grand_total', '0.00');
+
+        $this->assertDatabaseHas('sale_items', [
+            'product_id' => $product->id,
+            'quantity' => 100,
+            'line_total' => 0,
+        ]);
     }
 }
