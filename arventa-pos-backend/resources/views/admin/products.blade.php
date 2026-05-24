@@ -124,12 +124,16 @@
                         <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Stok</label>
                         <input name="stock" type="number" step="0.001" value="{{ old('stock') }}" placeholder="Kosongkan untuk layanan" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium" :disabled="pricingRule === 'discount' || pricingRule === 'fee'">
                     </div>
-                    <div class="sm:col-span-2 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
-                        <label class="text-xs font-semibold uppercase tracking-wide text-blue-700">Aturan harga</label>
+                    <div class="sm:col-span-2 rounded-2xl border p-4" style="border-color: color-mix(in srgb, var(--accent) 16%, #e2e8f0); background-color: color-mix(in srgb, var(--accent) 5%, #ffffff);">
+                        <label class="text-xs font-semibold uppercase tracking-wide" style="color: var(--accent)">Aturan harga</label>
                         <div class="mt-3 grid gap-2 sm:grid-cols-2">
                             @foreach ($pricingRuleOptions as $value => $option)
-                                <label class="flex cursor-pointer gap-3 rounded-xl border bg-white p-3 text-sm transition" :class="pricingRule === '{{ $value }}' ? 'border-blue-300 ring-2 ring-blue-100' : 'border-slate-200 hover:border-slate-300'">
-                                    <input type="radio" name="pricing_rule" value="{{ $value }}" x-model="pricingRule" class="mt-1 border-slate-300 text-blue-600">
+                                <label
+                                    class="flex cursor-pointer gap-3 rounded-xl border bg-white p-3 text-sm transition"
+                                    :class="pricingRule === '{{ $value }}' ? '' : 'border-slate-200 hover:border-slate-300'"
+                                    :style="pricingRule === '{{ $value }}' ? 'border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent); background-color: color-mix(in srgb, var(--accent) 4%, #ffffff)' : ''"
+                                >
+                                    <input type="radio" name="pricing_rule" value="{{ $value }}" x-model="pricingRule" class="mt-1 border-slate-300" style="accent-color: var(--accent)">
                                     <span>
                                         <span class="block font-semibold text-slate-950">{{ $option['label'] }}</span>
                                         <span class="mt-1 block text-xs leading-5 text-slate-500">{{ $option['description'] }}</span>
@@ -138,15 +142,15 @@
                             @endforeach
                         </div>
                         <div class="mt-4" x-show="pricingRule === 'free_threshold'">
-                            <label class="text-xs font-semibold uppercase tracking-wide text-blue-700">Batas gratis</label>
+                            <label class="text-xs font-semibold uppercase tracking-wide" style="color: var(--accent)">Batas gratis</label>
                             <input name="free_quantity" type="number" step="0.001" value="{{ old('free_quantity') }}" placeholder="Contoh: 100 untuk gratis sampai 100ml" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium" :disabled="pricingRule !== 'free_threshold'">
-                            <p class="mt-2 text-xs leading-5 text-blue-700">Jika jumlah transaksi masih di bawah atau sama dengan batas ini, item menjadi Rp0. Jika melewati batas, seluruh jumlah ditagih.</p>
+                            <p class="mt-2 text-xs leading-5 text-slate-600">Jika jumlah transaksi masih di bawah atau sama dengan batas ini, item menjadi Rp0. Jika melewati batas, seluruh jumlah ditagih.</p>
                             <p class="mt-1 text-xs leading-5 text-slate-500">Contoh: harga Rp1.000/ml, batas gratis 100ml. Input 100ml = Rp0, input 150ml = Rp150.000.</p>
                         </div>
                         @error('free_quantity')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                     </div>
                     <label class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-700 sm:col-span-2">
-                        <input type="checkbox" name="is_active" value="1" class="rounded border-slate-300 text-blue-600" checked>
+                        <input type="checkbox" name="is_active" value="1" class="rounded border-slate-300" style="accent-color: var(--accent)" checked>
                         Aktif dan tampil di aplikasi kasir
                     </label>
                 </div>
@@ -185,7 +189,7 @@
                         </thead>
                         <tbody class="divide-y divide-slate-100" x-data="{ editing: null }">
                             @foreach ($products as $product)
-                                <tr class="transition hover:bg-blue-50/60">
+                                <tr class="transition hover:bg-slate-50">
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-3">
                                             <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 text-slate-400 ring-1 ring-slate-200">
@@ -199,7 +203,7 @@
                                                 <p class="font-semibold text-slate-950">{{ $product->name }}</p>
                                                 <p class="text-xs text-slate-500">{{ $product->sku ?: 'Tanpa SKU' }}</p>
                                                 @if ($product->free_quantity !== null && (float) $product->free_quantity > 0)
-                                                    <p class="mt-0.5 text-xs font-medium text-blue-600">Gratis sampai {{ rtrim(rtrim(number_format((float) $product->free_quantity, 3, ',', '.'), '0'), ',') }} {{ $unitOptions[$product->unit] ?? $product->unit }}</p>
+                                                    <p class="mt-0.5 text-xs font-medium" style="color: var(--accent)">Gratis sampai {{ rtrim(rtrim(number_format((float) $product->free_quantity, 3, ',', '.'), '0'), ',') }} {{ $unitOptions[$product->unit] ?? $product->unit }}</p>
                                                 @endif
                                             </div>
                                         </div>
@@ -275,12 +279,16 @@
                                                 <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Stok sesuai satuan</label>
                                                 <input name="stock" type="number" step="0.001" value="{{ old('stock', $product->stock) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium" :disabled="pricingRule === 'discount' || pricingRule === 'fee'">
                                             </div>
-                                            <div class="sm:col-span-2 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
-                                                <label class="text-xs font-semibold uppercase tracking-wide text-blue-700">Aturan harga</label>
+                                            <div class="sm:col-span-2 rounded-2xl border p-4" style="border-color: color-mix(in srgb, var(--accent) 16%, #e2e8f0); background-color: color-mix(in srgb, var(--accent) 5%, #ffffff);">
+                                                <label class="text-xs font-semibold uppercase tracking-wide" style="color: var(--accent)">Aturan harga</label>
                                                 <div class="mt-3 grid gap-2 sm:grid-cols-2">
                                                     @foreach ($pricingRuleOptions as $value => $option)
-                                                        <label class="flex cursor-pointer gap-3 rounded-xl border bg-white p-3 text-sm transition" :class="pricingRule === '{{ $value }}' ? 'border-blue-300 ring-2 ring-blue-100' : 'border-slate-200 hover:border-slate-300'">
-                                                            <input type="radio" name="pricing_rule" value="{{ $value }}" x-model="pricingRule" class="mt-1 border-slate-300 text-blue-600">
+                                                        <label
+                                                            class="flex cursor-pointer gap-3 rounded-xl border bg-white p-3 text-sm transition"
+                                                            :class="pricingRule === '{{ $value }}' ? '' : 'border-slate-200 hover:border-slate-300'"
+                                                            :style="pricingRule === '{{ $value }}' ? 'border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent); background-color: color-mix(in srgb, var(--accent) 4%, #ffffff)' : ''"
+                                                        >
+                                                            <input type="radio" name="pricing_rule" value="{{ $value }}" x-model="pricingRule" class="mt-1 border-slate-300" style="accent-color: var(--accent)">
                                                             <span>
                                                                 <span class="block font-semibold text-slate-950">{{ $option['label'] }}</span>
                                                                 <span class="mt-1 block text-xs leading-5 text-slate-500">{{ $option['description'] }}</span>
@@ -289,7 +297,7 @@
                                                     @endforeach
                                                 </div>
                                                 <div class="mt-4" x-show="pricingRule === 'free_threshold'">
-                                                    <label class="text-xs font-semibold uppercase tracking-wide text-blue-700">Batas gratis</label>
+                                                    <label class="text-xs font-semibold uppercase tracking-wide" style="color: var(--accent)">Batas gratis</label>
                                                     <input name="free_quantity" type="number" step="0.001" value="{{ old('free_quantity', $product->free_quantity) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium" :disabled="pricingRule !== 'free_threshold'">
                                                     <p class="mt-1 text-xs text-slate-500">Rule tetap per transaksi. Jika jumlah melewati batas, seluruh jumlah ditagih. Contoh batas 100ml: 100ml = Rp0, 150ml = 150ml x harga/ml.</p>
                                                 </div>
@@ -299,7 +307,7 @@
                                                 <input name="image" type="file" accept="image/jpeg,image/png,image/webp" class="mt-1 w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-950 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white">
                                             </div>
                                             <label class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-700">
-                                                <input type="checkbox" name="is_active" value="1" class="rounded border-slate-300 text-blue-600" @checked(old('is_active', $product->is_active))>
+                                                <input type="checkbox" name="is_active" value="1" class="rounded border-slate-300" style="accent-color: var(--accent)" @checked(old('is_active', $product->is_active))>
                                                 Aktif
                                             </label>
                                             <div class="flex justify-end gap-2">
