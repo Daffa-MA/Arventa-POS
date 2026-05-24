@@ -6,6 +6,7 @@ COPY arventa-pos-backend/package*.json ./
 RUN npm ci
 
 ARG CAPROVER_GIT_COMMIT_SHA=local
+ENV ARVENTA_BUILD_SHA=${CAPROVER_GIT_COMMIT_SHA}
 RUN echo "$CAPROVER_GIT_COMMIT_SHA" > /tmp/caprover-git-sha
 
 COPY arventa-pos-backend/resources ./resources
