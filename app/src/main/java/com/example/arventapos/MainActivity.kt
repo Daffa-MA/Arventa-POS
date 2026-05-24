@@ -62,7 +62,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -520,11 +519,8 @@ fun PosScreen(
     val scope = rememberCoroutineScope()
     val setting = state.setting
     val items = state.items
-    val customItems = remember { mutableStateListOf<PosItem>() }
-    var nextCustomItemId by remember { mutableStateOf(-1) }
-    val allItems = items + customItems
     val cart = remember { mutableStateMapOf<Int, Double>() }
-    val subtotal = cart.entries.sumOf { (id, qty) -> ((allItems.firstOrNull { it.id == id }?.price ?: 0).toDouble()) * qty }
+    val subtotal = cart.entries.sumOf { (id, qty) -> ((items.firstOrNull { it.id == id }?.price ?: 0).toDouble()) * qty }
     val tax = subtotal * setting.taxRate / 100
     val service = subtotal * setting.serviceChargeRate / 100
     val total = subtotal + tax + service
@@ -538,23 +534,9 @@ fun PosScreen(
     var printerSetupOpen by remember { mutableStateOf(false) }
 
     val checkoutLines = cart.entries.mapNotNull { (id, qty) ->
-        allItems.firstOrNull { it.id == id }?.let { item ->
-            CheckoutLine(if (item.id > 0) item.id else null, item.name, item.unit, item.price, qty)
+        items.firstOrNull { it.id == id }?.let { item ->
+            CheckoutLine(item.id, item.name, item.unit, item.price, qty)
         }
-    }
-    val addCustomItem: (String, Int, String, Double) -> Unit = { name, price, unit, quantity ->
-        val item = PosItem(
-            id = nextCustomItemId--,
-            name = name,
-            sku = null,
-            type = "custom",
-            unit = unit,
-            price = price,
-            stock = null,
-            imageUrl = null,
-        )
-        customItems.add(item)
-        cart[item.id] = normalizeQuantity(quantity)
     }
     val openCheckout: () -> Unit = {
         if (checkoutLines.isNotEmpty()) {
@@ -607,14 +589,14 @@ fun PosScreen(
             } else {
                 if (useSideCart) {
                     Row(Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        ProductCatalog(setting, allItems, cart, addCustomItem, Modifier.weight(1f).fillMaxSize())
-                        CartPanel(setting, allItems, cart, subtotal, tax, service, total, openCheckout, Modifier.width(260.dp))
+                        ProductCatalog(setting, items, cart, Modifier.weight(1f).fillMaxSize())
+                        CartPanel(setting, items, cart, subtotal, tax, service, total, openCheckout, Modifier.width(260.dp))
                     }
                 } else {
                     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        ProductCatalog(setting, allItems, cart, addCustomItem, Modifier.weight(1f))
+                        ProductCatalog(setting, items, cart, Modifier.weight(1f))
                         if (setting.showCart) {
-                            CartPanel(setting, allItems, cart, subtotal, tax, service, total, openCheckout, Modifier.fillMaxWidth())
+                            CartPanel(setting, items, cart, subtotal, tax, service, total, openCheckout, Modifier.fillMaxWidth())
                         }
                     }
                 }
@@ -763,7 +745,6 @@ private fun ProductCatalog(
     setting: StoreSetting,
     items: List<PosItem>,
     cart: MutableMap<Int, Double>,
-    onAddCustomItem: (String, Int, String, Double) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val addItem = { item: PosItem ->
@@ -786,7 +767,6 @@ private fun ProductCatalog(
         }
     }
     var searchQuery by remember { mutableStateOf("") }
-    var customDialogOpen by remember { mutableStateOf(false) }
     val visibleItems = remember(items, searchQuery) {
         val query = searchQuery.trim()
         if (query.isBlank()) {
@@ -801,11 +781,8 @@ private fun ProductCatalog(
     }
 
     Column(modifier) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("Produk & Layanan", color = setting.textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            OutlinedButton(onClick = { customDialogOpen = true }, shape = RoundedCornerShape(999.dp)) {
-                Text("Item Custom")
-            }
         }
         if (setting.showSearch) {
             SearchField(
@@ -819,24 +796,12 @@ private fun ProductCatalog(
         }
 
         if (items.isEmpty()) {
-            EmptyCatalog(Modifier.fillMaxSize(), "Belum ada item", "Tambahkan produk dari web admin atau gunakan Item Custom.")
-            if (customDialogOpen) {
-                CustomItemDialog(setting, { customDialogOpen = false }) { name, price, unit, quantity ->
-                    onAddCustomItem(name, price, unit, quantity)
-                    customDialogOpen = false
-                }
-            }
+            EmptyCatalog(Modifier.fillMaxSize(), "Belum ada item", "Tambahkan produk dari web admin.")
             return
         }
 
         if (visibleItems.isEmpty()) {
-            EmptyCatalog(Modifier.fillMaxSize(), "Item tidak ditemukan", "Coba kata kunci lain atau gunakan Item Custom.")
-            if (customDialogOpen) {
-                CustomItemDialog(setting, { customDialogOpen = false }) { name, price, unit, quantity ->
-                    onAddCustomItem(name, price, unit, quantity)
-                    customDialogOpen = false
-                }
-            }
+            EmptyCatalog(Modifier.fillMaxSize(), "Item tidak ditemukan", "Coba kata kunci lain.")
             return
         }
 
@@ -861,114 +826,7 @@ private fun ProductCatalog(
                 }
             }
         }
-        if (customDialogOpen) {
-            CustomItemDialog(setting, { customDialogOpen = false }) { name, price, unit, quantity ->
-                onAddCustomItem(name, price, unit, quantity)
-                customDialogOpen = false
-            }
-        }
     }
-}
-
-@Composable
-private fun CustomItemDialog(
-    setting: StoreSetting,
-    onDismiss: () -> Unit,
-    onSave: (String, Int, String, Double) -> Unit,
-) {
-    var name by remember { mutableStateOf("") }
-    var priceInput by remember { mutableStateOf("") }
-    var unit by remember { mutableStateOf("pcs") }
-    var quantityInput by remember { mutableStateOf("1") }
-    var error by remember { mutableStateOf<String?>(null) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = Color.White,
-        titleContentColor = setting.textColor,
-        textContentColor = setting.textColor,
-        title = { Text("Item Custom", color = setting.textColor, fontWeight = FontWeight.Bold) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = {
-                        name = it
-                        error = null
-                    },
-                    label = { Text("Nama item") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = priceInput,
-                    onValueChange = {
-                        priceInput = it.filter { char -> char.isDigit() }
-                        error = null
-                    },
-                    label = { Text("Harga") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = unit,
-                        onValueChange = {
-                            unit = it.take(20)
-                            error = null
-                        },
-                        label = { Text("Satuan") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                    )
-                    OutlinedTextField(
-                        value = quantityInput,
-                        onValueChange = {
-                            quantityInput = it
-                            error = null
-                        },
-                        label = { Text("Jumlah") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                error?.let {
-                    Text(it, color = Color(0xFFDC2626), style = MaterialTheme.typography.bodySmall)
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val price = priceInput.toIntOrNull()
-                    val quantity = quantityInput.trim().replace(',', '.').toDoubleOrNull()
-                    when {
-                        name.trim().isBlank() -> error = "Nama item wajib diisi."
-                        price == null || price <= 0 -> error = "Harga harus lebih dari 0."
-                        unit.trim().isBlank() -> error = "Satuan wajib diisi."
-                        quantity == null || quantity <= 0.0 -> error = "Jumlah harus lebih dari 0."
-                        else -> onSave(name.trim(), price, unit.trim(), normalizeQuantity(quantity))
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = setting.themeColor,
-                    contentColor = bestContentColor(setting.themeColor),
-                ),
-            ) {
-                Text("Tambah")
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                colors = ButtonDefaults.textButtonColors(contentColor = setting.secondaryTextColor),
-            ) {
-                Text("Batal")
-            }
-        },
-    )
 }
 
 @Composable
