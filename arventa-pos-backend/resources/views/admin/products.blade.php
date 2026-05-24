@@ -25,7 +25,7 @@
     <section class="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
         <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 class="text-lg font-semibold text-slate-950">Tambah Item Katalog</h2>
-            <p class="mt-1 text-sm leading-6 text-slate-500">Gunakan tipe Diskon dengan harga minus, atau isi Gratis sampai untuk rule mutlak seperti alkohol gratis sampai 100ml dan sisanya berbayar.</p>
+            <p class="mt-1 text-sm leading-6 text-slate-500">Gunakan tipe Diskon dengan harga minus, atau isi Batas Gratis untuk rule mutlak seperti alkohol gratis sampai 100ml.</p>
             <form
                 method="post"
                 action="{{ route('admin.products.store') }}"
@@ -95,10 +95,11 @@
                         <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Stok</label>
                         <input name="stock" type="number" step="0.001" value="{{ old('stock') }}" placeholder="Kosongkan untuk layanan" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
                     </div>
-                    <div class="sm:col-span-2">
-                        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Gratis sampai</label>
+                    <div class="sm:col-span-2 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
+                        <label class="text-xs font-semibold uppercase tracking-wide text-blue-700">Batas gratis opsional</label>
                         <input name="free_quantity" type="number" step="0.001" value="{{ old('free_quantity') }}" placeholder="Contoh: 100 untuk gratis sampai 100ml" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
-                        <p class="mt-1 text-xs text-slate-500">Kosongkan untuk harga normal. Ini rule tetap per transaksi, bukan kuota yang habis. Harga hanya dihitung untuk jumlah di atas batas ini.</p>
+                        <p class="mt-2 text-xs leading-5 text-blue-700">Kosongkan untuk harga normal. Jika jumlah transaksi masih di bawah atau sama dengan batas ini, item menjadi Rp0. Jika melewati batas, seluruh jumlah ditagih.</p>
+                        <p class="mt-1 text-xs leading-5 text-slate-500">Contoh: harga Rp1.000/ml, batas gratis 100ml. Input 100ml = Rp0, input 150ml = Rp150.000.</p>
                         @error('free_quantity')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                     </div>
                     <label class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-700 sm:col-span-2">
@@ -219,9 +220,9 @@
                                                 <input name="stock" type="number" step="0.001" value="{{ old('stock', $product->stock) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
                                             </div>
                                             <div class="sm:col-span-2">
-                                                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Gratis sampai</label>
+                                                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Batas gratis opsional</label>
                                                 <input name="free_quantity" type="number" step="0.001" value="{{ old('free_quantity', $product->free_quantity) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
-                                                <p class="mt-1 text-xs text-slate-500">Contoh alkohol: isi 100, satuan ml, harga per ml. Ini rule tetap per transaksi; transaksi 150ml hanya ditagih 50ml.</p>
+                                                <p class="mt-1 text-xs text-slate-500">Rule tetap per transaksi. Jika jumlah melewati batas, seluruh jumlah ditagih. Contoh batas 100ml: 100ml = Rp0, 150ml = 150ml x harga/ml.</p>
                                             </div>
                                             <div class="sm:col-span-2">
                                                 <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Ganti foto opsional</label>
