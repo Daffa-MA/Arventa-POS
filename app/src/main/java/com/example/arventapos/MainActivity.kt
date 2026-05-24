@@ -28,15 +28,19 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -45,6 +49,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -314,6 +320,17 @@ private fun PairingScreen(onConnected: (PairingSession) -> Unit) {
             message = "Izin kamera dibutuhkan untuk scan QR pairing."
         }
     }
+    val fieldColors = TextFieldDefaults.colors(
+        focusedTextColor = Color(0xFF0F172A),
+        unfocusedTextColor = Color(0xFF0F172A),
+        focusedLabelColor = Color(0xFF0F172A),
+        unfocusedLabelColor = Color(0xFF64748B),
+        focusedContainerColor = Color.White,
+        unfocusedContainerColor = Color.White,
+        focusedIndicatorColor = Color(0xFF0F172A),
+        unfocusedIndicatorColor = Color(0xFFE2E8F0),
+        cursorColor = Color(0xFF0F172A),
+    )
 
     fun connect(input: String) {
         loading = true
@@ -330,20 +347,40 @@ private fun PairingScreen(onConnected: (PairingSession) -> Unit) {
     }
 
     Surface(color = Color(0xFFF8FAFC), modifier = Modifier.fillMaxSize()) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.Center,
+                .padding(20.dp),
+            contentAlignment = Alignment.Center,
         ) {
-            Text("Arventa POS", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            Text(
-                "Hubungkan app kasir dengan web admin memakai kode 6 digit atau payload QR dari menu Perangkat Kasir.",
-                color = Color(0xFF64748B),
-                modifier = Modifier.padding(top = 8.dp, bottom = 24.dp),
-            )
-            Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp)) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier
+                    .widthIn(max = 540.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .background(Color(0xFF0F172A), RoundedCornerShape(12.dp)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("A", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text("Arventa POS", color = Color(0xFF0F172A), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Text("Pairing perangkat kasir", color = Color(0xFF64748B), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+                Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(22.dp), elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)) {
+                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        "Scan QR dari menu Perangkat Kasir, atau masukkan kode pairing manual.",
+                        color = Color(0xFF475569),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                     if (scannerOpen) {
                         QrPairingScanner(
                             onScanned = { payload ->
@@ -359,6 +396,7 @@ private fun PairingScreen(onConnected: (PairingSession) -> Unit) {
                         onValueChange = { baseUrl = it },
                         label = { Text("Base URL web admin") },
                         singleLine = true,
+                        colors = fieldColors,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     OutlinedTextField(
@@ -366,6 +404,7 @@ private fun PairingScreen(onConnected: (PairingSession) -> Unit) {
                         onValueChange = { pairingInput = it },
                         label = { Text("Kode pairing atau isi QR") },
                         minLines = 2,
+                        colors = fieldColors,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     OutlinedButton(
@@ -379,6 +418,9 @@ private fun PairingScreen(onConnected: (PairingSession) -> Unit) {
                         },
                         enabled = !loading,
                         modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF0F172A)),
                     ) {
                         Text(if (scannerOpen) "Arahkan kamera ke QR" else "Scan QR Pairing")
                     }
@@ -388,21 +430,34 @@ private fun PairingScreen(onConnected: (PairingSession) -> Unit) {
                         },
                         enabled = !loading && pairingInput.isNotBlank(),
                         modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF0F172A),
+                            contentColor = Color.White,
+                            disabledContainerColor = Color(0xFFCBD5E1),
+                            disabledContentColor = Color.White,
+                        ),
                     ) {
                         if (loading) {
-                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White)
                             Spacer(Modifier.width(8.dp))
                         }
                         Text(if (loading) "Menghubungkan..." else "Hubungkan Perangkat")
                     }
                     message?.let {
-                        Text(it, color = Color(0xFFDC2626), style = MaterialTheme.typography.bodySmall)
+                        Surface(color = Color(0xFFFEF2F2), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Color(0xFFFECACA))) {
+                            Text(it, color = Color(0xFFB91C1C), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(10.dp))
+                        }
                     }
-                    Text(
-                        "Gunakan https://arventa.arventa.my.id untuk server production. Untuk backend lokal di emulator, pakai http://10.0.2.2:8000.",
-                        color = Color(0xFF64748B),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                    Surface(color = Color(0xFFF8FAFC), shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, Color(0xFFE2E8F0))) {
+                        Text(
+                            "Production: https://arventa.arventa.my.id\nEmulator lokal: http://10.0.2.2:8000",
+                            color = Color(0xFF64748B),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(12.dp),
+                        )
+                    }
+                    }
                 }
             }
         }
@@ -603,16 +658,31 @@ fun PosScreen(
             } else if (state.error != null) {
                 ErrorState(state.error, onRefresh, Modifier.align(Alignment.Center))
             } else {
-                if (useSideCart) {
-                    Row(Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        ProductCatalog(setting, saleItems, cart, Modifier.weight(1f).fillMaxSize())
-                        CartPanel(setting, items, discountItems, cart, subtotal, tax, service, total, checkoutLines.isNotEmpty(), openCheckout, Modifier.width(260.dp))
+                BoxWithConstraints(Modifier.fillMaxSize()) {
+                    val contentPadding = if (maxWidth < 600.dp) 12.dp else 16.dp
+                    val contentUseSideCart = useSideCart && maxWidth >= 820.dp
+                    val cartWidth = when {
+                        maxWidth >= 1200.dp -> 320.dp
+                        maxWidth >= 980.dp -> 292.dp
+                        else -> 260.dp
                     }
-                } else {
-                    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        ProductCatalog(setting, saleItems, cart, Modifier.weight(1f))
-                        if (setting.showCart) {
-                            CartPanel(setting, items, discountItems, cart, subtotal, tax, service, total, checkoutLines.isNotEmpty(), openCheckout, Modifier.fillMaxWidth())
+                    val tileMinWidth = when {
+                        maxWidth >= 1200.dp -> 220.dp
+                        maxWidth >= 900.dp -> 190.dp
+                        else -> 156.dp
+                    }
+
+                    if (contentUseSideCart) {
+                        Row(Modifier.fillMaxSize().padding(contentPadding), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                            ProductCatalog(setting, saleItems, cart, Modifier.weight(1f).fillMaxSize(), tileMinWidth)
+                            CartPanel(setting, items, discountItems, cart, subtotal, tax, service, total, checkoutLines.isNotEmpty(), openCheckout, Modifier.width(cartWidth).fillMaxHeight())
+                        }
+                    } else {
+                        Column(Modifier.fillMaxSize().padding(contentPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            ProductCatalog(setting, saleItems, cart, Modifier.weight(1f), tileMinWidth)
+                            if (setting.showCart) {
+                                CartPanel(setting, items, discountItems, cart, subtotal, tax, service, total, checkoutLines.isNotEmpty(), openCheckout, Modifier.fillMaxWidth())
+                            }
                         }
                     }
                 }
@@ -669,30 +739,34 @@ fun PosScreen(
 
 @Composable
 private fun StoreHeader(setting: StoreSetting, cashierName: String, onRefresh: () -> Unit, onPrinterSetup: () -> Unit, onDisconnect: () -> Unit) {
+    val isCompact = LocalConfiguration.current.screenWidthDp < 520
     Surface(color = setting.themeColor, shadowElevation = 2.dp) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 18.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = if (isCompact) 12.dp else 16.dp, vertical = if (isCompact) 12.dp else 18.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier.size(34.dp).background(Color.White.copy(alpha = 0.18f), RoundedCornerShape(8.dp)),
+                modifier = Modifier.size(if (isCompact) 32.dp else 34.dp).background(Color.White.copy(alpha = 0.18f), RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center,
             ) { Text("A", color = Color.White, fontWeight = FontWeight.Bold) }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(if (isCompact) 8.dp else 12.dp))
             Column(Modifier.weight(1f)) {
                 Text(setting.storeName, color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(setting.businessType, color = Color.White.copy(alpha = 0.82f), style = MaterialTheme.typography.bodySmall)
+                if (!isCompact) {
+                    Text(setting.businessType, color = Color.White.copy(alpha = 0.82f), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
             }
             TextButton(
                 onClick = onRefresh,
                 colors = ButtonDefaults.textButtonColors(contentColor = Color.White),
+                contentPadding = PaddingValues(horizontal = if (isCompact) 8.dp else 12.dp),
             ) {
                 Text("Sync")
             }
             Box(
                 modifier = Modifier
-                    .padding(start = 2.dp, end = 8.dp)
-                    .size(36.dp)
+                    .padding(start = 2.dp, end = if (isCompact) 6.dp else 8.dp)
+                    .size(if (isCompact) 34.dp else 36.dp)
                     .clip(RoundedCornerShape(999.dp))
                     .background(Color.White.copy(alpha = 0.16f))
                     .clickable(onClick = onPrinterSetup),
@@ -702,7 +776,7 @@ private fun StoreHeader(setting: StoreSetting, cashierName: String, onRefresh: (
             }
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(if (isCompact) 34.dp else 36.dp)
                     .clip(RoundedCornerShape(999.dp))
                     .background(Color.White.copy(alpha = 0.16f))
                     .clickable(onClick = onDisconnect),
@@ -762,6 +836,7 @@ private fun ProductCatalog(
     items: List<PosItem>,
     cart: MutableMap<Int, Double>,
     modifier: Modifier = Modifier,
+    tileMinWidth: androidx.compose.ui.unit.Dp = 168.dp,
 ) {
     val addItem = { item: PosItem ->
         val step = quantityStep(item.unit)
@@ -823,7 +898,7 @@ private fun ProductCatalog(
 
         if (setting.appLayout == "grid") {
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 168.dp),
+                columns = GridCells.Adaptive(minSize = tileMinWidth),
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -919,14 +994,14 @@ private fun ProductRow(item: PosItem, quantity: Double, setting: StoreSetting, c
 
 @Composable
 private fun ProductTile(item: PosItem, quantity: Double, setting: StoreSetting, onAdd: () -> Unit, onRemove: () -> Unit, onSetQuantity: (Double) -> Unit) {
-    Card(shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.clickable(onClick = onAdd)) {
+    Card(shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth().heightIn(min = 170.dp).clickable(onClick = onAdd)) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (setting.productCardStyle == "image") {
                 ProductImage(item, setting, Modifier.fillMaxWidth().height(92.dp))
             }
             Text(item.name, color = setting.textColor, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text(productMeta(item, setting), color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
-            Text("${formatRupiah(item.price)} / ${item.unit}", color = setting.priceTextColor, fontWeight = FontWeight.Bold)
+            Text(productMeta(item, setting), color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text("${formatRupiah(item.price)} / ${item.unit}", color = setting.priceTextColor, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             QuantityStepper(quantity, item.unit, item.stock, setting, onAdd, onRemove, onSetQuantity)
         }
     }
@@ -1599,21 +1674,35 @@ private fun PrinterSetupDialog(setting: StoreSetting, onDismiss: () -> Unit) {
         textContentColor = setting.textColor,
         title = { Text("Printer Struk", color = setting.textColor, fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Pilih printer default di sini. Setelah itu tombol Cetak Struk akan langsung memakai printer aktif.", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
+            Column(
+                modifier = Modifier.widthIn(max = 560.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text("Pairing printer sekali di sini. Setelah aktif, tombol Cetak Struk akan langsung memakai printer ini.", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
                 selectedPrinter?.let { device ->
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = setting.themeColor.copy(alpha = 0.08f)),
-                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = setting.themeColor.copy(alpha = 0.09f)),
+                        shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("Printer aktif", color = setting.themeColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                            Text(device.name, color = setting.textColor, fontWeight = FontWeight.SemiBold)
-                            Text(device.address, color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
+                        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier.size(42.dp).background(setting.themeColor.copy(alpha = 0.12f), RoundedCornerShape(12.dp)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                PrinterGlyph(setting.themeColor)
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text("Printer aktif", color = setting.themeColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                                Text(device.name, color = setting.textColor, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(device.address, color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
+                            }
                         }
                     }
-                } ?: Text("Belum ada printer aktif.", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
+                } ?: Surface(color = Color(0xFFF8FAFC), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, Color(0xFFE2E8F0))) {
+                    Text("Belum ada printer aktif. Tekan Cari Printer, pilih perangkat, lalu Test untuk memastikan koneksi.", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(14.dp))
+                }
                 Button(
                     onClick = { ensurePermissionThen { startScan() } },
                     enabled = !scanning && !testing,
@@ -1624,24 +1713,41 @@ private fun PrinterSetupDialog(setting: StoreSetting, onDismiss: () -> Unit) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = bestContentColor(setting.themeColor))
                         Spacer(Modifier.width(8.dp))
                     }
-                    Text(if (scanning) "Mencari..." else "Cari Printer")
+                    Text(if (scanning) "Mencari Printer..." else "Cari Printer Bluetooth")
                 }
                 message?.let {
-                    Text(it, color = setting.themeColor, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                    val isError = it.contains("gagal", ignoreCase = true) ||
+                        it.contains("izin", ignoreCase = true) ||
+                        it.contains("Bluetooth belum aktif", ignoreCase = true)
+                    Surface(
+                        color = if (isError) Color(0xFFFEF2F2) else setting.themeColor.copy(alpha = 0.08f),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, if (isError) Color(0xFFFECACA) else setting.themeColor.copy(alpha = 0.18f)),
+                    ) {
+                        Text(
+                            it,
+                            color = if (isError) Color(0xFFB91C1C) else setting.themeColor,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(10.dp),
+                        )
+                    }
                 }
                 if (printers.isEmpty()) {
-                    Text("Belum ada printer di daftar.", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
+                    Surface(color = Color(0xFFF8FAFC), shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, Color(0xFFE2E8F0))) {
+                        Text("Daftar printer masih kosong. Jika printer tidak bisa pair dari Settings, nyalakan printer lalu gunakan scan dari menu ini.", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(12.dp))
+                    }
                 } else {
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LazyColumn(modifier = Modifier.heightIn(max = 320.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(printers) { device ->
                             Card(
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = if (selectedPrinter?.address == device.address) setting.themeColor.copy(alpha = 0.07f) else Color(0xFFF8FAFC)),
+                                shape = RoundedCornerShape(14.dp),
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Column(Modifier.weight(1f)) {
-                                        Text(device.name, color = setting.textColor, fontWeight = FontWeight.SemiBold)
+                                        Text(device.name, color = setting.textColor, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         Text(
                                             if (selectedPrinter?.address == device.address) "Aktif" else if (device.bonded) "Paired" else "Ditemukan",
                                             color = setting.themeColor,
@@ -1653,6 +1759,7 @@ private fun PrinterSetupDialog(setting: StoreSetting, onDismiss: () -> Unit) {
                                     OutlinedButton(
                                         onClick = { selectPrinter(device) },
                                         enabled = !testing && !scanning && selectedPrinter?.address != device.address,
+                                        shape = RoundedCornerShape(12.dp),
                                         border = BorderStroke(1.dp, setting.themeColor.copy(alpha = 0.45f)),
                                         colors = ButtonDefaults.outlinedButtonColors(contentColor = setting.themeColor),
                                     ) {
@@ -1662,6 +1769,7 @@ private fun PrinterSetupDialog(setting: StoreSetting, onDismiss: () -> Unit) {
                                     Button(
                                         onClick = { testPrint(device) },
                                         enabled = !testing && !scanning,
+                                        shape = RoundedCornerShape(12.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = setting.themeColor, contentColor = bestContentColor(setting.themeColor)),
                                     ) {
                                         Text("Test")
