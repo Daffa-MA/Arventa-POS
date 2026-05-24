@@ -174,6 +174,8 @@ data class CheckoutLine(
     val unitPrice: Int,
     val quantity: Double,
     val lineTotal: Double,
+    val freeQuantity: Double?,
+    val chargedQuantity: Double,
 )
 
 data class SaleReceipt(
@@ -538,7 +540,16 @@ fun PosScreen(
 
     val checkoutLines = cart.entries.mapNotNull { (id, qty) ->
         items.firstOrNull { it.id == id }?.let { item ->
-            CheckoutLine(item.id, item.name, item.unit, item.price, qty, catalogLineTotal(item, qty))
+            CheckoutLine(
+                productId = item.id,
+                name = item.name,
+                unit = item.unit,
+                unitPrice = item.price,
+                quantity = qty,
+                lineTotal = catalogLineTotal(item, qty),
+                freeQuantity = item.freeQuantity,
+                chargedQuantity = catalogChargedQuantity(item, qty),
+            )
         }
     }
     val openCheckout: () -> Unit = {
@@ -897,7 +908,7 @@ private fun ProductRow(item: PosItem, quantity: Double, setting: StoreSetting, c
             Column(Modifier.weight(1f)) {
                 Text(item.name, color = setting.textColor, fontWeight = FontWeight.SemiBold)
                 Text(productMeta(item, setting), color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
-                Text("${formatRupiah(item.price)} / ${item.unit}", color = setting.priceTextColor, fontWeight = FontWeight.Bold)
+                Text(productPriceLabel(item), color = setting.priceTextColor, fontWeight = FontWeight.Bold)
             }
             QuantityStepper(quantity, item.unit, item.stock, setting, onAdd, onRemove, onSetQuantity)
         }
@@ -913,7 +924,7 @@ private fun ProductTile(item: PosItem, quantity: Double, setting: StoreSetting, 
             }
             Text(item.name, color = setting.textColor, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(productMeta(item, setting), color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
-            Text("${formatRupiah(item.price)} / ${item.unit}", color = setting.priceTextColor, fontWeight = FontWeight.Bold)
+            Text(productPriceLabel(item), color = setting.priceTextColor, fontWeight = FontWeight.Bold)
             QuantityStepper(quantity, item.unit, item.stock, setting, onAdd, onRemove, onSetQuantity)
         }
     }
@@ -1098,8 +1109,13 @@ private fun CartPanel(
                 Text("Belum ada item dipilih", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
             } else {
                 selected.take(3).forEach { (item, qty) ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("${formatQuantity(qty)} ${item.unit} x ${item.name}", color = setting.secondaryTextColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+                        Column(Modifier.weight(1f)) {
+                            Text("${formatQuantity(qty)} ${item.unit} x ${item.name}", color = setting.secondaryTextColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            catalogRuleDescription(item, qty)?.let {
+                                Text(it, color = setting.themeColor, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
                         Text(formatRupiah(catalogLineTotal(item, qty)), color = setting.priceTextColor, fontWeight = FontWeight.SemiBold)
                     }
                 }
@@ -1195,8 +1211,13 @@ private fun CheckoutDialog(
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         lines.forEach { line ->
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("${formatQuantity(line.quantity)} ${line.unit} x ${line.name}", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+                                Column(Modifier.weight(1f)) {
+                                    Text("${formatQuantity(line.quantity)} ${line.unit} x ${line.name}", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
+                                    checkoutRuleDescription(line)?.let {
+                                        Text(it, color = setting.themeColor, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
+                                    }
+                                }
                                 Text(formatRupiah(line.lineTotal), color = setting.priceTextColor, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
                             }
                         }
@@ -2108,9 +2129,37 @@ private fun productMeta(item: PosItem, setting: StoreSetting): String {
     return parts.joinToString(" | ")
 }
 
+private fun productPriceLabel(item: PosItem): String {
+    val base = "${formatRupiah(item.price)} / ${item.unit}"
+    val freeQuantity = item.freeQuantity?.takeIf { it > 0.0 } ?: return base
+    return "$base setelah ${formatQuantity(freeQuantity)} ${item.unit} gratis"
+}
+
 private fun catalogLineTotal(item: PosItem, quantity: Double): Double {
-    val paidQuantity = (quantity - (item.freeQuantity ?: 0.0)).coerceAtLeast(0.0)
-    return item.price.toDouble() * paidQuantity
+    return item.price.toDouble() * catalogChargedQuantity(item, quantity)
+}
+
+private fun catalogChargedQuantity(item: PosItem, quantity: Double): Double {
+    return (quantity - (item.freeQuantity ?: 0.0)).coerceAtLeast(0.0)
+}
+
+private fun catalogRuleDescription(item: PosItem, quantity: Double): String? {
+    val freeQuantity = item.freeQuantity?.takeIf { it > 0.0 } ?: return null
+    val charged = catalogChargedQuantity(item, quantity)
+    return freeRuleDescription(freeQuantity, charged, item.unit)
+}
+
+private fun checkoutRuleDescription(line: CheckoutLine): String? {
+    val freeQuantity = line.freeQuantity?.takeIf { it > 0.0 } ?: return null
+    return freeRuleDescription(freeQuantity, line.chargedQuantity, line.unit)
+}
+
+private fun freeRuleDescription(freeQuantity: Double, chargedQuantity: Double, unit: String): String {
+    return if (chargedQuantity <= 0.0) {
+        "Gratis ${formatQuantity(freeQuantity)} $unit pertama, belum ada yang ditagih"
+    } else {
+        "Gratis ${formatQuantity(freeQuantity)} $unit pertama, ditagih ${formatQuantity(chargedQuantity)} $unit"
+    }
 }
 
 private fun itemTypeLabel(type: String): String {
