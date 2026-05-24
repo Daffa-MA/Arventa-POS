@@ -34,6 +34,7 @@ return new class extends Migration
             $table->enum('unit', ['pcs', 'ml', 'gram', 'kg', 'meter', 'trx'])->default('pcs');
             $table->decimal('price', 12, 2);
             $table->decimal('stock', 12, 3)->nullable();
+            $table->decimal('free_quantity', 12, 3)->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

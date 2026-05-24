@@ -150,6 +150,7 @@ data class PosItem(
     val unit: String,
     val price: Int,
     val stock: Double?,
+    val freeQuantity: Double?,
     val imageUrl: String?,
 )
 
@@ -172,6 +173,7 @@ data class CheckoutLine(
     val unit: String,
     val unitPrice: Int,
     val quantity: Double,
+    val lineTotal: Double,
 )
 
 data class SaleReceipt(
@@ -520,7 +522,7 @@ fun PosScreen(
     val setting = state.setting
     val items = state.items
     val cart = remember { mutableStateMapOf<Int, Double>() }
-    val subtotal = cart.entries.sumOf { (id, qty) -> ((items.firstOrNull { it.id == id }?.price ?: 0).toDouble()) * qty }
+    val subtotal = cart.entries.sumOf { (id, qty) -> items.firstOrNull { it.id == id }?.let { catalogLineTotal(it, qty) } ?: 0.0 }
     val chargeableSubtotal = subtotal.coerceAtLeast(0.0)
     val tax = chargeableSubtotal * setting.taxRate / 100
     val service = chargeableSubtotal * setting.serviceChargeRate / 100
@@ -536,7 +538,7 @@ fun PosScreen(
 
     val checkoutLines = cart.entries.mapNotNull { (id, qty) ->
         items.firstOrNull { it.id == id }?.let { item ->
-            CheckoutLine(item.id, item.name, item.unit, item.price, qty)
+            CheckoutLine(item.id, item.name, item.unit, item.price, qty, catalogLineTotal(item, qty))
         }
     }
     val openCheckout: () -> Unit = {
@@ -1098,7 +1100,7 @@ private fun CartPanel(
                 selected.take(3).forEach { (item, qty) ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("${formatQuantity(qty)} ${item.unit} x ${item.name}", color = setting.secondaryTextColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                        Text(formatRupiah(item.price * qty), color = setting.priceTextColor, fontWeight = FontWeight.SemiBold)
+                        Text(formatRupiah(catalogLineTotal(item, qty)), color = setting.priceTextColor, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -1195,7 +1197,7 @@ private fun CheckoutDialog(
                         lines.forEach { line ->
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text("${formatQuantity(line.quantity)} ${line.unit} x ${line.name}", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                                Text(formatRupiah(line.unitPrice * line.quantity), color = setting.priceTextColor, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
+                                Text(formatRupiah(line.lineTotal), color = setting.priceTextColor, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
                             }
                         }
                         SummaryLine("Subtotal", subtotal, setting.secondaryTextColor, setting.priceTextColor)
@@ -1688,6 +1690,7 @@ private object PosRepository {
                         unit = item.optString("unit", "pcs"),
                         price = item.optDouble("price", 0.0).roundToInt(),
                         stock = if (item.isNull("stock")) null else item.optDouble("stock"),
+                        freeQuantity = if (item.isNull("free_quantity")) null else item.optDouble("free_quantity"),
                         imageUrl = item.optString("image_url").takeIf { it.isNotBlank() && it != "null" },
                     )
                 )
@@ -2100,8 +2103,14 @@ private fun formatRupiah(value: Number): String {
 private fun productMeta(item: PosItem, setting: StoreSetting): String {
     val parts = mutableListOf(itemTypeLabel(item.type))
     if (setting.showSku && item.sku != null) parts += item.sku
+    item.freeQuantity?.takeIf { it > 0.0 }?.let { parts += "Gratis ${formatQuantity(it)} ${item.unit}" }
     if (setting.showStock) parts += item.stock?.let { "Stok ${formatQuantity(it)} ${item.unit}" } ?: "Tanpa stok"
     return parts.joinToString(" | ")
+}
+
+private fun catalogLineTotal(item: PosItem, quantity: Double): Double {
+    val paidQuantity = (quantity - (item.freeQuantity ?: 0.0)).coerceAtLeast(0.0)
+    return item.price.toDouble() * paidQuantity
 }
 
 private fun itemTypeLabel(type: String): String {
@@ -2139,6 +2148,6 @@ private fun normalizeQuantity(value: Double): Double = String.format(Locale.US, 
 @Composable
 fun PosScreenPreview() {
     ArventaPOSTheme {
-        PosScreen(PosState(setting = demoSetting, items = listOf(PosItem(1, "Kopi Susu", "SKU-1", "product", "pcs", 18000, 10.0, null))), PairingSession("http://10.0.2.2:8000", "preview", "Kasir"), "Kasir", {}, {})
+        PosScreen(PosState(setting = demoSetting, items = listOf(PosItem(1, "Kopi Susu", "SKU-1", "product", "pcs", 18000, 10.0, null, null))), PairingSession("http://10.0.2.2:8000", "preview", "Kasir"), "Kasir", {}, {})
     }
 }

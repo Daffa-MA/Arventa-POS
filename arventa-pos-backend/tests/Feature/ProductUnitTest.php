@@ -182,4 +182,74 @@ class ProductUnitTest extends TestCase
             'line_total' => -5000,
         ]);
     }
+
+    public function test_admin_can_store_free_quantity_rule(): void
+    {
+        $this->seed();
+
+        $response = $this->from('/admin/products')->post('/admin/products', [
+            'name' => 'Alkohol Parfum',
+            'sku' => 'ALK-ML',
+            'type' => 'product',
+            'unit' => 'ml',
+            'price' => 100,
+            'stock' => 1000,
+            'free_quantity' => 100,
+            'is_active' => 1,
+        ]);
+
+        $response->assertRedirect('/admin/products');
+        $this->assertDatabaseHas('products', [
+            'name' => 'Alkohol Parfum',
+            'unit' => 'ml',
+            'free_quantity' => 100,
+        ]);
+    }
+
+    public function test_transaction_charges_only_quantity_above_free_quantity(): void
+    {
+        $this->seed();
+
+        $cashier = User::query()->create([
+            'name' => 'Kasir Parfum',
+            'email' => 'kasir-parfum@example.test',
+            'username' => 'kasir_parfum',
+            'password' => bcrypt('password'),
+            'role' => 'cashier',
+            'is_active' => true,
+        ]);
+
+        $product = Product::query()->create([
+            'name' => 'Alkohol Parfum',
+            'type' => 'product',
+            'unit' => 'ml',
+            'price' => 100,
+            'stock' => 1000,
+            'free_quantity' => 100,
+            'is_active' => true,
+        ]);
+
+        $response = $this
+            ->actingAs($cashier, 'sanctum')
+            ->postJson('/api/transactions', [
+                'items' => [
+                    ['product_id' => $product->id, 'quantity' => 150],
+                ],
+                'paid_amount' => 6000,
+                'payment_method' => 'cash',
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('sale.subtotal', '5000.00')
+            ->assertJsonPath('sale.grand_total', '5550.00');
+
+        $this->assertDatabaseHas('sale_items', [
+            'product_id' => $product->id,
+            'unit' => 'ml',
+            'unit_price' => 100,
+            'quantity' => 150,
+            'line_total' => 5000,
+        ]);
+        $this->assertEquals(850.0, (float) $product->refresh()->stock);
+    }
 }

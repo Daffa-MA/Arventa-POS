@@ -14,6 +14,7 @@ class Product extends Model
         'unit',
         'price',
         'stock',
+        'free_quantity',
         'is_active',
     ];
 
@@ -22,6 +23,7 @@ class Product extends Model
         return [
             'price' => 'decimal:2',
             'stock' => 'decimal:3',
+            'free_quantity' => 'decimal:3',
             'is_active' => 'boolean',
         ];
     }

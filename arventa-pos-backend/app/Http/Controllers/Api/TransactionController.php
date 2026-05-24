@@ -38,7 +38,8 @@ class TransactionController extends Controller
 
             if ($productId) {
                 $product = $products[$productId];
-                $lineTotal = (float) $product->price * $item['quantity'];
+                $paidQuantity = max(0, (float) $item['quantity'] - (float) ($product->free_quantity ?? 0));
+                $lineTotal = (float) $product->price * $paidQuantity;
 
                 if ($product->stock !== null && (float) $product->stock < (float) $item['quantity']) {
                     throw ValidationException::withMessages([

@@ -67,6 +67,7 @@ class ProductController extends Controller
             'unit' => ['required', 'in:pcs,ml,gram,kg,meter,trx'],
             'price' => ['required', 'numeric', 'between:-999999999.99,999999999.99'],
             'stock' => ['nullable', 'numeric', 'min:0'],
+            'free_quantity' => ['nullable', 'numeric', 'min:0'],
             'is_active' => ['sometimes', 'boolean'],
         ]) + ['is_active' => $request->boolean('is_active')];
     }

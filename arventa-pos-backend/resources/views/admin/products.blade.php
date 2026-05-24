@@ -25,7 +25,7 @@
     <section class="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
         <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 class="text-lg font-semibold text-slate-950">Tambah Item Katalog</h2>
-            <p class="mt-1 text-sm leading-6 text-slate-500">Gunakan tipe Diskon dengan harga minus, misalnya -5000. Gunakan Biaya Tambahan untuk packaging, ongkir, atau aturan unik lain.</p>
+            <p class="mt-1 text-sm leading-6 text-slate-500">Gunakan tipe Diskon dengan harga minus, atau isi Gratis sampai untuk rule seperti alkohol 100ml pertama gratis dan sisanya berbayar.</p>
             <form
                 method="post"
                 action="{{ route('admin.products.store') }}"
@@ -95,6 +95,12 @@
                         <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Stok</label>
                         <input name="stock" type="number" step="0.001" value="{{ old('stock') }}" placeholder="Kosongkan untuk layanan" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
                     </div>
+                    <div class="sm:col-span-2">
+                        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Gratis sampai</label>
+                        <input name="free_quantity" type="number" step="0.001" value="{{ old('free_quantity') }}" placeholder="Contoh: 100 untuk 100ml pertama gratis" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
+                        <p class="mt-1 text-xs text-slate-500">Kosongkan untuk harga normal. Jika diisi, harga hanya dihitung untuk jumlah di atas batas ini.</p>
+                        @error('free_quantity')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
+                    </div>
                     <label class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-700 sm:col-span-2">
                         <input type="checkbox" name="is_active" value="1" class="rounded border-slate-300 text-blue-600" checked>
                         Aktif dan tampil di aplikasi kasir
@@ -148,6 +154,9 @@
                                             <div>
                                                 <p class="font-semibold text-slate-950">{{ $product->name }}</p>
                                                 <p class="text-xs text-slate-500">{{ $product->sku ?: 'Tanpa SKU' }}</p>
+                                                @if ($product->free_quantity !== null && (float) $product->free_quantity > 0)
+                                                    <p class="mt-0.5 text-xs font-medium text-blue-600">Gratis {{ rtrim(rtrim(number_format((float) $product->free_quantity, 3, ',', '.'), '0'), ',') }} {{ $unitOptions[$product->unit] ?? $product->unit }} pertama</p>
+                                                @endif
                                             </div>
                                         </div>
                                     </td>
@@ -208,6 +217,11 @@
                                             <div>
                                                 <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Stok sesuai satuan</label>
                                                 <input name="stock" type="number" step="0.001" value="{{ old('stock', $product->stock) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
+                                            </div>
+                                            <div class="sm:col-span-2">
+                                                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Gratis sampai</label>
+                                                <input name="free_quantity" type="number" step="0.001" value="{{ old('free_quantity', $product->free_quantity) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
+                                                <p class="mt-1 text-xs text-slate-500">Contoh alkohol: isi 100, satuan ml, harga per ml. Transaksi 150ml hanya ditagih 50ml.</p>
                                             </div>
                                             <div class="sm:col-span-2">
                                                 <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Ganti foto opsional</label>
