@@ -20,7 +20,7 @@ class TransactionController extends Controller
             'items.*.product_id' => ['nullable', 'integer', 'exists:products,id'],
             'items.*.name' => ['nullable', 'string', 'max:120'],
             'items.*.unit' => ['nullable', 'string', 'max:20'],
-            'items.*.unit_price' => ['nullable', 'numeric', 'min:0'],
+            'items.*.unit_price' => ['nullable', 'numeric'],
             'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
             'paid_amount' => ['required', 'numeric', 'min:0'],
             'payment_method' => ['nullable', 'string', 'max:40'],
@@ -56,9 +56,9 @@ class TransactionController extends Controller
                 ];
             }
 
-            if (empty($item['name']) || empty($item['unit']) || ! isset($item['unit_price']) || (float) $item['unit_price'] <= 0) {
+            if (empty($item['name']) || empty($item['unit']) || ! isset($item['unit_price'])) {
                 throw ValidationException::withMessages([
-                    'items' => ['Item custom wajib memiliki nama, satuan, dan harga lebih dari 0.'],
+                    'items' => ['Item custom wajib memiliki nama, satuan, dan harga.'],
                 ]);
             }
 
@@ -75,9 +75,10 @@ class TransactionController extends Controller
         });
 
         $subtotal = $lines->sum('line_total');
-        $taxTotal = round($subtotal * ((float) $setting->tax_rate / 100), 2);
-        $serviceTotal = round($subtotal * ((float) $setting->service_charge_rate / 100), 2);
-        $grandTotal = $subtotal + $taxTotal + $serviceTotal;
+        $chargeableSubtotal = max(0, $subtotal);
+        $taxTotal = round($chargeableSubtotal * ((float) $setting->tax_rate / 100), 2);
+        $serviceTotal = round($chargeableSubtotal * ((float) $setting->service_charge_rate / 100), 2);
+        $grandTotal = max(0, $subtotal + $taxTotal + $serviceTotal);
 
         if ((float) $payload['paid_amount'] < $grandTotal) {
             throw ValidationException::withMessages([

@@ -30,8 +30,8 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('sku')->nullable()->unique();
-            $table->enum('type', ['product', 'service'])->default('product');
-            $table->enum('unit', ['pcs', 'ml', 'gram', 'kg', 'meter'])->default('pcs');
+            $table->enum('type', ['product', 'service', 'discount', 'fee', 'custom'])->default('product');
+            $table->enum('unit', ['pcs', 'ml', 'gram', 'kg', 'meter', 'trx'])->default('pcs');
             $table->decimal('price', 12, 2);
             $table->decimal('stock', 12, 3)->nullable();
             $table->boolean('is_active')->default(true);
@@ -59,7 +59,7 @@ return new class extends Migration
             $table->string('name');
             $table->decimal('unit_price', 12, 2);
             $table->decimal('quantity', 12, 3);
-            $table->enum('unit', ['pcs', 'ml', 'gram', 'kg', 'meter'])->default('pcs');
+            $table->enum('unit', ['pcs', 'ml', 'gram', 'kg', 'meter', 'trx'])->default('pcs');
             $table->decimal('line_total', 12, 2);
             $table->timestamps();
         });

@@ -63,9 +63,9 @@ class ProductController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'sku' => ['nullable', 'string', 'max:80', "unique:products,sku,{$id}"],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-            'type' => ['required', 'in:product,service'],
-            'unit' => ['required', 'in:pcs,ml,gram,kg,meter'],
-            'price' => ['required', 'numeric', 'min:0'],
+            'type' => ['required', 'in:product,service,discount,fee,custom'],
+            'unit' => ['required', 'in:pcs,ml,gram,kg,meter,trx'],
+            'price' => ['required', 'numeric', 'between:-999999999.99,999999999.99'],
             'stock' => ['nullable', 'numeric', 'min:0'],
             'is_active' => ['sometimes', 'boolean'],
         ]) + ['is_active' => $request->boolean('is_active')];

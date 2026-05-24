@@ -11,16 +11,21 @@
             'gram' => 'Gram',
             'kg' => 'Kilogram',
             'meter' => 'Meter',
+            'trx' => 'Transaksi',
         ];
         $typeOptions = [
             'product' => 'Produk',
             'service' => 'Layanan',
+            'discount' => 'Diskon',
+            'fee' => 'Biaya Tambahan',
+            'custom' => 'Item Fleksibel',
         ];
     @endphp
 
     <section class="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
         <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 class="text-lg font-semibold text-slate-950">Tambah Produk atau Layanan</h2>
+            <h2 class="text-lg font-semibold text-slate-950">Tambah Item Katalog</h2>
+            <p class="mt-1 text-sm leading-6 text-slate-500">Gunakan tipe Diskon dengan harga minus, misalnya -5000. Gunakan Biaya Tambahan untuk packaging, ongkir, atau aturan unik lain.</p>
             <form
                 method="post"
                 action="{{ route('admin.products.store') }}"
@@ -82,8 +87,9 @@
                         @error('unit')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                     </div>
                     <div>
-                        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Harga</label>
-                        <input name="price" type="number" step="0.01" value="{{ old('price') }}" placeholder="18000" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
+                        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Harga / nominal</label>
+                        <input name="price" type="number" step="0.01" value="{{ old('price') }}" placeholder="18000 atau -5000 untuk diskon" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
+                        <p class="mt-1 text-xs text-slate-500">Isi minus untuk diskon, positif untuk produk/layanan/biaya.</p>
                     </div>
                     <div>
                         <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Stok</label>
@@ -111,7 +117,7 @@
                         <svg class="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/></svg>
                     </div>
                     <h3 class="mt-4 font-semibold text-slate-950">Katalog masih kosong</h3>
-                    <p class="mt-1 max-w-sm text-sm text-slate-500">Tambahkan produk atau layanan pertama dari form di samping.</p>
+                        <p class="mt-1 max-w-sm text-sm text-slate-500">Tambahkan produk, layanan, diskon, atau biaya tambahan pertama dari form di samping.</p>
                 </div>
             @else
                 <div class="overflow-x-auto">
@@ -145,11 +151,11 @@
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-4 py-4">{{ $product->type }}</td>
+                                    <td class="px-4 py-4">{{ $typeOptions[$product->type] ?? $product->type }}</td>
                                     <td class="px-4 py-4">
                                         <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{{ $unitOptions[$product->unit] ?? $product->unit }}</span>
                                     </td>
-                                    <td class="px-4 py-4 font-semibold">Rp {{ number_format((float) $product->price, 0, ',', '.') }}</td>
+                                    <td class="px-4 py-4 font-semibold">{{ (float) $product->price < 0 ? '-Rp '.number_format(abs((float) $product->price), 0, ',', '.') : 'Rp '.number_format((float) $product->price, 0, ',', '.') }}</td>
                                     <td class="px-4 py-4">{{ $product->stock !== null ? rtrim(rtrim(number_format((float) $product->stock, 3, ',', '.'), '0'), ',').' '.$product->unit : '-' }}</td>
                                     <td class="px-4 py-4"><span class="rounded-full {{ $product->is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600' }} px-2.5 py-1 text-xs font-semibold">{{ $product->is_active ? 'Aktif' : 'Nonaktif' }}</span></td>
                                     <td class="px-6 py-4 text-right">
@@ -195,8 +201,9 @@
                                                 </select>
                                             </div>
                                             <div>
-                                                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Harga</label>
+                                                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Harga / nominal</label>
                                                 <input name="price" type="number" step="0.01" value="{{ old('price', $product->price) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium">
+                                                <p class="mt-1 text-xs text-slate-500">Boleh minus untuk tipe Diskon.</p>
                                             </div>
                                             <div>
                                                 <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Stok sesuai satuan</label>

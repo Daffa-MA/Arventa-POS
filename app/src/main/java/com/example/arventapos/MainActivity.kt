@@ -521,9 +521,10 @@ fun PosScreen(
     val items = state.items
     val cart = remember { mutableStateMapOf<Int, Double>() }
     val subtotal = cart.entries.sumOf { (id, qty) -> ((items.firstOrNull { it.id == id }?.price ?: 0).toDouble()) * qty }
-    val tax = subtotal * setting.taxRate / 100
-    val service = subtotal * setting.serviceChargeRate / 100
-    val total = subtotal + tax + service
+    val chargeableSubtotal = subtotal.coerceAtLeast(0.0)
+    val tax = chargeableSubtotal * setting.taxRate / 100
+    val service = chargeableSubtotal * setting.serviceChargeRate / 100
+    val total = (subtotal + tax + service).coerceAtLeast(0.0)
     val configuration = LocalConfiguration.current
     val isWide = configuration.screenWidthDp >= 700 || setting.posOrientation == "landscape"
     val useSideCart = setting.showCart && isWide && setting.cartPosition == "right"
@@ -572,7 +573,7 @@ fun PosScreen(
         topBar = { StoreHeader(setting, cashierName, onRefresh, { printerSetupOpen = true }, onDisconnect) },
         bottomBar = {
             if (setting.checkoutPosition == "bottom" && !useSideCart) {
-                CheckoutBar(setting, subtotal, tax, service, total, openCheckout)
+                CheckoutBar(setting, subtotal, tax, service, total, checkoutLines.isNotEmpty(), openCheckout)
             }
         },
     ) { innerPadding ->
@@ -590,13 +591,13 @@ fun PosScreen(
                 if (useSideCart) {
                     Row(Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         ProductCatalog(setting, items, cart, Modifier.weight(1f).fillMaxSize())
-                        CartPanel(setting, items, cart, subtotal, tax, service, total, openCheckout, Modifier.width(260.dp))
+                        CartPanel(setting, items, cart, subtotal, tax, service, total, checkoutLines.isNotEmpty(), openCheckout, Modifier.width(260.dp))
                     }
                 } else {
                     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         ProductCatalog(setting, items, cart, Modifier.weight(1f))
                         if (setting.showCart) {
-                            CartPanel(setting, items, cart, subtotal, tax, service, total, openCheckout, Modifier.fillMaxWidth())
+                            CartPanel(setting, items, cart, subtotal, tax, service, total, checkoutLines.isNotEmpty(), openCheckout, Modifier.fillMaxWidth())
                         }
                     }
                 }
@@ -605,7 +606,7 @@ fun PosScreen(
             if (setting.checkoutPosition == "floating") {
                 Button(
                     onClick = openCheckout,
-                    enabled = total > 0,
+                    enabled = checkoutLines.isNotEmpty(),
                     modifier = Modifier.align(Alignment.BottomEnd).padding(18.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = setting.themeColor,
@@ -1080,6 +1081,7 @@ private fun CartPanel(
     tax: Double,
     service: Double,
     total: Double,
+    canCheckout: Boolean,
     onCheckout: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -1107,14 +1109,14 @@ private fun CartPanel(
                 SummaryLine("Total", total, setting.textColor, setting.priceTextColor, true)
             }
             if (setting.checkoutPosition == "cart") {
-                CheckoutActionButton(setting, total, onCheckout, Modifier.fillMaxWidth(), "Checkout")
+                CheckoutActionButton(setting, canCheckout, onCheckout, Modifier.fillMaxWidth(), "Checkout")
             }
         }
     }
 }
 
 @Composable
-private fun CheckoutBar(setting: StoreSetting, subtotal: Double, tax: Double, service: Double, total: Double, onCheckout: () -> Unit) {
+private fun CheckoutBar(setting: StoreSetting, subtotal: Double, tax: Double, service: Double, total: Double, canCheckout: Boolean, onCheckout: () -> Unit) {
     Surface(color = Color.White, shadowElevation = 8.dp) {
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
             if (setting.showOrderSummary) {
@@ -1125,17 +1127,17 @@ private fun CheckoutBar(setting: StoreSetting, subtotal: Double, tax: Double, se
             }
             SummaryLine("Total", total, setting.textColor, setting.priceTextColor, true)
             Spacer(Modifier.height(10.dp))
-            CheckoutActionButton(setting, total, onCheckout, Modifier.fillMaxWidth(), if (setting.showCart) "Checkout" else "Bayar")
+            CheckoutActionButton(setting, canCheckout, onCheckout, Modifier.fillMaxWidth(), if (setting.showCart) "Checkout" else "Bayar")
             Text(setting.receiptFooter, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
 
 @Composable
-private fun CheckoutActionButton(setting: StoreSetting, total: Double, onCheckout: () -> Unit, modifier: Modifier = Modifier, label: String = "Checkout") {
+private fun CheckoutActionButton(setting: StoreSetting, enabled: Boolean, onCheckout: () -> Unit, modifier: Modifier = Modifier, label: String = "Checkout") {
     Button(
         onClick = onCheckout,
-        enabled = total > 0.0,
+        enabled = enabled,
         modifier = modifier,
         shape = RoundedCornerShape(14.dp),
         colors = ButtonDefaults.buttonColors(
@@ -2096,10 +2098,21 @@ private fun formatRupiah(value: Number): String {
 }
 
 private fun productMeta(item: PosItem, setting: StoreSetting): String {
-    val parts = mutableListOf(item.type)
+    val parts = mutableListOf(itemTypeLabel(item.type))
     if (setting.showSku && item.sku != null) parts += item.sku
     if (setting.showStock) parts += item.stock?.let { "Stok ${formatQuantity(it)} ${item.unit}" } ?: "Tanpa stok"
     return parts.joinToString(" | ")
+}
+
+private fun itemTypeLabel(type: String): String {
+    return when (type.lowercase(Locale.US)) {
+        "product" -> "Produk"
+        "service" -> "Layanan"
+        "discount" -> "Diskon"
+        "fee" -> "Biaya"
+        "custom" -> "Fleksibel"
+        else -> type
+    }
 }
 
 private fun formatQuantity(value: Double): String {
@@ -2109,6 +2122,7 @@ private fun formatQuantity(value: Double): String {
 private fun quantityStep(unit: String): Double {
     return when (unit.lowercase(Locale.US)) {
         "pcs" -> 1.0
+        "trx" -> 1.0
         "ml" -> 50.0
         "gram" -> 100.0
         "kg" -> 0.1
@@ -2117,7 +2131,7 @@ private fun quantityStep(unit: String): Double {
     }
 }
 
-private fun allowsFractionalUnit(unit: String): Boolean = unit.lowercase(Locale.US) != "pcs"
+private fun allowsFractionalUnit(unit: String): Boolean = unit.lowercase(Locale.US) !in listOf("pcs", "trx")
 
 private fun normalizeQuantity(value: Double): Double = String.format(Locale.US, "%.3f", value).toDouble()
 
