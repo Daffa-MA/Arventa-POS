@@ -53,6 +53,7 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www/html
 
 ARG CAPROVER_GIT_COMMIT_SHA=local
+ENV ARVENTA_BUILD_SHA=${CAPROVER_GIT_COMMIT_SHA}
 RUN echo "$CAPROVER_GIT_COMMIT_SHA" > /tmp/caprover-git-sha
 
 COPY arventa-pos-backend/ ./
