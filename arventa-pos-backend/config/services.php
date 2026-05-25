@@ -44,7 +44,8 @@ return [
 
     'arventa_deployment' => [
         'mode' => env('ARVENTA_DEPLOYMENT_MODE', 'manual'),
-        'public_base_domain' => env('ARVENTA_PUBLIC_BASE_DOMAIN', 'arventa.my.id'),
+        'pos_base_domain' => env('ARVENTA_POS_BASE_DOMAIN', env('ARVENTA_PUBLIC_BASE_DOMAIN', 'arventa.my.id')),
+        'public_base_domain' => env('ARVENTA_PUBLIC_BASE_DOMAIN', env('ARVENTA_POS_BASE_DOMAIN', 'arventa.my.id')),
         'app_public_host' => env('ARVENTA_APP_PUBLIC_HOST', 'arventa.arventa.my.id'),
         'dns' => [
             'provider' => env('ARVENTA_DNS_PROVIDER', 'none'),

@@ -19,7 +19,7 @@ Arventa sekarang memakai model multi-tenant satu aplikasi:
 - Satu database utama
 - Banyak toko/POS
 - Data tiap toko dipisah dengan `pos_instance_id`
-- Domain/subdomain menentukan tenant aktif untuk login admin
+- Subdomain `{tenant}.arventa.my.id` menentukan tenant aktif untuk login admin
 - Pairing Android mengikat perangkat kasir ke tenant yang benar
 
 Field `database_name` pada POS instance dipakai sebagai tenant key/metadata, bukan perintah membuat database fisik baru untuk setiap pembeli.
@@ -28,10 +28,10 @@ Field `database_name` pada POS instance dipakai sebagai tenant key/metadata, buk
 
 1. Developer login ke `/developer/login`.
 2. Buka `/developer/pos`.
-3. Generate POS dengan nama toko, pembeli, kontak, subdomain/domain, package app, dan akun admin.
+3. Generate POS dengan nama toko, pembeli, kontak, subdomain, package app, dan akun admin.
 4. Klik Deploy.
-5. Sistem automation membuat DNS, attach domain ke app CapRover yang sama, dan enable SSL.
-6. Pembeli buka `https://domain-pembeli/admin/login`.
+5. Sistem automation membuat DNS `{subdomain}.arventa.my.id`, attach domain ke app CapRover yang sama, dan enable SSL.
+6. Pembeli buka `https://{subdomain}.arventa.my.id/admin/login`.
 7. Pembeli login memakai admin username/password hasil generate.
 8. Pembeli pairing Android dari menu Perangkat Kasir.
 9. Android sync setting, katalog, dan transaksi untuk tenant tersebut.
@@ -75,7 +75,7 @@ Aktifkan hanya setelah credential siap:
 
 ```env
 ARVENTA_DEPLOYMENT_MODE=automatic
-ARVENTA_PUBLIC_BASE_DOMAIN=arventa.my.id
+ARVENTA_POS_BASE_DOMAIN=arventa.my.id
 ARVENTA_APP_PUBLIC_HOST=arventa.arventa.my.id
 
 ARVENTA_DNS_PROVIDER=cloudflare

@@ -26,6 +26,7 @@ class DeveloperPosController extends Controller
         return view('developer.pos-instances.index', [
             'setting' => StoreSetting::query()->firstOrFail(),
             'instances' => $instances,
+            'baseDomain' => $this->posBaseDomain(),
             'stats' => [
                 'total' => $instances->count(),
                 'active' => $instances->where('status', 'active')->count(),
@@ -41,8 +42,7 @@ class DeveloperPosController extends Controller
             'store_name' => ['required', 'string', 'max:120'],
             'buyer_name' => ['required', 'string', 'max:120'],
             'contact' => ['required', 'string', 'max:40'],
-            'subdomain' => ['nullable', 'alpha_dash:ascii', 'max:60', Rule::unique('pos_instances', 'subdomain')],
-            'domain' => ['nullable', 'string', 'max:180', Rule::unique('pos_instances', 'domain')],
+            'subdomain' => ['nullable', 'string', 'max:60', 'regex:/^(?!-)[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('pos_instances', 'subdomain')],
             'database_name' => ['nullable', 'alpha_dash:ascii', 'max:80', Rule::unique('pos_instances', 'database_name')],
             'package_name' => ['nullable', 'regex:/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/', 'max:160', Rule::unique('pos_instances', 'package_name')],
             'admin_username' => ['nullable', 'alpha_dash:ascii', 'max:60', Rule::unique('users', 'username')],
@@ -50,7 +50,7 @@ class DeveloperPosController extends Controller
         ]);
 
         $subdomain = $this->uniqueSubdomain($data['subdomain'] ?? Str::slug($data['store_name']));
-        $domain = $this->normalizeDomain(($data['domain'] ?? null) ?: $subdomain.'.'.$this->publicBaseDomain());
+        $domain = $this->domainForSubdomain($subdomain);
         $databaseName = $this->uniqueDatabaseName($data['database_name'] ?? 'arventa_pos_'.str_replace('-', '_', $subdomain));
         $packageName = $this->uniquePackageName($data['package_name'] ?? 'com.arventapos.'.str_replace('-', '', $subdomain));
         $adminUsername = $this->uniqueAdminUsername($data['admin_username'] ?? 'admin_'.str_replace('-', '_', $subdomain));
@@ -250,14 +250,19 @@ class DeveloperPosController extends Controller
         ]);
     }
 
-    private function publicBaseDomain(): string
+    private function posBaseDomain(): string
     {
-        return Str::of((string) config('services.arventa_deployment.public_base_domain', 'arventa.my.id'))
+        return Str::of((string) config('services.arventa_deployment.pos_base_domain', 'arventa.my.id'))
             ->lower()
             ->replaceMatches('/^https?:\/\//', '')
             ->replaceMatches('/\/.*$/', '')
             ->trim('.')
             ->toString();
+    }
+
+    private function domainForSubdomain(string $subdomain): string
+    {
+        return $this->normalizeDomain($subdomain.'.'.$this->posBaseDomain());
     }
 
     private function normalizeDomain(string $domain): string

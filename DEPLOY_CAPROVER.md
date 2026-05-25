@@ -57,7 +57,7 @@ SESSION_DRIVER=file
 QUEUE_CONNECTION=sync
 FILESYSTEM_DISK=public
 
-ARVENTA_PUBLIC_BASE_DOMAIN=arventa.my.id
+ARVENTA_POS_BASE_DOMAIN=arventa.my.id
 ARVENTA_APP_PUBLIC_HOST=arventa.arventa.my.id
 ARVENTA_DEPLOYMENT_MODE=manual
 ```
@@ -127,7 +127,7 @@ The `/admin` route reads the `store_settings`, `products`, and `sales` tables. I
 
 The developer panel at `/developer/pos` creates one tenant record for each buyer. Deploying a tenant does not create a second Laravel app or a second physical database. It:
 
-- creates or updates a DNS record for the buyer domain
+- creates or updates a DNS record for the buyer subdomain under `arventa.my.id`
 - attaches that domain to the existing CapRover app `arventa`
 - enables SSL for the buyer domain
 - keeps all buyer data inside the shared Laravel database using `pos_instance_id`
@@ -136,7 +136,7 @@ Set these env values to enable automatic deployment:
 
 ```env
 ARVENTA_DEPLOYMENT_MODE=automatic
-ARVENTA_PUBLIC_BASE_DOMAIN=arventa.my.id
+ARVENTA_POS_BASE_DOMAIN=arventa.my.id
 ARVENTA_APP_PUBLIC_HOST=arventa.arventa.my.id
 
 ARVENTA_DNS_PROVIDER=cloudflare
@@ -167,7 +167,7 @@ Buyer flow:
 1. Developer logs into `/developer/login`.
 2. Developer creates a POS tenant in `/developer/pos`.
 3. Developer clicks **Deploy**.
-4. The generated URL becomes `https://SUBDOMAIN.arventa.my.id/admin/login` or the custom domain filled in the form.
+4. The generated URL becomes `https://SUBDOMAIN.arventa.my.id/admin/login`.
 5. Buyer logs into admin using the generated admin username/password.
 6. Buyer opens **Perangkat Kasir**, creates a pairing QR, and pairs the Android app.
 

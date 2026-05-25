@@ -57,7 +57,17 @@
                 method="post"
                 action="{{ route('developer.pos.store') }}"
                 class="mt-6 grid gap-4"
-                x-data="{ submitting: false }"
+                x-data="{
+                    submitting: false,
+                    baseDomain: @js($baseDomain),
+                    subdomain: @js(old('subdomain')),
+                    previewSubdomain() {
+                        return (this.subdomain || 'parfume-pos').toLowerCase().trim()
+                    },
+                    previewUrl() {
+                        return `https://${this.previewSubdomain()}.${this.baseDomain}`
+                    }
+                }"
                 @submit="submitting = true"
             >
                 @csrf
@@ -86,13 +96,12 @@
                     <div class="mt-4 grid gap-4">
                         <label class="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
                             Subdomain
-                            <input name="subdomain" value="{{ old('subdomain') }}" placeholder="parfume-pos" class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium normal-case tracking-normal text-slate-900 outline-none transition focus:border-slate-950 focus:ring-4 focus:ring-slate-100">
+                            <input name="subdomain" x-model="subdomain" @input="subdomain = subdomain.toLowerCase()" pattern="[a-z0-9]+(-[a-z0-9]+)*" title="Gunakan huruf kecil, angka, dan tanda hubung. Tidak boleh memakai spasi, titik, atau tanda hubung di awal/akhir." value="{{ old('subdomain') }}" placeholder="parfume-pos" class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium normal-case tracking-normal text-slate-900 outline-none transition focus:border-slate-950 focus:ring-4 focus:ring-slate-100">
+                            <span class="text-xs font-medium normal-case tracking-normal text-slate-500">
+                                Preview URL:
+                                <span class="font-semibold text-slate-800" x-text="previewUrl()"></span>
+                            </span>
                             @error('subdomain') <span class="text-xs font-medium normal-case tracking-normal text-red-600">{{ $message }}</span> @enderror
-                        </label>
-                        <label class="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Domain
-                            <input name="domain" value="{{ old('domain') }}" placeholder="parfume.arventa.my.id" class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium normal-case tracking-normal text-slate-900 outline-none transition focus:border-slate-950 focus:ring-4 focus:ring-slate-100">
-                            @error('domain') <span class="text-xs font-medium normal-case tracking-normal text-red-600">{{ $message }}</span> @enderror
                         </label>
                         <div class="grid gap-4 sm:grid-cols-2">
                             <label class="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">

@@ -13,6 +13,7 @@ class CloudflareDnsService
         $zoneId = config('services.arventa_deployment.cloudflare.zone_id');
         $type = Str::upper((string) config('services.arventa_deployment.dns.record_type', 'CNAME'));
         $content = (string) config('services.arventa_deployment.dns.record_content');
+        $recordName = $this->recordName($domain);
 
         if (blank($token) || blank($zoneId)) {
             throw new \RuntimeException('Cloudflare API token dan zone id wajib diisi untuk automation DNS.');
@@ -24,7 +25,7 @@ class CloudflareDnsService
 
         $payload = [
             'type' => $type,
-            'name' => $domain,
+            'name' => $recordName,
             'content' => $this->normalizeContent($type, $content),
             'ttl' => (int) config('services.arventa_deployment.dns.ttl', 1),
             'proxied' => (bool) config('services.arventa_deployment.dns.proxied', false),
@@ -33,7 +34,7 @@ class CloudflareDnsService
         $existing = $this->request()
             ->get("https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records", [
                 'type' => $type,
-                'name' => $domain,
+                'name' => $recordName,
             ])
             ->throw()
             ->json('result.0');
@@ -53,6 +54,7 @@ class CloudflareDnsService
             'action' => $existing ? 'updated' : 'created',
             'type' => $payload['type'],
             'name' => $payload['name'],
+            'fqdn' => $domain,
             'content' => $payload['content'],
             'proxied' => $payload['proxied'],
         ];
@@ -79,5 +81,33 @@ class CloudflareDnsService
         }
 
         return $content;
+    }
+
+    private function recordName(string $domain): string
+    {
+        $domain = $this->normalizeDomain($domain);
+        $baseDomain = $this->baseDomain();
+        $suffix = '.'.$baseDomain;
+
+        if (! Str::endsWith($domain, $suffix)) {
+            throw new \RuntimeException("Domain {$domain} bukan subdomain dari {$baseDomain}. Automation hanya membuat DNS untuk tenant *.{$baseDomain}.");
+        }
+
+        return Str::beforeLast($domain, $suffix);
+    }
+
+    private function baseDomain(): string
+    {
+        return $this->normalizeDomain((string) config('services.arventa_deployment.pos_base_domain', 'arventa.my.id'));
+    }
+
+    private function normalizeDomain(string $domain): string
+    {
+        return Str::of($domain)
+            ->lower()
+            ->replaceMatches('/^https?:\/\//', '')
+            ->replaceMatches('/\/.*$/', '')
+            ->trim('.')
+            ->toString();
     }
 }

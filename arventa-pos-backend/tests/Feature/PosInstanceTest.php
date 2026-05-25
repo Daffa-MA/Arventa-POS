@@ -54,6 +54,7 @@ class PosInstanceTest extends TestCase
     {
         $this->seed();
         Config::set('services.arventa_deployment.mode', 'automatic');
+        Config::set('services.arventa_deployment.pos_base_domain', 'arventa.my.id');
         Config::set('services.arventa_deployment.dns.provider', 'cloudflare');
         Config::set('services.arventa_deployment.dns.record_type', 'CNAME');
         Config::set('services.arventa_deployment.dns.record_content', 'arventa.arventa.my.id');
@@ -107,5 +108,48 @@ class PosInstanceTest extends TestCase
             'deployment_status' => 'deployed',
             'deployment_error' => null,
         ]);
+
+        Http::assertSent(function ($request): bool {
+            if ($request->method() !== 'POST' || ! str_contains($request->url(), '/dns_records')) {
+                return false;
+            }
+
+            return $request['name'] === 'deploy-store'
+                && $request['type'] === 'CNAME'
+                && $request['content'] === 'arventa.arventa.my.id';
+        });
+    }
+
+    public function test_developer_domain_request_is_ignored_and_subdomain_domain_is_generated(): void
+    {
+        $this->seed();
+
+        $this->withDeveloperSession()->post('/developer/pos', [
+            'store_name' => 'Tropizz',
+            'buyer_name' => 'Iwan',
+            'contact' => '08973128675',
+            'subdomain' => 'tropizz',
+            'domain' => 'tropizz.com',
+        ])->assertRedirect('/developer/pos');
+
+        $this->assertDatabaseHas('pos_instances', [
+            'store_name' => 'Tropizz',
+            'subdomain' => 'tropizz',
+            'domain' => 'tropizz.arventa.my.id',
+        ]);
+    }
+
+    public function test_developer_subdomain_rejects_dots_spaces_uppercase_and_edge_hyphens(): void
+    {
+        $this->seed();
+
+        foreach (['tropizz.com', 'tro pizz', 'Tropizz', '-tropizz', 'tropizz-'] as $subdomain) {
+            $this->withDeveloperSession()->post('/developer/pos', [
+                'store_name' => 'Invalid '.$subdomain,
+                'buyer_name' => 'Buyer',
+                'contact' => '08123',
+                'subdomain' => $subdomain,
+            ])->assertSessionHasErrors('subdomain');
+        }
     }
 }
