@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'arventa_developer' => [
+        'name' => env('ARVENTA_DEVELOPER_NAME', 'Arventa Developer'),
+        'username' => env('ARVENTA_DEVELOPER_USERNAME'),
+        'email' => env('ARVENTA_DEVELOPER_EMAIL'),
+        'password' => env('ARVENTA_DEVELOPER_PASSWORD'),
+    ],
+
 ];

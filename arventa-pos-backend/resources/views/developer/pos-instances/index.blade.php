@@ -1,9 +1,15 @@
 @php
     $statusStyles = [
-        'draft' => 'bg-slate-100 text-slate-700 ring-slate-200',
-        'provisioning' => 'bg-amber-50 text-amber-700 ring-amber-200',
+        'pending' => 'bg-amber-50 text-amber-700 ring-amber-200',
+        'inactive' => 'bg-slate-100 text-slate-700 ring-slate-200',
         'active' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
         'suspended' => 'bg-red-50 text-red-700 ring-red-200',
+    ];
+    $deploymentStyles = [
+        'pending' => 'bg-slate-100 text-slate-700 ring-slate-200',
+        'deploying' => 'bg-amber-50 text-amber-700 ring-amber-200',
+        'deployed' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+        'failed' => 'bg-red-50 text-red-700 ring-red-200',
     ];
 @endphp
 
@@ -29,11 +35,11 @@
         </div>
         <div class="animate-[fade-up_300ms_ease-out_180ms_both] rounded-2xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-950/[0.03]">
             <p class="text-sm font-medium text-slate-500">Draft</p>
-            <p class="mt-4 text-3xl font-semibold text-slate-950">{{ $stats['draft'] }}</p>
+            <p class="mt-4 text-3xl font-semibold text-slate-950">{{ $stats['pending'] }}</p>
         </div>
         <div class="animate-[fade-up_300ms_ease-out_240ms_both] rounded-2xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-950/[0.03]">
-            <p class="text-sm font-medium text-slate-500">Provisioning</p>
-            <p class="mt-4 text-3xl font-semibold text-slate-950">{{ $stats['provisioning'] }}</p>
+            <p class="text-sm font-medium text-slate-500">Deploying</p>
+            <p class="mt-4 text-3xl font-semibold text-slate-950">{{ $stats['deploying'] }}</p>
         </div>
     </section>
 
@@ -42,7 +48,7 @@
             <div class="flex items-start justify-between gap-4">
                 <div>
                     <h2 class="text-lg font-semibold text-slate-950">Generate POS Pembeli</h2>
-                    <p class="mt-1 text-sm leading-6 text-slate-500">Isi minimal nama toko. Field teknis boleh dikosongkan agar sistem generate otomatis.</p>
+                    <p class="mt-1 text-sm leading-6 text-slate-500">Isi data pembeli. Field teknis boleh dikosongkan agar sistem generate otomatis.</p>
                 </div>
                 <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Single tenant</span>
             </div>
@@ -65,13 +71,13 @@
                 <div class="grid gap-4 sm:grid-cols-2">
                     <label class="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
                         Nama pembeli
-                        <input name="owner_name" value="{{ old('owner_name') }}" placeholder="Owner toko" class="rounded-xl border border-slate-300 px-4 py-3 text-sm font-medium normal-case tracking-normal text-slate-900 outline-none transition focus:border-slate-950 focus:ring-4 focus:ring-slate-100">
-                        @error('owner_name') <span class="text-xs font-medium normal-case tracking-normal text-red-600">{{ $message }}</span> @enderror
+                        <input name="buyer_name" value="{{ old('buyer_name') }}" required placeholder="Owner toko" class="rounded-xl border border-slate-300 px-4 py-3 text-sm font-medium normal-case tracking-normal text-slate-900 outline-none transition focus:border-slate-950 focus:ring-4 focus:ring-slate-100">
+                        @error('buyer_name') <span class="text-xs font-medium normal-case tracking-normal text-red-600">{{ $message }}</span> @enderror
                     </label>
                     <label class="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
                         Kontak
-                        <input name="owner_phone" value="{{ old('owner_phone') }}" placeholder="WhatsApp / telepon" class="rounded-xl border border-slate-300 px-4 py-3 text-sm font-medium normal-case tracking-normal text-slate-900 outline-none transition focus:border-slate-950 focus:ring-4 focus:ring-slate-100">
-                        @error('owner_phone') <span class="text-xs font-medium normal-case tracking-normal text-red-600">{{ $message }}</span> @enderror
+                        <input name="contact" value="{{ old('contact') }}" required placeholder="WhatsApp / telepon" class="rounded-xl border border-slate-300 px-4 py-3 text-sm font-medium normal-case tracking-normal text-slate-900 outline-none transition focus:border-slate-950 focus:ring-4 focus:ring-slate-100">
+                        @error('contact') <span class="text-xs font-medium normal-case tracking-normal text-red-600">{{ $message }}</span> @enderror
                     </label>
                 </div>
 
@@ -96,8 +102,8 @@
                             </label>
                             <label class="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
                                 Package app
-                                <input name="app_package_name" value="{{ old('app_package_name') }}" placeholder="com.arventapos.parfume" class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium normal-case tracking-normal text-slate-900 outline-none transition focus:border-slate-950 focus:ring-4 focus:ring-slate-100">
-                                @error('app_package_name') <span class="text-xs font-medium normal-case tracking-normal text-red-600">{{ $message }}</span> @enderror
+                                <input name="package_name" value="{{ old('package_name') }}" placeholder="com.arventapos.parfume" class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium normal-case tracking-normal text-slate-900 outline-none transition focus:border-slate-950 focus:ring-4 focus:ring-slate-100">
+                                @error('package_name') <span class="text-xs font-medium normal-case tracking-normal text-red-600">{{ $message }}</span> @enderror
                             </label>
                         </div>
                     </div>
@@ -150,6 +156,7 @@
                                 <th class="px-5 py-3">Database</th>
                                 <th class="px-5 py-3">Admin</th>
                                 <th class="px-5 py-3">Status</th>
+                                <th class="px-5 py-3">Dibuat</th>
                                 <th class="px-5 py-3">Aksi</th>
                             </tr>
                         </thead>
@@ -158,7 +165,7 @@
                                 <tr class="transition hover:bg-slate-50/80">
                                     <td class="px-5 py-4 align-top">
                                         <p class="font-semibold text-slate-950">{{ $instance->store_name }}</p>
-                                        <p class="mt-1 text-xs text-slate-500">{{ $instance->owner_name ?: 'Tanpa nama pembeli' }}{{ $instance->owner_phone ? ' - '.$instance->owner_phone : '' }}</p>
+                                        <p class="mt-1 text-xs text-slate-500">{{ $instance->buyer_name ?: $instance->owner_name ?: 'Tanpa nama pembeli' }}{{ ($instance->contact ?: $instance->owner_phone) ? ' - '.($instance->contact ?: $instance->owner_phone) : '' }}</p>
                                     </td>
                                     <td class="px-5 py-4 align-top">
                                         <p class="font-medium text-slate-900">{{ $instance->domain }}</p>
@@ -166,33 +173,46 @@
                                     </td>
                                     <td class="px-5 py-4 align-top">
                                         <code class="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">{{ $instance->database_name }}</code>
-                                        <p class="mt-2 text-xs text-slate-500">{{ $instance->app_package_name }}</p>
+                                        <p class="mt-2 text-xs text-slate-500">{{ $instance->package_name ?: $instance->app_package_name }}</p>
                                     </td>
-                                    <td class="px-5 py-4 align-top">
+                                    <td class="px-5 py-4 align-top" x-data="{ showPassword: false, copied: false, password: @js($instance->admin_password) }">
                                         <p class="max-w-[150px] truncate font-medium text-slate-900">{{ $instance->admin_username }}</p>
-                                        <p class="mt-1 max-w-[150px] truncate font-mono text-xs text-slate-500">{{ $instance->admin_password }}</p>
+                                        <div class="mt-1 flex items-center gap-2">
+                                            <p class="max-w-[150px] truncate font-mono text-xs text-slate-500" x-text="showPassword ? password : '••••••••••'"></p>
+                                            <button type="button" class="text-xs font-semibold text-slate-500 hover:text-slate-950" @click="showPassword = !showPassword" x-text="showPassword ? 'Hide' : 'Show'"></button>
+                                            <button type="button" class="text-xs font-semibold text-slate-500 hover:text-slate-950" @click="navigator.clipboard.writeText(password); copied = true; setTimeout(() => copied = false, 1500)" x-text="copied ? 'Copied' : 'Copy'"></button>
+                                        </div>
                                     </td>
                                     <td class="px-5 py-4 align-top">
-                                        <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 {{ $statusStyles[$instance->status] ?? $statusStyles['draft'] }}">{{ ucfirst($instance->status) }}</span>
-                                        @if ($instance->provisioned_at)
-                                            <p class="mt-2 text-xs text-slate-500">{{ $instance->provisioned_at->format('d M Y H:i') }}</p>
+                                        <form method="post" action="{{ route('developer.pos.status', $instance) }}" x-data="{ saving: false }" @submit="saving = true">
+                                            @csrf
+                                            @method('patch')
+                                            <select name="status" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700" onchange="this.form.requestSubmit()">
+                                                @foreach (['pending', 'active', 'inactive', 'suspended'] as $status)
+                                                    <option value="{{ $status }}" @selected($instance->status === $status)>{{ ucfirst($status) }}</option>
+                                                @endforeach
+                                            </select>
+                                            <span x-show="saving" class="ml-2 text-xs font-medium text-slate-500">Saving...</span>
+                                        </form>
+                                        <span class="mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 {{ $deploymentStyles[$instance->deployment_status] ?? $deploymentStyles['pending'] }}">{{ ucfirst($instance->deployment_status ?? 'pending') }}</span>
+                                        @if ($instance->deployment_error)
+                                            <p class="mt-2 max-w-[180px] text-xs text-red-600">{{ $instance->deployment_error }}</p>
                                         @endif
                                     </td>
+                                    <td class="px-5 py-4 align-top text-xs text-slate-500">{{ $instance->created_at?->format('d M Y H:i') }}</td>
                                     <td class="px-5 py-4 align-top">
-                                        <div class="flex flex-wrap items-center gap-2" x-data="{ open: false }">
+                                        <div class="flex flex-wrap items-center gap-2" x-data="{ open: false, deploying: false }">
+                                            <form method="post" action="{{ route('developer.pos.deploy', $instance) }}" @submit="deploying = true">
+                                                @csrf
+                                                <button class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 active:scale-[0.97]" :disabled="deploying">
+                                                    <svg x-show="deploying" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4Z"/></svg>
+                                                    <span x-text="deploying ? 'Deploying...' : 'Deploy'"></span>
+                                                </button>
+                                            </form>
                                             <button type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 active:scale-[0.97]" @click="open = !open">
                                                 <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
-                                                Deploy
+                                                Notes
                                             </button>
-                                            <form method="post" action="{{ route('developer.pos.status', $instance) }}">
-                                                @csrf
-                                                @method('put')
-                                                <select name="status" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700" onchange="this.form.submit()">
-                                                    @foreach (['draft', 'provisioning', 'active', 'suspended'] as $status)
-                                                        <option value="{{ $status }}" @selected($instance->status === $status)>{{ ucfirst($status) }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </form>
                                             <div x-cloak x-show="open" x-transition class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-950 p-4 text-xs text-slate-100 shadow-xl">
                                                 <pre class="whitespace-pre-wrap font-mono leading-5">{{ $instance->deployment_notes }}</pre>
                                             </div>

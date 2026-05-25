@@ -7,12 +7,13 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'username', 'password', 'role', 'is_active'])]
+#[Fillable(['name', 'email', 'username', 'password', 'role', 'is_active', 'pos_instance_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -36,5 +37,10 @@ class User extends Authenticatable
     public function cashierDevices(): HasMany
     {
         return $this->hasMany(CashierDevice::class);
+    }
+
+    public function posInstance(): BelongsTo
+    {
+        return $this->belongsTo(PosInstance::class);
     }
 }

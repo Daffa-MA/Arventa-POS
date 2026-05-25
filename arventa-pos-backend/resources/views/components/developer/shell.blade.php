@@ -7,6 +7,7 @@
 
 @php
     $firstError = $errors->first();
+    $currentDeveloper = $currentDeveloper ?? null;
 @endphp
 
 <x-layouts.admin title="Arventa POS Developer">
@@ -31,7 +32,14 @@
                     </div>
                 </div>
 
-                <span class="rounded-full bg-slate-950 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white shadow-sm">Vendor Console</span>
+                <div class="flex items-center gap-2">
+                    <span class="hidden rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm sm:inline-flex">{{ $currentDeveloper?->name ?? 'Developer' }}</span>
+                    <span class="rounded-full bg-slate-950 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white shadow-sm">Vendor Console</span>
+                    <form method="post" action="{{ route('developer.logout') }}">
+                        @csrf
+                        <button class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50">Logout</button>
+                    </form>
+                </div>
             </div>
         </header>
 

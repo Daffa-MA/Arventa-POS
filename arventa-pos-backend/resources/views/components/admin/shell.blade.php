@@ -12,6 +12,7 @@
     $adminConsoleLabel = $setting->admin_console_label ?: 'Admin Console';
     $logoUrl = $setting->logo_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($setting->logo_path) : null;
     $firstError = $errors->first();
+    $currentAdmin = $currentAdmin ?? null;
     $navItems = [
         ['key' => 'dashboard', 'label' => 'Dashboard', 'href' => route('admin.dashboard'), 'icon' => 'layout-dashboard'],
         ['key' => 'settings', 'label' => 'Setting', 'href' => route('admin.settings'), 'icon' => 'settings'],
@@ -120,9 +121,15 @@
                             <h1 class="text-lg font-semibold text-slate-950 sm:text-xl">{{ $title }}</h1>
                         </div>
                     </div>
-                    <div class="hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 shadow-sm sm:flex">
-                        <span class="h-2.5 w-2.5 rounded-full" style="background-color: var(--app-accent)"></span>
-                        {{ $setting->store_name }}
+                    <div class="hidden items-center gap-2 sm:flex">
+                        <div class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 shadow-sm">
+                            <span class="h-2.5 w-2.5 rounded-full" style="background-color: var(--app-accent)"></span>
+                            {{ $currentAdmin?->name ?? $setting->store_name }}
+                        </div>
+                        <form method="post" action="{{ route('admin.logout') }}">
+                            @csrf
+                            <button class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50">Logout</button>
+                        </form>
                     </div>
                 </div>
             </header>

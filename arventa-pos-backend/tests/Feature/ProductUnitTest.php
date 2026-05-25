@@ -15,7 +15,7 @@ class ProductUnitTest extends TestCase
     {
         $this->seed();
 
-        $response = $this->from('/admin/products')->post('/admin/products', [
+        $response = $this->withAdminSession()->from('/admin/products')->post('/admin/products', [
             'name' => 'Susu Botol',
             'sku' => 'SUSU-ML-001',
             'type' => 'product',
@@ -88,7 +88,7 @@ class ProductUnitTest extends TestCase
             'is_active' => true,
         ]);
 
-        $response = $this->from('/admin/products')->put("/admin/products/{$product->id}", [
+        $response = $this->withAdminSession()->from('/admin/products')->put("/admin/products/{$product->id}", [
             'name' => 'Air Mineral',
             'sku' => null,
             'type' => 'product',
@@ -110,7 +110,7 @@ class ProductUnitTest extends TestCase
     {
         $this->seed();
 
-        $response = $this->from('/admin/products')->post('/admin/products', [
+        $response = $this->withAdminSession()->from('/admin/products')->post('/admin/products', [
             'name' => 'Diskon Member',
             'sku' => 'DISC-MEMBER',
             'type' => 'product',
@@ -189,7 +189,7 @@ class ProductUnitTest extends TestCase
     {
         $this->seed();
 
-        $response = $this->from('/admin/products')->post('/admin/products', [
+        $response = $this->withAdminSession()->from('/admin/products')->post('/admin/products', [
             'name' => 'Alkohol Parfum',
             'sku' => 'ALK-ML',
             'type' => 'product',

@@ -12,7 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'arventa.admin' => \App\Http\Middleware\EnsureAdminAuthenticated::class,
+            'arventa.developer' => \App\Http\Middleware\EnsureDeveloperAuthenticated::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

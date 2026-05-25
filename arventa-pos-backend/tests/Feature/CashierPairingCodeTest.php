@@ -28,7 +28,7 @@ class CashierPairingCodeTest extends TestCase
             'expires_at' => now()->addMinutes(5),
         ]);
 
-        $response = $this->from('/admin/devices')->delete('/admin/devices/pairing-codes/expired');
+        $response = $this->withAdminSession()->from('/admin/devices')->delete('/admin/devices/pairing-codes/expired');
 
         $response->assertRedirect('/admin/devices');
         $this->assertDatabaseMissing('cashier_pairing_codes', ['code' => '111111']);
@@ -45,7 +45,7 @@ class CashierPairingCodeTest extends TestCase
             'expires_at' => now()->addMinutes(5),
         ]);
 
-        $response = $this->from('/admin/devices')->delete("/admin/devices/pairing-codes/{$pairingCode->id}");
+        $response = $this->withAdminSession()->from('/admin/devices')->delete("/admin/devices/pairing-codes/{$pairingCode->id}");
 
         $response->assertRedirect('/admin/devices');
         $this->assertDatabaseMissing('cashier_pairing_codes', ['code' => '333333']);
@@ -118,7 +118,7 @@ class CashierPairingCodeTest extends TestCase
             'paired_user_id' => $revokedUser->id,
         ]);
 
-        $response = $this->get('/admin/devices');
+        $response = $this->withAdminSession()->get('/admin/devices');
 
         $response->assertOk();
         $response->assertSee('444444');
@@ -158,7 +158,7 @@ class CashierPairingCodeTest extends TestCase
             'last_seen_at' => now(),
         ]);
 
-        $response = $this->get('/admin/devices');
+        $response = $this->withAdminSession()->get('/admin/devices');
 
         $response->assertOk();
         $response->assertDontSee('Infinix X6833B');

@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('admin_username');
             $table->text('admin_password');
             $table->string('app_package_name')->nullable();
-            $table->enum('status', ['draft', 'provisioning', 'active', 'suspended'])->default('draft');
+            $table->enum('status', ['active', 'inactive', 'pending', 'suspended'])->default('pending');
             $table->timestamp('provisioned_at')->nullable();
             $table->text('deployment_notes')->nullable();
             $table->timestamps();
