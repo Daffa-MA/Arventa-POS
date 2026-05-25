@@ -60,14 +60,14 @@ class PosInstanceTest extends TestCase
         Config::set('services.arventa_deployment.dns.record_type', 'CNAME');
         Config::set('services.arventa_deployment.dns.record_content', 'arventa.arventa.my.id');
         Config::set('services.arventa_deployment.cloudflare.token', 'test-cloudflare-token');
-        Config::set('services.arventa_deployment.cloudflare.zone_id', 'test-zone');
+        Config::set('services.arventa_deployment.cloudflare.zone_id', '0123456789abcdef0123456789abcdef');
         Config::set('services.arventa_deployment.caprover.enabled', true);
         Config::set('services.arventa_deployment.caprover.base_url', 'https://captain.arventa.my.id');
         Config::set('services.arventa_deployment.caprover.auth_token', 'test-captain-token');
         Config::set('services.arventa_deployment.caprover.app_name', 'arventa');
 
         Http::fake([
-            'https://api.cloudflare.com/client/v4/zones/test-zone/dns_records*' => Http::sequence()
+            'https://api.cloudflare.com/client/v4/zones/0123456789abcdef0123456789abcdef/dns_records*' => Http::sequence()
                 ->push(['success' => true, 'result' => []])
                 ->push(['success' => true, 'result' => ['id' => 'record-1']]),
             'https://captain.arventa.my.id/api/v2/user/apps/appDefinitions/customdomain' => Http::response(['status' => 100, 'description' => 'OK']),

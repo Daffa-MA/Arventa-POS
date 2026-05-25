@@ -2,6 +2,7 @@
 
 namespace App\Services\Deployment;
 
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
@@ -19,6 +20,10 @@ class CloudflareDnsService
             throw new \RuntimeException('Cloudflare API token dan zone id wajib diisi untuk automation DNS.');
         }
 
+        if (! preg_match('/^[a-f0-9]{32}$/i', (string) $zoneId)) {
+            throw new \RuntimeException('CLOUDFLARE_ZONE_ID tidak valid. Gunakan Zone ID 32 karakter dari halaman Overview zone arventa.my.id, bukan API token ID atau account ID.');
+        }
+
         if (blank($content)) {
             throw new \RuntimeException('Target DNS wajib diisi melalui ARVENTA_DNS_RECORD_CONTENT.');
         }
@@ -31,19 +36,23 @@ class CloudflareDnsService
             'proxied' => (bool) config('services.arventa_deployment.dns.proxied', false),
         ];
 
-        $existing = $this->request()
-            ->get("https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records", [
-                'type' => $type,
-                'name' => $recordName,
-            ])
-            ->throw()
-            ->json('result.0');
+        try {
+            $existing = $this->request()
+                ->get("https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records", [
+                    'type' => $type,
+                    'name' => $recordName,
+                ])
+                ->throw()
+                ->json('result.0');
 
-        $response = $existing
-            ? $this->request()->put("https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records/{$existing['id']}", $payload)
-            : $this->request()->post("https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records", $payload);
+            $response = $existing
+                ? $this->request()->put("https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records/{$existing['id']}", $payload)
+                : $this->request()->post("https://api.cloudflare.com/client/v4/zones/{$zoneId}/dns_records", $payload);
 
-        $json = $response->throw()->json();
+            $json = $response->throw()->json();
+        } catch (RequestException $error) {
+            throw new \RuntimeException($this->cloudflareErrorMessage($error, (string) $zoneId));
+        }
 
         if (! ($json['success'] ?? false)) {
             throw new \RuntimeException('Cloudflare DNS gagal: '.json_encode($json['errors'] ?? $json));
@@ -109,5 +118,21 @@ class CloudflareDnsService
             ->replaceMatches('/\/.*$/', '')
             ->trim('.')
             ->toString();
+    }
+
+    private function cloudflareErrorMessage(RequestException $error, string $zoneId): string
+    {
+        $response = $error->response;
+        $json = $response?->json() ?? [];
+        $errors = collect($json['errors'] ?? [])
+            ->map(fn (array $item): string => trim(($item['code'] ?? 'error').' '.$item['message']))
+            ->filter()
+            ->implode('; ');
+
+        if (Str::contains($errors, ['7003', 'Could not route'])) {
+            return 'Cloudflare zone tidak ditemukan atau token tidak punya akses. Cek CLOUDFLARE_ZONE_ID untuk zone arventa.my.id dan permission API token DNS Edit/Zone Read. Zone ID saat ini: '.$zoneId;
+        }
+
+        return 'Cloudflare DNS gagal'.($errors ? ': '.$errors : '. HTTP '.$response?->status());
     }
 }
