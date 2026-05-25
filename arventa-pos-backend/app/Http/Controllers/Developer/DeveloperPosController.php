@@ -50,7 +50,7 @@ class DeveloperPosController extends Controller
         ]);
 
         $subdomain = $this->uniqueSubdomain($data['subdomain'] ?? Str::slug($data['store_name']));
-        $domain = ($data['domain'] ?? null) ?: $subdomain.'.arventapos.local';
+        $domain = $this->normalizeDomain(($data['domain'] ?? null) ?: $subdomain.'.'.$this->publicBaseDomain());
         $databaseName = $this->uniqueDatabaseName($data['database_name'] ?? 'arventa_pos_'.str_replace('-', '_', $subdomain));
         $packageName = $this->uniquePackageName($data['package_name'] ?? 'com.arventapos.'.str_replace('-', '', $subdomain));
         $adminUsername = $this->uniqueAdminUsername($data['admin_username'] ?? 'admin_'.str_replace('-', '_', $subdomain));
@@ -240,12 +240,34 @@ class DeveloperPosController extends Controller
     private function deploymentNotes(string $domain, string $databaseName, string $packageName): string
     {
         return implode(PHP_EOL, [
-            'Deployment placeholder tersimpan.',
+            'POS tenant tersimpan dan siap diarahkan ke satu aplikasi Laravel.',
             'Domain: '.$domain,
-            'Database: '.$databaseName,
+            'Database tenant key: '.$databaseName,
             'Package Android: '.$packageName,
-            'DNS, database fisik, dan CapRover app belum dibuat otomatis.',
+            'Deploy akan membuat DNS Cloudflare, attach domain ke app CapRover, dan enable SSL.',
+            'Tidak membuat database fisik baru karena Arventa memakai satu database multi-tenant dengan pos_instance_id.',
+            'URL admin pembeli: https://'.$domain.'/admin/login',
         ]);
+    }
+
+    private function publicBaseDomain(): string
+    {
+        return Str::of((string) config('services.arventa_deployment.public_base_domain', 'arventa.my.id'))
+            ->lower()
+            ->replaceMatches('/^https?:\/\//', '')
+            ->replaceMatches('/\/.*$/', '')
+            ->trim('.')
+            ->toString();
+    }
+
+    private function normalizeDomain(string $domain): string
+    {
+        return Str::of($domain)
+            ->lower()
+            ->replaceMatches('/^https?:\/\//', '')
+            ->replaceMatches('/\/.*$/', '')
+            ->trim('.')
+            ->toString();
     }
 
     private function instancePayload(PosInstance $instance): array

@@ -1,6 +1,6 @@
 # Deploy Arventa POS to CapRover
 
-Arventa POS is deployed as a single-tenant Laravel backend/web admin app. The Android POS app connects to this backend through the REST API.
+Arventa POS is deployed as one multi-tenant Laravel backend/web admin app. Each buyer store is a `pos_instances` tenant, and store data is separated with `pos_instance_id`.
 
 This repository keeps the Laravel app in `arventa-pos-backend`, while CapRover builds from the repository root using:
 
@@ -56,6 +56,10 @@ CACHE_STORE=file
 SESSION_DRIVER=file
 QUEUE_CONNECTION=sync
 FILESYSTEM_DISK=public
+
+ARVENTA_PUBLIC_BASE_DOMAIN=arventa.my.id
+ARVENTA_APP_PUBLIC_HOST=arventa.arventa.my.id
+ARVENTA_DEPLOYMENT_MODE=manual
 ```
 
 Generate `APP_KEY` locally or in the deployed container:
@@ -118,6 +122,60 @@ docker exec -it $(docker ps --filter "name=srv-captain--arventa" --format "{{.ID
 ```
 
 The `/admin` route reads the `store_settings`, `products`, and `sales` tables. If those tables do not exist yet, or the seed data has not created a `store_settings` row, Laravel can return a 500 error in production. The seeders are safe to run more than once.
+
+## Multi-Tenant Buyer URL Automation
+
+The developer panel at `/developer/pos` creates one tenant record for each buyer. Deploying a tenant does not create a second Laravel app or a second physical database. It:
+
+- creates or updates a DNS record for the buyer domain
+- attaches that domain to the existing CapRover app `arventa`
+- enables SSL for the buyer domain
+- keeps all buyer data inside the shared Laravel database using `pos_instance_id`
+
+Set these env values to enable automatic deployment:
+
+```env
+ARVENTA_DEPLOYMENT_MODE=automatic
+ARVENTA_PUBLIC_BASE_DOMAIN=arventa.my.id
+ARVENTA_APP_PUBLIC_HOST=arventa.arventa.my.id
+
+ARVENTA_DNS_PROVIDER=cloudflare
+ARVENTA_DNS_RECORD_TYPE=CNAME
+ARVENTA_DNS_RECORD_CONTENT=arventa.arventa.my.id
+ARVENTA_DNS_TTL=1
+ARVENTA_DNS_PROXIED=false
+CLOUDFLARE_API_TOKEN=CHANGE_THIS
+CLOUDFLARE_ZONE_ID=CHANGE_THIS
+
+CAPROVER_AUTOMATION_ENABLED=true
+CAPROVER_BASE_URL=https://captain.arventa.my.id
+CAPROVER_AUTH_TOKEN=CHANGE_THIS
+# Or use CAPROVER_PASSWORD instead of CAPROVER_AUTH_TOKEN
+CAPROVER_APP_NAME=arventa
+CAPROVER_NAMESPACE=captain
+CAPROVER_ENABLE_SSL=true
+```
+
+After changing these values:
+
+```bash
+php artisan optimize:clear
+```
+
+Buyer flow:
+
+1. Developer logs into `/developer/login`.
+2. Developer creates a POS tenant in `/developer/pos`.
+3. Developer clicks **Deploy**.
+4. The generated URL becomes `https://SUBDOMAIN.arventa.my.id/admin/login` or the custom domain filled in the form.
+5. Buyer logs into admin using the generated admin username/password.
+6. Buyer opens **Perangkat Kasir**, creates a pairing QR, and pairs the Android app.
+
+If deployment fails, the row stores `deployment_status=failed` and `deployment_error` with the runtime message. Check:
+
+```bash
+tail -n 100 storage/logs/laravel.log
+```
 
 ## Debug 500 Runtime Errors
 
@@ -245,14 +303,15 @@ DB::connection()->getPdo();
 ## Expected URLs
 
 ```text
-Web app: https://arventa.arventa.my.id
-Admin:   https://arventa.arventa.my.id/admin
-API:     https://arventa.arventa.my.id/api
+Web app:        https://arventa.arventa.my.id
+Test admin:     https://arventa.arventa.my.id/admin
+Buyer admin:    https://{tenant}.arventa.my.id/admin/login
+API:            https://arventa.arventa.my.id/api
 ```
 
 ## Notes
 
-- Keep this deployment single-tenant.
+- Keep this deployment multi-tenant in one Laravel app and one database.
 - Do not commit `.env`, `.env.production`, or local secrets.
 - Set all production values through CapRover environment variables.
 - For a 1GB VPS, keep the app simple: one Laravel container plus one MySQL container is enough for the current stage.

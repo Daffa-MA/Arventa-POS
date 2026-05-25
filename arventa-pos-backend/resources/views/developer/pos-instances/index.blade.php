@@ -17,7 +17,7 @@
     :setting="$setting"
     active="pos-list"
     title="POS List"
-    subtitle="Dashboard developer untuk generate instance POS pembeli. Setiap baris mewakili satu toko single-tenant: domain sendiri, database sendiri, dan kredensial admin sendiri."
+    subtitle="Dashboard developer untuk generate tenant POS pembeli. Semua toko berjalan di satu aplikasi, domain pembeli diarahkan ke app yang sama, dan data dipisah dengan pos_instance_id."
 >
     <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <div class="animate-[fade-up_300ms_ease-out_60ms_both] rounded-2xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-950/[0.03]">
@@ -50,7 +50,7 @@
                     <h2 class="text-lg font-semibold text-slate-950">Generate POS Pembeli</h2>
                     <p class="mt-1 text-sm leading-6 text-slate-500">Isi data pembeli. Field teknis boleh dikosongkan agar sistem generate otomatis.</p>
                 </div>
-                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Single tenant</span>
+                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Multi tenant</span>
             </div>
 
             <form
@@ -91,12 +91,12 @@
                         </label>
                         <label class="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
                             Domain
-                            <input name="domain" value="{{ old('domain') }}" placeholder="parfume.arventapos.com" class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium normal-case tracking-normal text-slate-900 outline-none transition focus:border-slate-950 focus:ring-4 focus:ring-slate-100">
+                            <input name="domain" value="{{ old('domain') }}" placeholder="parfume.arventa.my.id" class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium normal-case tracking-normal text-slate-900 outline-none transition focus:border-slate-950 focus:ring-4 focus:ring-slate-100">
                             @error('domain') <span class="text-xs font-medium normal-case tracking-normal text-red-600">{{ $message }}</span> @enderror
                         </label>
                         <div class="grid gap-4 sm:grid-cols-2">
                             <label class="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                Database
+                                Tenant key
                                 <input name="database_name" value="{{ old('database_name') }}" placeholder="arventa_pos_parfume" class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium normal-case tracking-normal text-slate-900 outline-none transition focus:border-slate-950 focus:ring-4 focus:ring-slate-100">
                                 @error('database_name') <span class="text-xs font-medium normal-case tracking-normal text-red-600">{{ $message }}</span> @enderror
                             </label>
@@ -133,7 +133,7 @@
             <div class="flex flex-col gap-2 border-b border-slate-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h2 class="text-lg font-semibold text-slate-950">Daftar POS Pembeli</h2>
-                    <p class="text-sm text-slate-500">Blueprint domain, database, dan akun admin untuk tiap pembeli.</p>
+                    <p class="text-sm text-slate-500">Domain, tenant key, dan akun admin untuk tiap pembeli.</p>
                 </div>
                 <span class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ $instances->count() }} instance</span>
             </div>
@@ -144,7 +144,7 @@
                         <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
                     </div>
                     <p class="mt-4 font-semibold text-slate-950">Belum ada POS</p>
-                    <p class="mt-1 max-w-sm text-sm leading-6 text-slate-500">Generate POS pertama dari form di kiri. Nanti data ini jadi pegangan saat membuat domain dan database pembeli.</p>
+                    <p class="mt-1 max-w-sm text-sm leading-6 text-slate-500">Generate POS pertama dari form di kiri. Deploy akan mengarahkan domain ke aplikasi Arventa yang sama.</p>
                 </div>
             @else
                 <div class="overflow-x-auto">
@@ -153,7 +153,7 @@
                             <tr>
                                 <th class="px-5 py-3">Toko</th>
                                 <th class="px-5 py-3">Domain</th>
-                                <th class="px-5 py-3">Database</th>
+                                <th class="px-5 py-3">Tenant</th>
                                 <th class="px-5 py-3">Admin</th>
                                 <th class="px-5 py-3">Status</th>
                                 <th class="px-5 py-3">Dibuat</th>
@@ -178,7 +178,7 @@
                                     <td class="px-5 py-4 align-top" x-data="{ showPassword: false, copied: false, password: @js($instance->admin_password) }">
                                         <p class="max-w-[150px] truncate font-medium text-slate-900">{{ $instance->admin_username }}</p>
                                         <div class="mt-1 flex items-center gap-2">
-                                            <p class="max-w-[150px] truncate font-mono text-xs text-slate-500" x-text="showPassword ? password : '••••••••••'"></p>
+                                            <p class="max-w-[150px] truncate font-mono text-xs text-slate-500" x-text="showPassword ? password : '**********'"></p>
                                             <button type="button" class="text-xs font-semibold text-slate-500 hover:text-slate-950" @click="showPassword = !showPassword" x-text="showPassword ? 'Hide' : 'Show'"></button>
                                             <button type="button" class="text-xs font-semibold text-slate-500 hover:text-slate-950" @click="navigator.clipboard.writeText(password); copied = true; setTimeout(() => copied = false, 1500)" x-text="copied ? 'Copied' : 'Copy'"></button>
                                         </div>

@@ -42,4 +42,30 @@ return [
         'password' => env('ARVENTA_DEVELOPER_PASSWORD'),
     ],
 
+    'arventa_deployment' => [
+        'mode' => env('ARVENTA_DEPLOYMENT_MODE', 'manual'),
+        'public_base_domain' => env('ARVENTA_PUBLIC_BASE_DOMAIN', 'arventa.my.id'),
+        'app_public_host' => env('ARVENTA_APP_PUBLIC_HOST', 'arventa.arventa.my.id'),
+        'dns' => [
+            'provider' => env('ARVENTA_DNS_PROVIDER', 'none'),
+            'record_type' => env('ARVENTA_DNS_RECORD_TYPE', 'CNAME'),
+            'record_content' => env('ARVENTA_DNS_RECORD_CONTENT', env('ARVENTA_APP_PUBLIC_HOST', 'arventa.arventa.my.id')),
+            'ttl' => (int) env('ARVENTA_DNS_TTL', 1),
+            'proxied' => filter_var(env('ARVENTA_DNS_PROXIED', false), FILTER_VALIDATE_BOOL),
+        ],
+        'cloudflare' => [
+            'token' => env('CLOUDFLARE_API_TOKEN'),
+            'zone_id' => env('CLOUDFLARE_ZONE_ID'),
+        ],
+        'caprover' => [
+            'enabled' => filter_var(env('CAPROVER_AUTOMATION_ENABLED', false), FILTER_VALIDATE_BOOL),
+            'base_url' => env('CAPROVER_BASE_URL'),
+            'password' => env('CAPROVER_PASSWORD'),
+            'auth_token' => env('CAPROVER_AUTH_TOKEN'),
+            'namespace' => env('CAPROVER_NAMESPACE', 'captain'),
+            'app_name' => env('CAPROVER_APP_NAME', 'arventa'),
+            'enable_ssl' => filter_var(env('CAPROVER_ENABLE_SSL', true), FILTER_VALIDATE_BOOL),
+        ],
+    ],
+
 ];

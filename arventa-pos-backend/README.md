@@ -1,6 +1,6 @@
 # Arventa POS Backend
 
-Backend Laravel untuk web admin dan API aplikasi kasir Android.
+Backend Laravel untuk Web Admin, Developer Console, dan API aplikasi kasir Android.
 
 ## Stack
 
@@ -11,198 +11,136 @@ Backend Laravel untuk web admin dan API aplikasi kasir Android.
 - Alpine.js
 - Vite
 
-## Install untuk Toko Baru
+## Desain Deployment
 
-Gunakan panduan ini saat kamu menjual Arventa POS ke pembeli baru.
+Arventa sekarang memakai model multi-tenant satu aplikasi:
 
-## 1. Buat Database
+- Satu Laravel app
+- Satu database utama
+- Banyak toko/POS
+- Data tiap toko dipisah dengan `pos_instance_id`
+- Domain/subdomain menentukan tenant aktif untuk login admin
+- Pairing Android mengikat perangkat kasir ke tenant yang benar
 
-Untuk single-tenant, buat satu database per toko.
+Field `database_name` pada POS instance dipakai sebagai tenant key/metadata, bukan perintah membuat database fisik baru untuk setiap pembeli.
 
-Contoh nama database:
+## Flow Pembeli Baru
 
-```text
-arventa_pos_parfume
-arventa_pos_bakso_amin
-arventa_pos_barbershop
-```
+1. Developer login ke `/developer/login`.
+2. Buka `/developer/pos`.
+3. Generate POS dengan nama toko, pembeli, kontak, subdomain/domain, package app, dan akun admin.
+4. Klik Deploy.
+5. Sistem automation membuat DNS, attach domain ke app CapRover yang sama, dan enable SSL.
+6. Pembeli buka `https://domain-pembeli/admin/login`.
+7. Pembeli login memakai admin username/password hasil generate.
+8. Pembeli pairing Android dari menu Perangkat Kasir.
+9. Android sync setting, katalog, dan transaksi untuk tenant tersebut.
 
-Contoh SQL:
+## Environment Production
 
-```sql
-CREATE DATABASE arventa_pos_parfume;
-```
-
-## 2. Setup Domain/Subdomain
-
-Contoh:
-
-```text
-https://parfume.arventapos.com
-```
-
-Document root server harus mengarah ke:
-
-```text
-arventa-pos-backend/public
-```
-
-Pastikan domain sudah memakai HTTPS.
-
-## 3. Setup `.env`
-
-Copy file env:
-
-```bash
-cp .env.example .env
-```
-
-Contoh konfigurasi:
+Contoh env utama:
 
 ```env
-APP_NAME="Parfume POS"
+APP_NAME="Arventa POS"
 APP_ENV=production
 APP_DEBUG=false
-APP_URL=https://parfume.arventapos.com
+APP_URL=https://arventa.arventa.my.id
 
 DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
+DB_HOST=srv-captain--arventa-db
 DB_PORT=3306
-DB_DATABASE=arventa_pos_parfume
-DB_USERNAME=your_db_user
-DB_PASSWORD=your_db_password
+DB_DATABASE=arventa_pos
+DB_USERNAME=arventa_user
+DB_PASSWORD=arventa
 
+SESSION_DRIVER=file
+CACHE_STORE=file
+QUEUE_CONNECTION=sync
+LOG_CHANNEL=stack
 FILESYSTEM_DISK=public
 ```
 
-Untuk lokal sementara, boleh pakai SQLite:
+Developer login sebaiknya dibuat dari env, lalu jalankan seeder:
 
 ```env
-DB_CONNECTION=sqlite
+ARVENTA_DEVELOPER_NAME="Arventa Developer"
+ARVENTA_DEVELOPER_USERNAME=developer
+ARVENTA_DEVELOPER_EMAIL=developer@arventa.local
+ARVENTA_DEVELOPER_PASSWORD=change-this-password
 ```
 
-## 4. Install Dependency
+## Automation DNS dan CapRover
+
+Aktifkan hanya setelah credential siap:
+
+```env
+ARVENTA_DEPLOYMENT_MODE=automatic
+ARVENTA_PUBLIC_BASE_DOMAIN=arventa.my.id
+ARVENTA_APP_PUBLIC_HOST=arventa.arventa.my.id
+
+ARVENTA_DNS_PROVIDER=cloudflare
+ARVENTA_DNS_RECORD_TYPE=CNAME
+ARVENTA_DNS_RECORD_CONTENT=arventa.arventa.my.id
+ARVENTA_DNS_TTL=1
+ARVENTA_DNS_PROXIED=false
+CLOUDFLARE_API_TOKEN=...
+CLOUDFLARE_ZONE_ID=...
+
+CAPROVER_AUTOMATION_ENABLED=true
+CAPROVER_BASE_URL=https://captain.your-domain.com
+CAPROVER_PASSWORD=...
+CAPROVER_AUTH_TOKEN=
+CAPROVER_NAMESPACE=captain
+CAPROVER_APP_NAME=arventa
+CAPROVER_ENABLE_SSL=true
+```
+
+Jika `ARVENTA_DEPLOYMENT_MODE` masih `manual`, tombol Deploy akan menyimpan status `failed` dengan pesan konfigurasi yang harus dilengkapi. Ini sengaja supaya UI tidak memalsukan deploy.
+
+## Install Lokal
 
 ```bash
-composer install --no-dev --optimize-autoloader
+composer install
 npm install
-```
-
-## 5. Generate App Key
-
-```bash
+cp .env.example .env
 php artisan key:generate
-```
-
-## 6. Migrate dan Seed
-
-Untuk toko baru:
-
-```bash
 php artisan migrate --seed
-```
-
-Jika ingin reset database dari awal:
-
-```bash
-php artisan migrate:fresh --seed
-```
-
-Hati-hati: `migrate:fresh` menghapus seluruh data.
-
-## 7. Storage Link
-
-Agar foto produk bisa tampil:
-
-```bash
 php artisan storage:link
-```
-
-Foto produk disimpan di:
-
-```text
-storage/app/public/products
-```
-
-URL publiknya:
-
-```text
-/storage/products/...
-```
-
-## 8. Build Asset
-
-```bash
 npm run build
-```
-
-## 9. Cache Production
-
-Untuk server production:
-
-```bash
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-```
-
-Jika `.env` berubah:
-
-```bash
-php artisan config:clear
-php artisan config:cache
-```
-
-## 10. Jalankan Lokal
-
-```bash
 php artisan serve --host=127.0.0.1 --port=8000
 ```
 
-Web admin:
+Web admin lokal:
 
 ```text
 http://127.0.0.1:8000/admin
 ```
 
-## 11. Setup Toko di Web Admin
-
-Masuk ke:
+Developer console lokal:
 
 ```text
-/admin/settings
+http://127.0.0.1:8000/developer/pos
 ```
 
-Atur:
+## Admin Panel
 
-- nama toko
-- jenis usaha
-- alamat
-- footer struk
-- pajak
-- service charge
-- mata uang
-- warna Web Admin
-- warna App Kasir
-- layout App Kasir
-
-## 12. Tambah Produk
-
-Masuk ke:
+Admin toko login lewat:
 
 ```text
-/admin/products
+/admin/login
 ```
 
-Produk mendukung:
+Admin hanya bisa mengakses tenant/POS miliknya. Ketika domain pembeli cocok dengan `pos_instances.domain`, login admin dibatasi ke POS instance tersebut.
 
-- foto produk
-- SKU opsional
-- tipe produk/layanan
-- satuan `pcs`, `ml`, `gram`, `kg`, `meter`
-- stok decimal
+Menu penting:
 
-## 13. Hubungkan App Kasir
+- `/admin/settings`
+- `/admin/products`
+- `/admin/app-preview`
+- `/admin/devices`
+- `/admin/transactions`
+
+## Pairing Android
 
 Masuk ke:
 
@@ -212,22 +150,14 @@ Masuk ke:
 
 Flow:
 
-1. Klik generate QR pairing.
-2. Masukkan nama kasir.
-3. Masukkan label perangkat opsional.
-4. Scan QR dari app Android.
-5. App menerima token Sanctum.
-6. App sync setting toko dan katalog.
+1. Generate QR pairing.
+2. Masukkan nama kasir dan label perangkat.
+3. Scan QR dari app Android.
+4. App menerima token Sanctum.
+5. Token terikat ke `pos_instance_id`.
+6. App sync setting toko, katalog, dan transaksi untuk tenant tersebut.
 
-Setiap kode pairing:
-
-- berlaku 10 menit
-- hanya bisa dipakai 1 kali
-- cocok untuk multi kasir/multi perangkat
-
-## 14. API Pairing untuk App
-
-Endpoint:
+Endpoint pairing:
 
 ```http
 POST /api/pairing/connect
@@ -243,38 +173,19 @@ Body:
 }
 ```
 
-Response:
-
-```json
-{
-  "token_type": "Bearer",
-  "token": "...",
-  "cashier": {
-    "id": 2,
-    "name": "Kasir Shift Pagi",
-    "username": "cashier_xxxxx",
-    "role": "cashier"
-  },
-  "device": {
-    "id": 1,
-    "device_name": "Tablet Kasir 1"
-  }
-}
-```
-
-Gunakan token untuk request berikutnya:
+Request berikutnya memakai:
 
 ```http
 Authorization: Bearer TOKEN_DARI_PAIRING
 ```
 
-## 15. API Sync App Kasir
+## API Sync Android
 
 ```http
 GET /api/sync
 ```
 
-Mengembalikan:
+Mengembalikan data tenant yang sesuai token:
 
 - setting toko
 - layout app
@@ -282,18 +193,35 @@ Mengembalikan:
 - produk aktif
 - foto produk via `image_url`
 
-## 16. Checklist Sebelum Serah Terima
+## Perintah Production
 
-- Domain sudah HTTPS
-- `.env` sudah benar
-- Database toko sudah benar
-- `php artisan migrate --seed` berhasil
-- `php artisan storage:link` berhasil
-- `npm run build` berhasil
-- Web admin bisa dibuka
+Setelah deploy:
+
+```bash
+php artisan migrate --seed
+php artisan storage:link
+php artisan optimize:clear
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+Debug runtime:
+
+```bash
+tail -n 100 storage/logs/laravel.log
+php artisan route:list --path=developer
+php artisan route:list --path=admin
+```
+
+## Checklist Serah Terima Tenant
+
+- POS instance berhasil dibuat dari Developer Console
+- Domain pembeli mengarah ke app Laravel yang sama
+- SSL aktif
+- Pembeli bisa login `/admin/login`
+- Setting toko benar
 - Produk bisa ditambah
-- Foto produk tampil
 - QR pairing berhasil
 - App kasir bisa sync
-- Transaksi masuk ke web admin
-
+- Transaksi masuk ke Web Admin tenant yang benar
