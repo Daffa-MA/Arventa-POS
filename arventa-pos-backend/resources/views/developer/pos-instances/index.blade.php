@@ -233,6 +233,14 @@
                                                 <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
                                                 Notes
                                             </button>
+                                            <form method="post" action="{{ route('developer.pos.destroy', $instance) }}" onsubmit="return confirm('Hapus permanen POS {{ addslashes($instance->store_name) }} beserta data tenant terkait? Aksi ini tidak bisa dibatalkan.');">
+                                                @csrf
+                                                @method('delete')
+                                                <button class="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100 active:scale-[0.97]">
+                                                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v5"/><path d="M14 11v5"/></svg>
+                                                    Delete
+                                                </button>
+                                            </form>
                                             <div x-cloak x-show="open" x-transition class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-950 p-4 text-xs text-slate-100 shadow-xl">
                                                 <pre class="whitespace-pre-wrap font-mono leading-5">{{ $instance->deployment_notes }}</pre>
                                             </div>

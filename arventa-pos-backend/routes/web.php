@@ -43,4 +43,5 @@ Route::middleware('arventa.developer')->group(function (): void {
     Route::post('/developer/pos', [DeveloperPosController::class, 'store'])->name('developer.pos.store');
     Route::post('/developer/pos/{posInstance}/deploy', [DeveloperPosController::class, 'deploy'])->name('developer.pos.deploy');
     Route::patch('/developer/pos/{posInstance}/status', [DeveloperPosController::class, 'updateStatus'])->name('developer.pos.status');
+    Route::delete('/developer/pos/{posInstance}', [DeveloperPosController::class, 'destroy'])->name('developer.pos.destroy');
 });

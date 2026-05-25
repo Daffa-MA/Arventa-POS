@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -179,6 +180,44 @@ class DeveloperPosController extends Controller
 
         if ($request->wantsJson()) {
             return response()->json(['message' => $message, 'instance' => $this->instancePayload($posInstance->fresh())]);
+        }
+
+        return back()->with('status', $message);
+    }
+
+    public function destroy(Request $request, PosInstance $posInstance): RedirectResponse|JsonResponse
+    {
+        $storeName = $posInstance->store_name;
+
+        DB::transaction(function () use ($posInstance): void {
+            $userIds = User::query()
+                ->where('pos_instance_id', $posInstance->id)
+                ->pluck('id');
+
+            if ($userIds->isNotEmpty() && Schema::hasTable('personal_access_tokens')) {
+                DB::table('personal_access_tokens')
+                    ->where('tokenable_type', User::class)
+                    ->whereIn('tokenable_id', $userIds)
+                    ->delete();
+            }
+
+            foreach (['cashier_devices', 'cashier_pairing_codes', 'sales', 'products', 'store_settings'] as $table) {
+                if (Schema::hasTable($table) && Schema::hasColumn($table, 'pos_instance_id')) {
+                    DB::table($table)->where('pos_instance_id', $posInstance->id)->delete();
+                }
+            }
+
+            User::query()
+                ->where('pos_instance_id', $posInstance->id)
+                ->delete();
+
+            $posInstance->delete();
+        });
+
+        $message = 'POS '.$storeName.' sudah dihapus permanen.';
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => $message]);
         }
 
         return back()->with('status', $message);
