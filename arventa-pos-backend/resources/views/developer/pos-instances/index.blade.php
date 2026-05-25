@@ -148,11 +148,12 @@
                 </div>
             @else
                 <div class="overflow-x-auto">
-                    <table class="w-full min-w-[860px] text-left text-sm">
+                    <table class="w-full min-w-[1080px] text-left text-sm">
                         <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                             <tr>
                                 <th class="px-5 py-3">Toko</th>
                                 <th class="px-5 py-3">Domain</th>
+                                <th class="px-5 py-3">URL Admin</th>
                                 <th class="px-5 py-3">Tenant</th>
                                 <th class="px-5 py-3">Admin</th>
                                 <th class="px-5 py-3">Status</th>
@@ -162,6 +163,9 @@
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             @foreach ($instances as $instance)
+                                @php
+                                    $adminUrl = 'https://'.trim(preg_replace('/^https?:\/\//', '', (string) $instance->domain), '/').'/admin/login';
+                                @endphp
                                 <tr class="transition hover:bg-slate-50/80">
                                     <td class="px-5 py-4 align-top">
                                         <p class="font-semibold text-slate-950">{{ $instance->store_name }}</p>
@@ -170,6 +174,12 @@
                                     <td class="px-5 py-4 align-top">
                                         <p class="font-medium text-slate-900">{{ $instance->domain }}</p>
                                         <p class="mt-1 text-xs text-slate-500">{{ $instance->subdomain }}</p>
+                                    </td>
+                                    <td class="px-5 py-4 align-top" x-data="{ copiedUrl: false, url: @js($adminUrl) }">
+                                        <a href="{{ $adminUrl }}" target="_blank" rel="noopener" class="block max-w-[240px] truncate font-semibold text-slate-900 underline decoration-slate-300 underline-offset-4 transition hover:text-slate-950">
+                                            {{ $adminUrl }}
+                                        </a>
+                                        <button type="button" class="mt-1 text-xs font-semibold text-slate-500 transition hover:text-slate-950" @click="navigator.clipboard.writeText(url); copiedUrl = true; setTimeout(() => copiedUrl = false, 1500)" x-text="copiedUrl ? 'Copied' : 'Copy URL'"></button>
                                     </td>
                                     <td class="px-5 py-4 align-top">
                                         <code class="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">{{ $instance->database_name }}</code>
