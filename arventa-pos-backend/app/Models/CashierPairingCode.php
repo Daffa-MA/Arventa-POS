@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CashierPairingCode extends Model
 {
     protected $fillable = [
+        'pos_instance_id',
         'code',
         'cashier_name',
         'device_label',
@@ -27,5 +28,10 @@ class CashierPairingCode extends Model
     public function pairedUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'paired_user_id');
+    }
+
+    public function posInstance(): BelongsTo
+    {
+        return $this->belongsTo(PosInstance::class);
     }
 }

@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StoreSetting extends Model
 {
     protected $fillable = [
+        'pos_instance_id',
         'store_name',
         'business_type',
         'logo_path',
@@ -48,5 +50,10 @@ class StoreSetting extends Model
             'show_cart_on_app' => 'boolean',
             'show_order_summary_on_app' => 'boolean',
         ];
+    }
+
+    public function posInstance(): BelongsTo
+    {
+        return $this->belongsTo(PosInstance::class);
     }
 }

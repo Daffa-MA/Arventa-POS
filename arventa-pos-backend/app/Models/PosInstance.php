@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PosInstance extends Model
 {
@@ -35,5 +37,25 @@ class PosInstance extends Model
             'deployed_at' => 'datetime',
             'provisioned_at' => 'datetime',
         ];
+    }
+
+    public function setting(): HasOne
+    {
+        return $this->hasOne(StoreSetting::class);
+    }
+
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
+
+    public function sales(): HasMany
+    {
+        return $this->hasMany(Sale::class);
+    }
+
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
     }
 }

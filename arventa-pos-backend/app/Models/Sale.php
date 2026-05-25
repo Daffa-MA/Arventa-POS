@@ -3,11 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Sale extends Model
 {
     protected $fillable = [
+        'pos_instance_id',
         'invoice_number',
         'cashier_id',
         'subtotal',
@@ -29,6 +31,11 @@ class Sale extends Model
             'paid_amount' => 'decimal:2',
             'change_amount' => 'decimal:2',
         ];
+    }
+
+    public function posInstance(): BelongsTo
+    {
+        return $this->belongsTo(PosInstance::class);
     }
 
     public function items(): HasMany

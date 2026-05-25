@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\CashierDevice;
 use App\Models\CashierPairingCode;
+use App\Models\PosInstance;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,8 +34,20 @@ class PairingController extends Controller
         }
 
         $result = DB::transaction(function () use ($pairing, $payload): array {
+            $posInstanceId = $pairing->pos_instance_id ?: PosInstance::query()->orderBy('id')->value('id');
+
+            if (! $posInstanceId) {
+                throw ValidationException::withMessages([
+                    'code' => ['POS untuk kode pairing belum tersedia.'],
+                ]);
+            }
+
             $existingDevice = ! empty($payload['device_uid'])
-                ? CashierDevice::query()->with('user')->where('device_uid', $payload['device_uid'])->first()
+                ? CashierDevice::query()
+                    ->with('user')
+                    ->where('pos_instance_id', $posInstanceId)
+                    ->where('device_uid', $payload['device_uid'])
+                    ->first()
                 : null;
 
             if ($existingDevice?->user) {
@@ -49,9 +62,11 @@ class PairingController extends Controller
                 'password' => Str::random(32),
                 'role' => 'cashier',
                 'is_active' => true,
+                'pos_instance_id' => $posInstanceId,
             ]);
 
             $deviceData = [
+                'pos_instance_id' => $posInstanceId,
                 'user_id' => $user->id,
                 'device_name' => $payload['device_name'],
                 'device_uid' => $payload['device_uid'] ?? null,

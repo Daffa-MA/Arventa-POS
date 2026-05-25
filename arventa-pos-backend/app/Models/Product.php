@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Product extends Model
 {
     protected $fillable = [
+        'pos_instance_id',
         'name',
         'sku',
         'image_path',
@@ -26,5 +28,10 @@ class Product extends Model
             'free_quantity' => 'decimal:3',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function posInstance(): BelongsTo
+    {
+        return $this->belongsTo(PosInstance::class);
     }
 }

@@ -23,9 +23,11 @@ class PairingControllerTest extends TestCase
             'password' => bcrypt('password'),
             'role' => 'cashier',
             'is_active' => true,
+            'pos_instance_id' => $this->defaultPosInstanceId(),
         ]);
 
         $device = CashierDevice::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
             'user_id' => $oldUser->id,
             'device_name' => 'Infinix X6833B',
             'device_uid' => 'INFINIX-Infinix X6833B-ABC123',
@@ -35,6 +37,7 @@ class PairingControllerTest extends TestCase
         ]);
 
         $pairing = CashierPairingCode::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
             'code' => '756012',
             'cashier_name' => 'Kasir Baru',
             'expires_at' => now()->addMinutes(10),

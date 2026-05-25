@@ -6,13 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\StoreSetting;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class StorefrontController extends Controller
 {
-    public function sync(): JsonResponse
+    public function sync(Request $request): JsonResponse
     {
-        $setting = StoreSetting::query()->first();
+        $posInstanceId = $request->user()?->pos_instance_id;
+        abort_unless($posInstanceId, 403, 'Akun kasir belum terhubung ke POS.');
+
+        $setting = StoreSetting::query()->where('pos_instance_id', $posInstanceId)->first();
 
         if ($setting?->logo_path) {
             $setting->setAttribute('logo_url', Storage::disk('public')->url($setting->logo_path));
@@ -25,6 +29,7 @@ class StorefrontController extends Controller
         return response()->json([
             'store' => $setting,
             'products' => Product::query()
+                ->where('pos_instance_id', $posInstanceId)
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->get()

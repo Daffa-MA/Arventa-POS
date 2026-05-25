@@ -17,7 +17,7 @@ class TransactionController extends Controller
     {
         $payload = $request->validate([
             'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['nullable', 'integer', 'exists:products,id'],
+            'items.*.product_id' => ['nullable', 'integer'],
             'items.*.name' => ['nullable', 'string', 'max:120'],
             'items.*.unit' => ['nullable', 'string', 'max:20'],
             'items.*.unit_price' => ['nullable', 'numeric'],
@@ -26,9 +26,13 @@ class TransactionController extends Controller
             'payment_method' => ['nullable', 'string', 'max:40'],
         ]);
 
-        $setting = StoreSetting::query()->firstOrFail();
+        $posInstanceId = $request->user()?->pos_instance_id;
+        abort_unless($posInstanceId, 403, 'Akun kasir belum terhubung ke POS.');
+
+        $setting = StoreSetting::query()->where('pos_instance_id', $posInstanceId)->firstOrFail();
         $productIds = collect($payload['items'])->pluck('product_id')->filter()->values();
         $products = Product::query()
+            ->where('pos_instance_id', $posInstanceId)
             ->whereIn('id', $productIds)
             ->get()
             ->keyBy('id');
@@ -37,7 +41,14 @@ class TransactionController extends Controller
             $productId = $item['product_id'] ?? null;
 
             if ($productId) {
-                $product = $products[$productId];
+                $product = $products->get($productId);
+
+                if (! $product) {
+                    throw ValidationException::withMessages([
+                        'items' => ['Produk tidak ditemukan di POS ini.'],
+                    ]);
+                }
+
                 $quantity = (float) $item['quantity'];
                 $freeQuantity = (float) ($product->free_quantity ?? 0);
                 $paidQuantity = $freeQuantity > 0 && $quantity <= $freeQuantity ? 0 : $quantity;
@@ -89,8 +100,9 @@ class TransactionController extends Controller
             ]);
         }
 
-        $sale = DB::transaction(function () use ($request, $payload, $lines, $subtotal, $taxTotal, $serviceTotal, $grandTotal): Sale {
+        $sale = DB::transaction(function () use ($request, $payload, $lines, $subtotal, $taxTotal, $serviceTotal, $grandTotal, $posInstanceId): Sale {
             $sale = Sale::query()->create([
+                'pos_instance_id' => $posInstanceId,
                 'invoice_number' => 'ARV-'.now()->format('YmdHis').'-'.random_int(100, 999),
                 'cashier_id' => $request->user()?->id,
                 'subtotal' => $subtotal,

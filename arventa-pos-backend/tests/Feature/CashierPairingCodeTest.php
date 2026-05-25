@@ -17,12 +17,14 @@ class CashierPairingCodeTest extends TestCase
         $this->seed();
 
         CashierPairingCode::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
             'code' => '111111',
             'cashier_name' => 'Expired',
             'expires_at' => now()->subMinute(),
         ]);
 
         CashierPairingCode::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
             'code' => '222222',
             'cashier_name' => 'Active',
             'expires_at' => now()->addMinutes(5),
@@ -40,6 +42,7 @@ class CashierPairingCodeTest extends TestCase
         $this->seed();
 
         $pairingCode = CashierPairingCode::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
             'code' => '333333',
             'cashier_name' => 'Active',
             'expires_at' => now()->addMinutes(5),
@@ -56,12 +59,14 @@ class CashierPairingCodeTest extends TestCase
         $this->seed();
 
         CashierPairingCode::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
             'code' => '444444',
             'cashier_name' => 'Active',
             'expires_at' => now()->addMinutes(5),
         ]);
 
         CashierPairingCode::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
             'code' => '555555',
             'cashier_name' => 'Expired',
             'expires_at' => now()->subMinute(),
@@ -74,9 +79,11 @@ class CashierPairingCodeTest extends TestCase
             'password' => bcrypt('password'),
             'role' => 'cashier',
             'is_active' => true,
+            'pos_instance_id' => $this->defaultPosInstanceId(),
         ]);
 
         CashierDevice::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
             'user_id' => $activeUser->id,
             'device_name' => 'Active Device',
             'device_uid' => 'active-paired-device',
@@ -85,6 +92,7 @@ class CashierPairingCodeTest extends TestCase
         ]);
 
         CashierPairingCode::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
             'code' => '666666',
             'cashier_name' => 'Paired',
             'expires_at' => now()->addMinutes(5),
@@ -99,9 +107,11 @@ class CashierPairingCodeTest extends TestCase
             'password' => bcrypt('password'),
             'role' => 'cashier',
             'is_active' => true,
+            'pos_instance_id' => $this->defaultPosInstanceId(),
         ]);
 
         CashierDevice::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
             'user_id' => $revokedUser->id,
             'device_name' => 'Revoked Device',
             'device_uid' => 'revoked-paired-device',
@@ -111,6 +121,7 @@ class CashierPairingCodeTest extends TestCase
         ]);
 
         CashierPairingCode::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
             'code' => '777777',
             'cashier_name' => 'Paired Revoked',
             'expires_at' => now()->addMinutes(5),
@@ -139,9 +150,11 @@ class CashierPairingCodeTest extends TestCase
             'password' => bcrypt('password'),
             'role' => 'cashier',
             'is_active' => true,
+            'pos_instance_id' => $this->defaultPosInstanceId(),
         ]);
 
         CashierDevice::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
             'user_id' => $user->id,
             'device_name' => 'Infinix X6833B',
             'device_uid' => 'revoked-device',
@@ -151,6 +164,7 @@ class CashierPairingCodeTest extends TestCase
         ]);
 
         CashierDevice::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
             'user_id' => $user->id,
             'device_name' => 'Pixel Tablet',
             'device_uid' => 'active-device',

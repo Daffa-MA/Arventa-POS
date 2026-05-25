@@ -13,16 +13,20 @@ use Illuminate\View\View;
 
 class CashierDeviceController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $posInstanceId = $this->posInstanceId($request);
+
         CashierPairingCode::query()
+            ->where('pos_instance_id', $posInstanceId)
             ->whereNull('paired_at')
             ->where('expires_at', '<=', now())
             ->delete();
 
         return view('admin.devices', [
-            'setting' => StoreSetting::query()->firstOrFail(),
+            'setting' => StoreSetting::query()->where('pos_instance_id', $posInstanceId)->firstOrFail(),
             'pairingCodes' => CashierPairingCode::query()
+                ->where('pos_instance_id', $posInstanceId)
                 ->where(function ($query): void {
                     $query
                         ->where(function ($pending): void {
@@ -40,11 +44,13 @@ class CashierDeviceController extends Controller
                 ->limit(10)
                 ->get(),
             'expiredPairingCodeCount' => CashierPairingCode::query()
+                ->where('pos_instance_id', $posInstanceId)
                 ->whereNull('paired_at')
                 ->where('expires_at', '<=', now())
                 ->count(),
             'devices' => CashierDevice::query()
                 ->with('user')
+                ->where('pos_instance_id', $posInstanceId)
                 ->whereNull('revoked_at')
                 ->latest()
                 ->get(),
@@ -63,6 +69,7 @@ class CashierDeviceController extends Controller
         } while (CashierPairingCode::query()->where('code', $code)->exists());
 
         CashierPairingCode::query()->create([
+            'pos_instance_id' => $this->posInstanceId($request),
             'code' => $code,
             'cashier_name' => $data['cashier_name'],
             'device_label' => $data['device_label'] ?? null,
@@ -72,9 +79,10 @@ class CashierDeviceController extends Controller
         return back()->with('status', "Kode pairing {$code} berhasil dibuat.");
     }
 
-    public function destroyExpiredPairingCodes(): RedirectResponse
+    public function destroyExpiredPairingCodes(Request $request): RedirectResponse
     {
         $deleted = CashierPairingCode::query()
+            ->where('pos_instance_id', $this->posInstanceId($request))
             ->whereNull('paired_at')
             ->where('expires_at', '<=', now())
             ->delete();
@@ -82,8 +90,10 @@ class CashierDeviceController extends Controller
         return back()->with('status', "{$deleted} QR pairing expired berhasil dihapus.");
     }
 
-    public function destroyPairingCode(CashierPairingCode $pairingCode): RedirectResponse
+    public function destroyPairingCode(Request $request, CashierPairingCode $pairingCode): RedirectResponse
     {
+        abort_unless((int) $pairingCode->pos_instance_id === $this->posInstanceId($request), 404);
+
         if ($pairingCode->paired_at) {
             return back()->withErrors('QR pairing yang sudah terhubung tidak bisa dihapus dari daftar aktif.');
         }
@@ -93,11 +103,18 @@ class CashierDeviceController extends Controller
         return back()->with('status', 'QR pairing berhasil dihapus.');
     }
 
-    public function revoke(CashierDevice $device): RedirectResponse
+    public function revoke(Request $request, CashierDevice $device): RedirectResponse
     {
+        abort_unless((int) $device->pos_instance_id === $this->posInstanceId($request), 404);
+
         $device->forceFill(['revoked_at' => now()])->save();
         $device->user->tokens()->delete();
 
         return back()->with('status', 'Akses perangkat kasir berhasil dicabut.');
+    }
+
+    private function posInstanceId(Request $request): int
+    {
+        return (int) $request->attributes->get('arventa_pos_instance')->id;
     }
 }

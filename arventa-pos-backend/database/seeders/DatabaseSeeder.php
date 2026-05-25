@@ -17,6 +17,33 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $instance = PosInstance::query()->firstOrCreate([
+            'subdomain' => 'arventa-pos',
+        ], [
+            'store_name' => 'Arventa POS',
+            'buyer_name' => 'Demo Arventa',
+            'contact' => null,
+            'owner_name' => 'Demo Arventa',
+            'owner_phone' => null,
+            'domain' => 'arventa-pos.arventapos.local',
+            'database_name' => 'arventa_pos_arventa_pos',
+            'package_name' => 'com.arventapos.arventapos',
+            'admin_username' => 'admin_arventa_pos',
+            'admin_password' => 'Arv-DEMO-12345',
+            'admin_password_hash' => bcrypt('Arv-DEMO-12345'),
+            'app_package_name' => 'com.arventapos.arventapos',
+            'status' => 'active',
+            'deployment_status' => 'deployed',
+            'deployed_at' => now(),
+            'provisioned_at' => now(),
+            'deployment_notes' => implode(PHP_EOL, [
+                'POS contoh dari admin toko lokal.',
+                'Domain demo: arventa-pos.arventapos.local',
+                'Database demo: arventa_pos_arventa_pos',
+                'Gunakan record ini sebagai contoh format saat generate POS pembeli.',
+            ]),
+        ]);
+
         User::query()->firstOrCreate([
             'email' => 'admin@arventa.test',
         ], [
@@ -25,7 +52,13 @@ class DatabaseSeeder extends Seeder
             'password' => 'password',
             'role' => 'admin',
             'is_active' => true,
+            'pos_instance_id' => $instance->id,
         ]);
+
+        User::query()
+            ->where('email', 'admin@arventa.test')
+            ->whereNull('pos_instance_id')
+            ->update(['pos_instance_id' => $instance->id]);
 
         if (config('services.arventa_developer.password') && config('services.arventa_developer.username')) {
             User::query()->updateOrCreate([
@@ -39,7 +72,13 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        $setting = StoreSetting::query()->firstOrCreate([], [
+        StoreSetting::query()
+            ->whereNull('pos_instance_id')
+            ->update(['pos_instance_id' => $instance->id]);
+
+        StoreSetting::query()->firstOrCreate([
+            'pos_instance_id' => $instance->id,
+        ], [
             'store_name' => 'Arventa POS',
             'business_type' => 'retail',
             'admin_brand_name' => 'Arventa POS',
@@ -66,34 +105,6 @@ class DatabaseSeeder extends Seeder
             'tax_rate' => 11,
             'service_charge_rate' => 0,
             'currency' => 'IDR',
-        ]);
-
-        PosInstance::query()->firstOrCreate([
-            'subdomain' => 'arventa-pos',
-        ], [
-            'store_name' => $setting->store_name,
-            'buyer_name' => 'Demo Arventa',
-            'contact' => null,
-            'owner_name' => 'Demo Arventa',
-            'owner_phone' => null,
-            'subdomain' => 'arventa-pos',
-            'domain' => 'arventa-pos.arventapos.local',
-            'database_name' => 'arventa_pos_arventa_pos',
-            'package_name' => 'com.arventapos.arventapos',
-            'admin_username' => 'admin_arventa_pos',
-            'admin_password' => 'Arv-DEMO-12345',
-            'admin_password_hash' => bcrypt('Arv-DEMO-12345'),
-            'app_package_name' => 'com.arventapos.arventapos',
-            'status' => 'active',
-            'deployment_status' => 'deployed',
-            'deployed_at' => now(),
-            'provisioned_at' => now(),
-            'deployment_notes' => implode(PHP_EOL, [
-                'POS contoh dari admin toko lokal.',
-                'Domain demo: arventa-pos.arventapos.local',
-                'Database demo: arventa_pos_arventa_pos',
-                'Gunakan record ini sebagai contoh format saat generate POS pembeli.',
-            ]),
         ]);
     }
 }

@@ -7,12 +7,14 @@ use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class ProductController extends Controller
 {
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request);
+        $data['pos_instance_id'] = $this->posInstanceId($request);
 
         if ($request->hasFile('image')) {
             $data['image_path'] = $request->file('image')->store('products', 'public');
@@ -27,6 +29,8 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product): RedirectResponse
     {
+        $this->authorizeTenantProduct($request, $product);
+
         $data = $this->validated($request, $product);
 
         if ($request->hasFile('image')) {
@@ -44,8 +48,10 @@ class ProductController extends Controller
         return back()->with('status', 'Produk atau layanan berhasil diperbarui.');
     }
 
-    public function destroy(Product $product): RedirectResponse
+    public function destroy(Request $request, Product $product): RedirectResponse
     {
+        $this->authorizeTenantProduct($request, $product);
+
         if ($product->image_path) {
             Storage::disk('public')->delete($product->image_path);
         }
@@ -58,10 +64,18 @@ class ProductController extends Controller
     private function validated(Request $request, ?Product $product = null): array
     {
         $id = $product?->id ?? 'NULL';
+        $posInstanceId = $this->posInstanceId($request);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'sku' => ['nullable', 'string', 'max:80', "unique:products,sku,{$id}"],
+            'sku' => [
+                'nullable',
+                'string',
+                'max:80',
+                Rule::unique('products', 'sku')
+                    ->ignore($id)
+                    ->where(fn ($query) => $query->where('pos_instance_id', $posInstanceId)),
+            ],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'type' => ['required', 'in:product,service,discount,fee,custom'],
             'pricing_rule' => ['nullable', 'in:normal,free_threshold,discount,fee'],
@@ -96,5 +110,15 @@ class ProductController extends Controller
         }
 
         return $data;
+    }
+
+    private function authorizeTenantProduct(Request $request, Product $product): void
+    {
+        abort_unless((int) $product->pos_instance_id === $this->posInstanceId($request), 404);
+    }
+
+    private function posInstanceId(Request $request): int
+    {
+        return (int) $request->attributes->get('arventa_pos_instance')->id;
     }
 }

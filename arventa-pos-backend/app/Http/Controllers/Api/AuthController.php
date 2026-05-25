@@ -19,7 +19,12 @@ class AuthController extends Controller
             'device_name' => ['nullable', 'string', 'max:80'],
         ]);
 
-        $user = User::query()->where('email', $credentials['email'])->first();
+        $user = User::query()
+            ->where('email', $credentials['email'])
+            ->where('role', 'cashier')
+            ->where('is_active', true)
+            ->whereNotNull('pos_instance_id')
+            ->first();
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
             throw ValidationException::withMessages([
@@ -32,7 +37,7 @@ class AuthController extends Controller
         return response()->json([
             'token_type' => 'Bearer',
             'token' => $token,
-            'user' => $user->only(['id', 'name', 'email']),
+            'user' => $user->only(['id', 'name', 'email', 'pos_instance_id']),
         ]);
     }
 }

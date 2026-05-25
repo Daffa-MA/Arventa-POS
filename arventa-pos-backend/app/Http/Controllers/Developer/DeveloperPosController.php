@@ -88,6 +88,35 @@ class DeveloperPosController extends Controller
                 'pos_instance_id' => $instance->id,
             ]);
 
+            StoreSetting::query()->create([
+                'pos_instance_id' => $instance->id,
+                'store_name' => $data['store_name'],
+                'business_type' => 'retail',
+                'admin_brand_name' => $data['store_name'],
+                'admin_console_label' => 'Admin Console',
+                'theme_color' => '#2563EB',
+                'app_text_color' => '#0F172A',
+                'app_secondary_text_color' => '#64748B',
+                'app_price_text_color' => '#0F172A',
+                'admin_theme_color' => '#0F172A',
+                'admin_sidebar_style' => 'light',
+                'admin_density' => 'comfortable',
+                'app_layout' => 'grid',
+                'product_card_style' => 'minimal',
+                'pos_orientation' => 'portrait',
+                'show_sku_on_app' => false,
+                'show_stock_on_app' => true,
+                'show_search_on_app' => true,
+                'show_cart_on_app' => true,
+                'cart_position' => 'bottom',
+                'checkout_position' => 'bottom',
+                'show_order_summary_on_app' => true,
+                'receipt_footer' => 'Terima kasih.',
+                'tax_rate' => 11,
+                'service_charge_rate' => 0,
+                'currency' => 'IDR',
+            ]);
+
             return $instance;
         });
 

@@ -45,9 +45,11 @@ class ProductUnitTest extends TestCase
             'password' => bcrypt('password'),
             'role' => 'cashier',
             'is_active' => true,
+            'pos_instance_id' => $this->defaultPosInstanceId(),
         ]);
 
         $product = Product::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
             'name' => 'Susu Botol',
             'type' => 'product',
             'unit' => 'ml',
@@ -80,6 +82,7 @@ class ProductUnitTest extends TestCase
         $this->seed();
 
         $product = Product::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
             'name' => 'Air Mineral',
             'type' => 'product',
             'unit' => 'pcs',
@@ -142,9 +145,11 @@ class ProductUnitTest extends TestCase
             'password' => bcrypt('password'),
             'role' => 'cashier',
             'is_active' => true,
+            'pos_instance_id' => $this->defaultPosInstanceId(),
         ]);
 
         $product = Product::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
             'name' => 'Kopi',
             'type' => 'product',
             'unit' => 'pcs',
@@ -154,6 +159,7 @@ class ProductUnitTest extends TestCase
         ]);
 
         $discount = Product::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
             'name' => 'Diskon Member',
             'type' => 'discount',
             'unit' => 'trx',
@@ -219,9 +225,11 @@ class ProductUnitTest extends TestCase
             'password' => bcrypt('password'),
             'role' => 'cashier',
             'is_active' => true,
+            'pos_instance_id' => $this->defaultPosInstanceId(),
         ]);
 
         $product = Product::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
             'name' => 'Alkohol Parfum',
             'type' => 'product',
             'unit' => 'ml',
@@ -266,9 +274,11 @@ class ProductUnitTest extends TestCase
             'password' => bcrypt('password'),
             'role' => 'cashier',
             'is_active' => true,
+            'pos_instance_id' => $this->defaultPosInstanceId(),
         ]);
 
         $product = Product::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
             'name' => 'Alkohol Parfum',
             'type' => 'product',
             'unit' => 'ml',

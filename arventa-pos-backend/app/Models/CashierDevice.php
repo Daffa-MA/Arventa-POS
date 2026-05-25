@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CashierDevice extends Model
 {
     protected $fillable = [
+        'pos_instance_id',
         'user_id',
         'device_name',
         'device_uid',
@@ -28,5 +29,10 @@ class CashierDevice extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function posInstance(): BelongsTo
+    {
+        return $this->belongsTo(PosInstance::class);
     }
 }

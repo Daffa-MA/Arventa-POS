@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\PosInstance;
 use App\Models\StoreSetting;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -20,8 +22,12 @@ class AuthController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
+        $posInstance = $this->posInstanceFromHost($request);
+
         return view('admin.auth.login', [
-            'setting' => StoreSetting::query()->firstOrFail(),
+            'setting' => StoreSetting::query()
+                ->when($posInstance, fn ($query) => $query->where('pos_instance_id', $posInstance->id))
+                ->firstOrFail(),
         ]);
     }
 
@@ -43,6 +49,7 @@ class AuthController extends Controller
         $user = User::query()
             ->where('role', 'admin')
             ->where('is_active', true)
+            ->when($this->posInstanceFromHost($request), fn ($query, PosInstance $posInstance) => $query->where('pos_instance_id', $posInstance->id))
             ->where(function ($query) use ($credentials): void {
                 $query->where('username', $credentials['login'])
                     ->orWhere('email', $credentials['login']);
@@ -70,5 +77,17 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('admin.login')->with('status', 'Berhasil logout dari Admin.');
+    }
+
+    private function posInstanceFromHost(Request $request): ?PosInstance
+    {
+        $host = Str::of($request->getHost())->lower()->replaceMatches('/:\d+$/', '')->toString();
+        $subdomain = Str::of($host)->before('.')->toString();
+
+        return PosInstance::query()
+            ->whereRaw('LOWER(domain) = ?', [$host])
+            ->orWhereRaw('LOWER(subdomain) = ?', [$host])
+            ->orWhereRaw('LOWER(subdomain) = ?', [$subdomain])
+            ->first();
     }
 }

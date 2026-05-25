@@ -13,43 +13,53 @@ use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $posInstanceId = $this->posInstanceId($request);
+
         return view('admin.dashboard', [
-            'setting' => StoreSetting::query()->firstOrFail(),
-            'products' => Product::query()->latest()->get(),
-            'sales' => Sale::query()->with('items')->latest()->limit(8)->get(),
+            'setting' => $this->setting($request),
+            'products' => Product::query()->where('pos_instance_id', $posInstanceId)->latest()->get(),
+            'sales' => Sale::query()->with('items')->where('pos_instance_id', $posInstanceId)->latest()->limit(8)->get(),
         ]);
     }
 
-    public function settings(): View
+    public function settings(Request $request): View
     {
         return view('admin.settings', [
-            'setting' => StoreSetting::query()->firstOrFail(),
+            'setting' => $this->setting($request),
         ]);
     }
 
-    public function products(): View
+    public function products(Request $request): View
     {
         return view('admin.products', [
-            'setting' => StoreSetting::query()->firstOrFail(),
-            'products' => Product::query()->latest()->get(),
+            'setting' => $this->setting($request),
+            'products' => Product::query()->where('pos_instance_id', $this->posInstanceId($request))->latest()->get(),
         ]);
     }
 
-    public function appPreview(): View
+    public function appPreview(Request $request): View
     {
         return view('admin.app-preview', [
-            'setting' => StoreSetting::query()->firstOrFail(),
-            'products' => Product::query()->where('is_active', true)->orderBy('name')->get(),
+            'setting' => $this->setting($request),
+            'products' => Product::query()
+                ->where('pos_instance_id', $this->posInstanceId($request))
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 
-    public function transactions(): View
+    public function transactions(Request $request): View
     {
         return view('admin.transactions', [
-            'setting' => StoreSetting::query()->firstOrFail(),
-            'sales' => Sale::query()->with('items')->latest()->paginate(15),
+            'setting' => $this->setting($request),
+            'sales' => Sale::query()
+                ->with('items')
+                ->where('pos_instance_id', $this->posInstanceId($request))
+                ->latest()
+                ->paginate(15),
         ]);
     }
 
@@ -75,7 +85,7 @@ class DashboardController extends Controller
         unset($data['logo']);
         unset($data['qris_image']);
 
-        $setting = StoreSetting::query()->firstOrFail();
+        $setting = $this->setting($request);
 
         if ($request->hasFile('logo')) {
             if ($setting->logo_path) {
@@ -123,8 +133,20 @@ class DashboardController extends Controller
             'show_order_summary_on_app' => $request->boolean('show_order_summary_on_app'),
         ];
 
-        StoreSetting::query()->firstOrFail()->update($data);
+        $this->setting($request)->update($data);
 
         return back()->with('status', 'Tampilan app kasir berhasil diperbarui.');
+    }
+
+    private function setting(Request $request): StoreSetting
+    {
+        return StoreSetting::query()
+            ->where('pos_instance_id', $this->posInstanceId($request))
+            ->firstOrFail();
+    }
+
+    private function posInstanceId(Request $request): int
+    {
+        return (int) $request->attributes->get('arventa_pos_instance')->id;
     }
 }

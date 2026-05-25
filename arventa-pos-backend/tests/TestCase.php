@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use App\Models\PosInstance;
 use App\Models\User;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
@@ -12,6 +13,11 @@ abstract class TestCase extends BaseTestCase
         $user ??= User::query()->where('role', 'admin')->firstOrFail();
 
         return $this->withSession(['arventa_admin_id' => $user->id]);
+    }
+
+    protected function defaultPosInstanceId(): int
+    {
+        return (int) PosInstance::query()->orderBy('id')->value('id');
     }
 
     protected function withDeveloperSession(?User $user = null): static
