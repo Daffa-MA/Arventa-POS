@@ -17,7 +17,7 @@ Create or use this app in CapRover:
 
 ```text
 App name: arventa
-Public URL: https://arventa.arventa.my.id
+Public URL: https://arventa.apps.arventa.my.id
 ```
 
 Database app:
@@ -39,7 +39,7 @@ Set these in CapRover under **Apps > arventa > App Configs > Environmental Varia
 APP_NAME="Arventa POS"
 APP_ENV=production
 APP_DEBUG=false
-APP_URL=https://arventa.arventa.my.id
+APP_URL=https://arventa.apps.arventa.my.id
 APP_KEY=base64:CHANGE_THIS
 
 LOG_CHANNEL=stack
@@ -57,8 +57,8 @@ SESSION_DRIVER=file
 QUEUE_CONNECTION=sync
 FILESYSTEM_DISK=public
 
-ARVENTA_POS_BASE_DOMAIN=pos.arventa.my.id
-ARVENTA_APP_PUBLIC_HOST=arventa.arventa.my.id
+ARVENTA_POS_BASE_DOMAIN=arventa.my.id
+ARVENTA_APP_PUBLIC_HOST=
 ARVENTA_DEPLOYMENT_MODE=manual
 ```
 
@@ -93,7 +93,7 @@ The image build will:
 If the admin page appears as plain unstyled HTML, the Vite CSS was not loaded. Check:
 
 ```text
-https://arventa.arventa.my.id/build/manifest.json
+https://arventa.apps.arventa.my.id/build/manifest.json
 ```
 
 Then redeploy the latest commit. During a good rebuild, the layers after `CAPROVER_GIT_COMMIT_SHA` should not stay stuck on old cached app files.
@@ -127,7 +127,7 @@ The `/admin` route reads the `store_settings`, `products`, and `sales` tables. I
 
 The developer panel at `/developer/pos` creates one tenant record for each buyer. Deploying a tenant does not create a second Laravel app or a second physical database. It:
 
-- uses wildcard DNS for the buyer subdomain under `pos.arventa.my.id`
+- uses wildcard DNS for the buyer subdomain under `arventa.my.id`
 - attaches that domain to the existing CapRover app `arventa`
 - enables SSL for the buyer domain
 - keeps all buyer data inside the shared Laravel database using `pos_instance_id`
@@ -136,17 +136,17 @@ Set these env values to enable automatic deployment:
 
 ```env
 ARVENTA_DEPLOYMENT_MODE=automatic
-ARVENTA_POS_BASE_DOMAIN=pos.arventa.my.id
-ARVENTA_APP_PUBLIC_HOST=arventa.arventa.my.id
+ARVENTA_POS_BASE_DOMAIN=arventa.my.id
+ARVENTA_APP_PUBLIC_HOST=
 
 ARVENTA_DNS_PROVIDER=wildcard
 ARVENTA_DNS_RECORD_TYPE=CNAME
-ARVENTA_DNS_RECORD_CONTENT=arventa.arventa.my.id
+ARVENTA_DNS_RECORD_CONTENT=arventa.apps.arventa.my.id
 ARVENTA_DNS_TTL=1
 ARVENTA_DNS_PROXIED=false
 
 CAPROVER_AUTOMATION_ENABLED=true
-CAPROVER_BASE_URL=https://captain.arventa.my.id
+CAPROVER_BASE_URL=https://captain.apps.arventa.my.id
 CAPROVER_AUTH_TOKEN=CHANGE_THIS
 # Or use CAPROVER_PASSWORD instead of CAPROVER_AUTH_TOKEN
 CAPROVER_APP_NAME=arventa
@@ -154,12 +154,18 @@ CAPROVER_NAMESPACE=captain
 CAPROVER_ENABLE_SSL=true
 ```
 
-With `ARVENTA_DNS_PROVIDER=wildcard`, deployment skips Cloudflare API calls completely. This expects DNS like `*.pos.arventa.my.id` to already point at the CapRover server. Use `ARVENTA_DNS_PROVIDER=cloudflare` only if you want the app to create per-tenant DNS records instead.
+With `ARVENTA_DNS_PROVIDER=wildcard`, deployment skips Cloudflare API calls completely. This expects DNS like `*.arventa.my.id` to already point at the CapRover server. Use `ARVENTA_DNS_PROVIDER=cloudflare` only if you want the app to create per-tenant DNS records instead.
 
 After changing these values:
 
 ```bash
 php artisan optimize:clear
+```
+
+To verify what the running container reads from env:
+
+```bash
+php artisan arventa:deployment-debug
 ```
 
 When changing the tenant base domain, repair existing POS rows before deploying tenants:
@@ -168,14 +174,14 @@ When changing the tenant base domain, repair existing POS rows before deploying 
 php artisan arventa:repair-pos-domains
 ```
 
-For example, `subdomain=tropizz` becomes `tropizz.pos.arventa.my.id`, and invalid old domains are reset to `deployment_status=pending`.
+For example, `subdomain=tropizz` becomes `tropizz.arventa.my.id`, and invalid old domains are reset to `deployment_status=pending`.
 
 Buyer flow:
 
 1. Developer logs into `/developer/login`.
 2. Developer creates a POS tenant in `/developer/pos`.
 3. Developer clicks **Deploy**.
-4. The generated URL becomes `https://SUBDOMAIN.pos.arventa.my.id/admin/login`.
+4. The generated URL becomes `https://SUBDOMAIN.arventa.my.id/admin/login`.
 5. Buyer logs into admin using the generated admin username/password.
 6. Buyer opens **Perangkat Kasir**, creates a pairing QR, and pairs the Android app.
 
@@ -311,10 +317,10 @@ DB::connection()->getPdo();
 ## Expected URLs
 
 ```text
-Web app:        https://arventa.arventa.my.id
-Test admin:     https://arventa.arventa.my.id/admin
-Buyer admin:    https://{tenant}.pos.arventa.my.id/admin/login
-API:            https://arventa.arventa.my.id/api
+Web app:        https://arventa.apps.arventa.my.id
+Test admin:     https://arventa.apps.arventa.my.id/admin
+Buyer admin:    https://{tenant}.arventa.my.id/admin/login
+API:            https://arventa.apps.arventa.my.id/api
 ```
 
 ## Notes

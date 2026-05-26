@@ -45,17 +45,18 @@ return [
     'arventa_deployment' => [
         'mode' => env('ARVENTA_DEPLOYMENT_MODE', 'manual'),
         'pos_base_domain' => env('ARVENTA_POS_BASE_DOMAIN'),
-        'app_public_host' => env('ARVENTA_APP_PUBLIC_HOST', 'arventa.arventa.my.id'),
+        'app_public_host' => env('ARVENTA_APP_PUBLIC_HOST', parse_url((string) env('APP_URL', ''), PHP_URL_HOST)),
         'dns' => [
             'provider' => env('ARVENTA_DNS_PROVIDER', 'none'),
             'record_type' => env('ARVENTA_DNS_RECORD_TYPE', 'CNAME'),
-            'record_content' => env('ARVENTA_DNS_RECORD_CONTENT', env('ARVENTA_APP_PUBLIC_HOST', 'arventa.arventa.my.id')),
+            'record_content' => env('ARVENTA_DNS_RECORD_CONTENT', env('ARVENTA_APP_PUBLIC_HOST', parse_url((string) env('APP_URL', ''), PHP_URL_HOST))),
             'ttl' => (int) env('ARVENTA_DNS_TTL', 1),
             'proxied' => filter_var(env('ARVENTA_DNS_PROXIED', false), FILTER_VALIDATE_BOOL),
         ],
         'cloudflare' => [
             'token' => env('CLOUDFLARE_API_TOKEN'),
             'zone_id' => env('CLOUDFLARE_ZONE_ID'),
+            'zone_domain' => env('CLOUDFLARE_ZONE_DOMAIN', env('ARVENTA_POS_BASE_DOMAIN')),
         ],
         'caprover' => [
             'enabled' => filter_var(env('CAPROVER_AUTOMATION_ENABLED', false), FILTER_VALIDATE_BOOL),

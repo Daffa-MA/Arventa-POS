@@ -284,7 +284,7 @@ class DeveloperPosController extends Controller
             'Domain: '.$domain,
             'Database tenant key: '.$databaseName,
             'Package Android: '.$packageName,
-            'Deploy akan membuat DNS Cloudflare, attach domain ke app CapRover, dan enable SSL.',
+            'Deploy akan memakai DNS sesuai ARVENTA_DNS_PROVIDER, attach domain ke app CapRover, dan enable SSL.',
             'Tidak membuat database fisik baru karena Arventa memakai satu database multi-tenant dengan pos_instance_id.',
             'URL admin pembeli: https://'.$domain.'/admin/login',
         ]);
@@ -300,7 +300,7 @@ class DeveloperPosController extends Controller
             ->toString();
 
         if (blank($domain)) {
-            throw new \RuntimeException('ARVENTA_POS_BASE_DOMAIN wajib diisi, contoh: pos.arventa.my.id.');
+            throw new \RuntimeException('ARVENTA_POS_BASE_DOMAIN wajib diisi, contoh: arventa.my.id.');
         }
 
         return $domain;

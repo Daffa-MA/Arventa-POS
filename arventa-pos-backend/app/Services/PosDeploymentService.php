@@ -116,7 +116,7 @@ class PosDeploymentService
         $domain = $this->normalizeDomain((string) config('services.arventa_deployment.pos_base_domain'));
 
         if (blank($domain)) {
-            throw new \RuntimeException('ARVENTA_POS_BASE_DOMAIN wajib diisi, contoh: pos.arventa.my.id.');
+            throw new \RuntimeException('ARVENTA_POS_BASE_DOMAIN wajib diisi, contoh: arventa.my.id.');
         }
 
         return $domain;

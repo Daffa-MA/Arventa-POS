@@ -32,7 +32,7 @@ class PosInstanceTest extends TestCase
             'buyer_name' => 'Pemilik Parfume',
             'contact' => '08123456789',
             'subdomain' => 'parfume-pos',
-            'domain' => 'parfume-pos.pos.arventa.my.id',
+            'domain' => 'parfume-pos.arventa.my.id',
             'database_name' => 'arventa_pos_parfume_pos',
             'package_name' => 'com.arventapos.parfumepos',
             'admin_username' => 'admin_parfume_pos',
@@ -54,27 +54,43 @@ class PosInstanceTest extends TestCase
     public function test_developer_pos_page_preview_uses_configured_tenant_base_domain(): void
     {
         $this->seed();
-        Config::set('services.arventa_deployment.pos_base_domain', 'pos.arventa.my.id');
+        Config::set('services.arventa_deployment.pos_base_domain', 'arventa.my.id');
 
         $this->withDeveloperSession()
             ->get('/developer/pos')
             ->assertOk()
-            ->assertSee('https://parfume-pos.pos.arventa.my.id')
-            ->assertDontSee('https://parfume-pos.arventa.my.id');
+            ->assertSee('https://parfume-pos.arventa.my.id')
+            ->assertDontSee('https://parfume-pos.pos.arventa.my.id');
+    }
+
+    public function test_deployment_debug_command_prints_current_deployment_config(): void
+    {
+        Config::set('app.url', 'https://arventa.apps.arventa.my.id');
+        Config::set('services.arventa_deployment.caprover.base_url', 'https://captain.apps.arventa.my.id');
+        Config::set('services.arventa_deployment.pos_base_domain', 'arventa.my.id');
+        Config::set('services.arventa_deployment.dns.provider', 'wildcard');
+
+        $this->artisan('arventa:deployment-debug')
+            ->expectsOutput('APP_URL=https://arventa.apps.arventa.my.id')
+            ->expectsOutput('CAPROVER_BASE_URL=https://captain.apps.arventa.my.id')
+            ->expectsOutput('ARVENTA_POS_BASE_DOMAIN=arventa.my.id')
+            ->expectsOutput('ARVENTA_DNS_PROVIDER=wildcard')
+            ->assertExitCode(0);
     }
 
     public function test_developer_can_update_status_and_deploy_pos_instance(): void
     {
         $this->seed();
         Config::set('services.arventa_deployment.mode', 'automatic');
-        Config::set('services.arventa_deployment.pos_base_domain', 'pos.arventa.my.id');
+        Config::set('services.arventa_deployment.pos_base_domain', 'arventa.my.id');
         Config::set('services.arventa_deployment.dns.provider', 'cloudflare');
         Config::set('services.arventa_deployment.dns.record_type', 'CNAME');
-        Config::set('services.arventa_deployment.dns.record_content', 'arventa.arventa.my.id');
+        Config::set('services.arventa_deployment.dns.record_content', 'arventa.apps.arventa.my.id');
         Config::set('services.arventa_deployment.cloudflare.token', 'test-cloudflare-token');
         Config::set('services.arventa_deployment.cloudflare.zone_id', '0123456789abcdef0123456789abcdef');
+        Config::set('services.arventa_deployment.cloudflare.zone_domain', 'arventa.my.id');
         Config::set('services.arventa_deployment.caprover.enabled', true);
-        Config::set('services.arventa_deployment.caprover.base_url', 'https://captain.arventa.my.id');
+        Config::set('services.arventa_deployment.caprover.base_url', 'https://captain.apps.arventa.my.id');
         Config::set('services.arventa_deployment.caprover.auth_token', 'test-captain-token');
         Config::set('services.arventa_deployment.caprover.app_name', 'arventa');
 
@@ -82,8 +98,8 @@ class PosInstanceTest extends TestCase
             'https://api.cloudflare.com/client/v4/zones/0123456789abcdef0123456789abcdef/dns_records*' => Http::sequence()
                 ->push(['success' => true, 'result' => []])
                 ->push(['success' => true, 'result' => ['id' => 'record-1']]),
-            'https://captain.arventa.my.id/api/v2/user/apps/appDefinitions/customdomain' => Http::response(['status' => 100, 'description' => 'OK']),
-            'https://captain.arventa.my.id/api/v2/user/apps/appDefinitions/enablecustomdomainssl' => Http::response(['status' => 100, 'description' => 'OK']),
+            'https://captain.apps.arventa.my.id/api/v2/user/apps/appDefinitions/customdomain' => Http::response(['status' => 100, 'description' => 'OK']),
+            'https://captain.apps.arventa.my.id/api/v2/user/apps/appDefinitions/enablecustomdomainssl' => Http::response(['status' => 100, 'description' => 'OK']),
         ]);
 
         $instance = PosInstance::query()->create([
@@ -91,7 +107,7 @@ class PosInstanceTest extends TestCase
             'buyer_name' => 'Buyer',
             'contact' => '08123',
             'subdomain' => 'deploy-store',
-            'domain' => 'deploy-store.pos.arventa.my.id',
+            'domain' => 'deploy-store.arventa.my.id',
             'database_name' => 'arventa_pos_deploy_store',
             'package_name' => 'com.arventapos.deploystore',
             'admin_username' => 'admin_deploy_store',
@@ -127,16 +143,16 @@ class PosInstanceTest extends TestCase
                 return false;
             }
 
-            return $request['name'] === 'deploy-store.pos'
+            return $request['name'] === 'deploy-store'
                 && $request['type'] === 'CNAME'
-                && $request['content'] === 'arventa.arventa.my.id';
+                && $request['content'] === 'arventa.apps.arventa.my.id';
         });
 
         Http::assertSent(function ($request): bool {
             return $request->method() === 'POST'
                 && str_contains($request->url(), '/customdomain')
                 && $request['appName'] === 'arventa'
-                && $request['customDomain'] === 'deploy-store.pos.arventa.my.id';
+                && $request['customDomain'] === 'deploy-store.arventa.my.id';
         });
     }
 
@@ -144,17 +160,17 @@ class PosInstanceTest extends TestCase
     {
         $this->seed();
         Config::set('services.arventa_deployment.mode', 'automatic');
-        Config::set('services.arventa_deployment.pos_base_domain', 'pos.arventa.my.id');
+        Config::set('services.arventa_deployment.pos_base_domain', 'arventa.my.id');
         Config::set('services.arventa_deployment.dns.provider', 'wildcard');
         Config::set('services.arventa_deployment.caprover.enabled', true);
-        Config::set('services.arventa_deployment.caprover.base_url', 'https://captain.arventa.my.id');
+        Config::set('services.arventa_deployment.caprover.base_url', 'https://captain.apps.arventa.my.id');
         Config::set('services.arventa_deployment.caprover.auth_token', 'test-captain-token');
         Config::set('services.arventa_deployment.caprover.app_name', 'arventa');
         Config::set('services.arventa_deployment.caprover.enable_ssl', true);
 
         Http::fake([
-            'https://captain.arventa.my.id/api/v2/user/apps/appDefinitions/customdomain' => Http::response(['status' => 100, 'description' => 'OK']),
-            'https://captain.arventa.my.id/api/v2/user/apps/appDefinitions/enablecustomdomainssl' => Http::response(['status' => 100, 'description' => 'OK']),
+            'https://captain.apps.arventa.my.id/api/v2/user/apps/appDefinitions/customdomain' => Http::response(['status' => 100, 'description' => 'OK']),
+            'https://captain.apps.arventa.my.id/api/v2/user/apps/appDefinitions/enablecustomdomainssl' => Http::response(['status' => 100, 'description' => 'OK']),
             'https://api.cloudflare.com/*' => Http::response(['success' => false], 500),
         ]);
 
@@ -163,7 +179,7 @@ class PosInstanceTest extends TestCase
             'buyer_name' => 'Buyer',
             'contact' => '08123',
             'subdomain' => 'wildcard-store',
-            'domain' => 'wildcard-store.pos.arventa.my.id',
+            'domain' => 'wildcard-store.arventa.my.id',
             'database_name' => 'arventa_pos_wildcard_store',
             'package_name' => 'com.arventapos.wildcardstore',
             'admin_username' => 'admin_wildcard_store',
@@ -185,7 +201,7 @@ class PosInstanceTest extends TestCase
         ]);
 
         $instance->refresh();
-        $this->assertStringContainsString('DNS covered by wildcard: *.pos.arventa.my.id', (string) $instance->deployment_notes);
+        $this->assertStringContainsString('DNS covered by wildcard: *.arventa.my.id', (string) $instance->deployment_notes);
 
         Http::assertNotSent(fn ($request): bool => str_contains($request->url(), 'api.cloudflare.com'));
 
@@ -193,13 +209,13 @@ class PosInstanceTest extends TestCase
             return $request->method() === 'POST'
                 && str_contains($request->url(), '/customdomain')
                 && $request['appName'] === 'arventa'
-                && $request['customDomain'] === 'wildcard-store.pos.arventa.my.id';
+                && $request['customDomain'] === 'wildcard-store.arventa.my.id';
         });
 
         Http::assertSent(function ($request): bool {
             return $request->method() === 'POST'
                 && str_contains($request->url(), '/enablecustomdomainssl')
-                && $request['customDomain'] === 'wildcard-store.pos.arventa.my.id';
+                && $request['customDomain'] === 'wildcard-store.arventa.my.id';
         });
     }
 
@@ -218,7 +234,7 @@ class PosInstanceTest extends TestCase
         $this->assertDatabaseHas('pos_instances', [
             'store_name' => 'Tropizz',
             'subdomain' => 'tropizz',
-            'domain' => 'tropizz.pos.arventa.my.id',
+            'domain' => 'tropizz.arventa.my.id',
         ]);
     }
 
@@ -245,7 +261,7 @@ class PosInstanceTest extends TestCase
             'buyer_name' => 'Iwan',
             'contact' => '08973128675',
             'subdomain' => 'tropizz',
-            'domain' => 'tropizz.arventa.my.id',
+            'domain' => 'tropizz.pos.arventa.my.id',
             'database_name' => 'tropizz',
             'package_name' => 'com.tropizz',
             'admin_username' => 'iwan',
@@ -257,12 +273,12 @@ class PosInstanceTest extends TestCase
         ]);
 
         $this->artisan('arventa:repair-pos-domains')
-            ->expectsOutput("UPDATED #{$instance->id} Tropizz: tropizz.arventa.my.id -> tropizz.pos.arventa.my.id")
+            ->expectsOutput("UPDATED #{$instance->id} Tropizz: tropizz.pos.arventa.my.id -> tropizz.arventa.my.id")
             ->assertExitCode(0);
 
         $this->assertDatabaseHas('pos_instances', [
             'id' => $instance->id,
-            'domain' => 'tropizz.pos.arventa.my.id',
+            'domain' => 'tropizz.arventa.my.id',
             'deployment_status' => 'pending',
             'deployment_error' => null,
         ]);
