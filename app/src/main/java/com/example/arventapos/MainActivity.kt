@@ -1389,7 +1389,7 @@ private fun CheckoutDialog(
                 item {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         PaymentMethodButton("Tunai", method == "cash", setting.themeColor, Modifier.weight(1f)) { method = "cash" }
-                        PaymentMethodButton("QRIS", method == "qris", setting.themeColor, Modifier.weight(1f)) { method = "qris" }
+                        PaymentMethodButton("QR", method == "qris", setting.themeColor, Modifier.weight(1f)) { method = "qris" }
                     }
                 }
                 if (method == "cash") {
@@ -1412,16 +1412,16 @@ private fun CheckoutDialog(
                                 if (!setting.qrisImageUrl.isNullOrBlank()) {
                                     AsyncImage(
                                         model = setting.qrisImageUrl,
-                                        contentDescription = "QRIS ${setting.storeName}",
+                                        contentDescription = "QR ${setting.storeName}",
                                         modifier = Modifier.size(190.dp).clip(RoundedCornerShape(14.dp)).background(Color.White),
                                         contentScale = ContentScale.Fit,
                                     )
                                 } else {
                                     Box(Modifier.size(190.dp).background(Color.White, RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
-                                        Text("QRIS belum diupload", color = setting.secondaryTextColor)
+                                        Text("QR belum diupload", color = setting.secondaryTextColor)
                                     }
                                 }
-                                Text("Tunjukkan QRIS ini ke pembeli, lalu tekan tombol di bawah setelah pembayaran masuk.", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
+                                Text("Tunjukkan QR ini ke pembeli, lalu tekan tombol di bawah setelah pembayaran masuk.", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }
@@ -2298,7 +2298,7 @@ private object BluetoothReceiptPrinter {
         if (setting.receiptShowQris && !setting.qrisImageUrl.isNullOrBlank()) {
             text(line(width))
             command(0x1B, 0x61, 0x01)
-            text("QRIS")
+            text("QR")
             writeImage(buffer, setting.qrisImageUrl, maxWidth = if (width == 48) 260 else 220)
             command(0x1B, 0x61, 0x00)
         }
