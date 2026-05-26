@@ -4,8 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\CashierDevice;
 use App\Models\CashierPairingCode;
+use App\Models\StoreSetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class PairingControllerTest extends TestCase
@@ -60,5 +62,41 @@ class PairingControllerTest extends TestCase
             'revoked_at' => null,
         ]);
         $this->assertNotNull($pairing->refresh()->paired_at);
+    }
+
+    public function test_sync_returns_receipt_template_settings(): void
+    {
+        $this->seed();
+
+        $cashier = User::query()->create([
+            'name' => 'Kasir',
+            'email' => 'kasir-sync@example.test',
+            'username' => 'kasir_sync',
+            'password' => bcrypt('password'),
+            'role' => 'cashier',
+            'is_active' => true,
+            'pos_instance_id' => $this->defaultPosInstanceId(),
+        ]);
+
+        StoreSetting::query()
+            ->where('pos_instance_id', $this->defaultPosInstanceId())
+            ->update([
+                'receipt_template' => 'detailed',
+                'receipt_paper_size' => '80',
+                'receipt_show_business_type' => false,
+                'receipt_show_payment_method' => true,
+                'receipt_show_item_price' => true,
+            ]);
+
+        Sanctum::actingAs($cashier);
+
+        $response = $this->getJson('/api/sync');
+
+        $response->assertOk();
+        $response->assertJsonPath('store.receipt_template', 'detailed');
+        $response->assertJsonPath('store.receipt_paper_size', '80');
+        $response->assertJsonPath('store.receipt_show_business_type', false);
+        $response->assertJsonPath('store.receipt_show_payment_method', true);
+        $response->assertJsonPath('store.receipt_show_item_price', true);
     }
 }

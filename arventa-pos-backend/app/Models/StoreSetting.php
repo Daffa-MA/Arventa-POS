@@ -34,6 +34,11 @@ class StoreSetting extends Model
         'show_order_summary_on_app',
         'address',
         'receipt_footer',
+        'receipt_template',
+        'receipt_paper_size',
+        'receipt_show_business_type',
+        'receipt_show_payment_method',
+        'receipt_show_item_price',
         'tax_rate',
         'service_charge_rate',
         'currency',
@@ -49,6 +54,9 @@ class StoreSetting extends Model
             'show_search_on_app' => 'boolean',
             'show_cart_on_app' => 'boolean',
             'show_order_summary_on_app' => 'boolean',
+            'receipt_show_business_type' => 'boolean',
+            'receipt_show_payment_method' => 'boolean',
+            'receipt_show_item_price' => 'boolean',
         ];
     }
 

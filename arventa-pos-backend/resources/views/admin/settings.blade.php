@@ -59,6 +59,42 @@
                     <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Footer struk</label>
                     <input name="receipt_footer" value="{{ old('receipt_footer', $setting->receipt_footer) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-blue-500/10">
                 </div>
+                <div class="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p class="text-sm font-semibold text-slate-950">Template Struk</p>
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <div>
+                            <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Model struk</label>
+                            <select name="receipt_template" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
+                                @foreach (['classic' => 'Classic', 'compact' => 'Ringkas', 'detailed' => 'Detail'] as $value => $label)
+                                    <option value="{{ $value }}" @selected(old('receipt_template', $setting->receipt_template ?? 'classic') === $value)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Kertas printer</label>
+                            <select name="receipt_paper_size" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
+                                @foreach (['58' => '58mm', '80' => '80mm'] as $value => $label)
+                                    <option value="{{ $value }}" @selected(old('receipt_paper_size', $setting->receipt_paper_size ?? '58') === $value)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid gap-2 sm:grid-cols-3">
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700">
+                            <input type="checkbox" name="receipt_show_business_type" value="1" @checked(old('receipt_show_business_type', $setting->receipt_show_business_type ?? true)) class="rounded border-slate-300 text-slate-950">
+                            Jenis usaha
+                        </label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700">
+                            <input type="checkbox" name="receipt_show_payment_method" value="1" @checked(old('receipt_show_payment_method', $setting->receipt_show_payment_method ?? true)) class="rounded border-slate-300 text-slate-950">
+                            Metode bayar
+                        </label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700">
+                            <input type="checkbox" name="receipt_show_item_price" value="1" @checked(old('receipt_show_item_price', $setting->receipt_show_item_price ?? true)) class="rounded border-slate-300 text-slate-950">
+                            Harga item
+                        </label>
+                    </div>
+                    <p class="text-xs leading-5 text-slate-500">Setting ini dikirim ke Android saat sync dan dipakai saat tombol Cetak Struk ditekan.</p>
+                </div>
             </fieldset>
 
             <fieldset class="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">

@@ -146,6 +146,11 @@ data class StoreSetting(
     val taxRate: Double,
     val serviceChargeRate: Double,
     val receiptFooter: String,
+    val receiptTemplate: String,
+    val receiptPaperSize: String,
+    val receiptShowBusinessType: Boolean,
+    val receiptShowPaymentMethod: Boolean,
+    val receiptShowItemPrice: Boolean,
 )
 
 data class PosItem(
@@ -253,6 +258,11 @@ private val demoSetting = StoreSetting(
     taxRate = 11.0,
     serviceChargeRate = 0.0,
     receiptFooter = "Terima kasih.",
+    receiptTemplate = "classic",
+    receiptPaperSize = "58",
+    receiptShowBusinessType = true,
+    receiptShowPaymentMethod = true,
+    receiptShowItemPrice = true,
 )
 
 @Composable
@@ -2003,6 +2013,11 @@ private object PosRepository {
             taxRate = optDouble("tax_rate", 0.0),
             serviceChargeRate = optDouble("service_charge_rate", 0.0),
             receiptFooter = optString("receipt_footer", "Terima kasih."),
+            receiptTemplate = optString("receipt_template", "classic"),
+            receiptPaperSize = optString("receipt_paper_size", "58"),
+            receiptShowBusinessType = optBoolean("receipt_show_business_type", true),
+            receiptShowPaymentMethod = optBoolean("receipt_show_payment_method", true),
+            receiptShowItemPrice = optBoolean("receipt_show_item_price", true),
         )
     }
 
@@ -2204,6 +2219,9 @@ private object BluetoothReceiptPrinter {
 
     private fun buildReceipt(setting: StoreSetting, sale: SaleReceipt): ByteArray {
         val buffer = ByteArrayOutputStream()
+        val width = receiptWidth(setting)
+        val compact = setting.receiptTemplate == "compact"
+        val detailed = setting.receiptTemplate == "detailed"
         fun command(vararg bytes: Int) {
             buffer.write(bytes.map { it.toByte() }.toByteArray())
         }
@@ -2217,28 +2235,37 @@ private object BluetoothReceiptPrinter {
         command(0x1B, 0x21, 0x08)
         text(setting.storeName)
         command(0x1B, 0x21, 0x00)
-        text(setting.businessType)
-        text(line())
+        if (setting.receiptShowBusinessType && !compact) {
+            text(setting.businessType)
+        }
+        text(line(width))
         command(0x1B, 0x61, 0x00)
         text("Invoice: ${sale.invoiceNumber}")
-        text("Pembayaran: ${sale.paymentMethod.uppercase(Locale.US)}")
-        text(line())
+        if (setting.receiptShowPaymentMethod && !compact) {
+            text("Pembayaran: ${sale.paymentMethod.uppercase(Locale.US)}")
+        }
+        text(line(width))
 
         sale.items.forEach { item ->
-            wrapReceiptLine("${formatQuantity(item.quantity)} ${item.unit} x ${item.name}").forEach(::text)
-            text(twoColumn("", formatRupiah(item.lineTotal)))
+            wrapReceiptLine("${formatQuantity(item.quantity)} ${item.unit} x ${item.name}", width).forEach(::text)
+            if (setting.receiptShowItemPrice) {
+                val label = if (detailed) "  Subtotal" else ""
+                text(twoColumn(label, formatRupiah(item.lineTotal), width))
+            }
         }
 
-        text(line())
-        text(twoColumn("Subtotal", formatRupiah(sale.subtotal)))
-        if (sale.taxTotal > 0.0) text(twoColumn("Pajak", formatRupiah(sale.taxTotal)))
-        if (sale.serviceTotal > 0.0) text(twoColumn("Service", formatRupiah(sale.serviceTotal)))
-        text(twoColumn("Total", formatRupiah(sale.grandTotal)))
-        text(twoColumn("Dibayar", formatRupiah(sale.paidAmount)))
-        text(twoColumn("Kembali", formatRupiah(sale.changeAmount)))
-        text(line())
+        text(line(width))
+        if (!compact) {
+            text(twoColumn("Subtotal", formatRupiah(sale.subtotal), width))
+            if (sale.taxTotal > 0.0) text(twoColumn("Pajak", formatRupiah(sale.taxTotal), width))
+            if (sale.serviceTotal > 0.0) text(twoColumn("Service", formatRupiah(sale.serviceTotal), width))
+        }
+        text(twoColumn("Total", formatRupiah(sale.grandTotal), width))
+        text(twoColumn("Dibayar", formatRupiah(sale.paidAmount), width))
+        text(twoColumn("Kembali", formatRupiah(sale.changeAmount), width))
+        text(line(width))
         command(0x1B, 0x61, 0x01)
-        wrapReceiptLine(setting.receiptFooter.ifBlank { "Terima kasih." }).forEach(::text)
+        wrapReceiptLine(setting.receiptFooter.ifBlank { "Terima kasih." }, width).forEach(::text)
         text()
         text()
         command(0x1D, 0x56, 0x42, 0x00)
@@ -2255,33 +2282,35 @@ private object BluetoothReceiptPrinter {
             .replace("”", "\"")
     }
 
-    private fun line(): String = "-".repeat(32)
+    private fun receiptWidth(setting: StoreSetting): Int = if (setting.receiptPaperSize == "80") 48 else 32
 
-    private fun twoColumn(left: String, right: String): String {
-        val cleanLeft = sanitizeReceiptText(left).take(32)
-        val cleanRight = sanitizeReceiptText(right).take(32)
-        val spaces = (32 - cleanLeft.length - cleanRight.length).coerceAtLeast(1)
+    private fun line(width: Int): String = "-".repeat(width)
+
+    private fun twoColumn(left: String, right: String, width: Int): String {
+        val cleanLeft = sanitizeReceiptText(left).take(width)
+        val cleanRight = sanitizeReceiptText(right).take(width)
+        val spaces = (width - cleanLeft.length - cleanRight.length).coerceAtLeast(1)
         return cleanLeft + " ".repeat(spaces) + cleanRight
     }
 
-    private fun wrapReceiptLine(value: String): List<String> {
+    private fun wrapReceiptLine(value: String, width: Int): List<String> {
         val words = sanitizeReceiptText(value).split(" ")
         val lines = mutableListOf<String>()
         var current = ""
 
         words.forEach { word ->
             current = when {
-                current.isBlank() -> word.take(32)
-                current.length + 1 + word.length <= 32 -> "$current $word"
+                current.isBlank() -> word.take(width)
+                current.length + 1 + word.length <= width -> "$current $word"
                 else -> {
                     lines += current
-                    word.take(32)
+                    word.take(width)
                 }
             }
         }
 
         if (current.isNotBlank()) lines += current
-        return lines.ifEmpty { listOf(value.take(32)) }
+        return lines.ifEmpty { listOf(value.take(width)) }
     }
 }
 

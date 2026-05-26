@@ -77,9 +77,18 @@ class DashboardController extends Controller
             'admin_density' => ['required', 'in:comfortable,compact'],
             'address' => ['nullable', 'string', 'max:255'],
             'receipt_footer' => ['nullable', 'string', 'max:140'],
+            'receipt_template' => ['required', 'in:classic,compact,detailed'],
+            'receipt_paper_size' => ['required', 'in:58,80'],
+            'receipt_show_business_type' => ['sometimes', 'boolean'],
+            'receipt_show_payment_method' => ['sometimes', 'boolean'],
+            'receipt_show_item_price' => ['sometimes', 'boolean'],
             'tax_rate' => ['required', 'numeric', 'min:0', 'max:100'],
             'service_charge_rate' => ['required', 'numeric', 'min:0', 'max:100'],
             'currency' => ['required', 'string', 'max:8'],
+        ]) + [
+            'receipt_show_business_type' => $request->boolean('receipt_show_business_type'),
+            'receipt_show_payment_method' => $request->boolean('receipt_show_payment_method'),
+            'receipt_show_item_price' => $request->boolean('receipt_show_item_price'),
         ]);
 
         unset($data['logo']);
