@@ -62,14 +62,14 @@
             }
         }"
         @submit="loading = true; setTimeout(() => { loading = false; done = true; setTimeout(() => done = false, 2000) }, 700)"
-        class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-950/[0.03]"
+        class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/[0.03] sm:p-6"
     >
         @csrf
         @method('put')
 
-        <div class="grid gap-6 xl:grid-cols-2">
-            <fieldset class="grid gap-4">
-                <legend class="text-lg font-semibold text-slate-950">Identitas Toko</legend>
+        <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px] xl:items-start">
+            <fieldset class="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 xl:col-start-1 xl:row-start-1">
+                <legend class="px-1 text-lg font-semibold text-slate-950">Identitas Toko</legend>
                 <div>
                     <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Nama toko</label>
                     <input name="store_name" x-model="preview.storeName" value="{{ old('store_name', $setting->store_name) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-blue-500/10">
@@ -80,7 +80,7 @@
                     <input name="business_type" x-model="preview.businessType" value="{{ old('business_type', $setting->business_type) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-blue-500/10">
                     @error('business_type')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                 </div>
-                <div class="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4">
                     <div class="flex items-center gap-3">
                         <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-950 text-sm font-bold text-white">
                             @if ($logoUrl)
@@ -105,8 +105,11 @@
                     <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Footer struk</label>
                     <input name="receipt_footer" x-model="preview.receiptFooter" value="{{ old('receipt_footer', $setting->receipt_footer) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-blue-500/10">
                 </div>
-                <div class="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <p class="text-sm font-semibold text-slate-950">Template Struk</p>
+                <div class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4">
+                    <div>
+                        <p class="text-sm font-semibold text-slate-950">Template Struk</p>
+                        <p class="mt-1 text-sm leading-6 text-slate-500">Atur isi struk, ukuran kertas, dan QR tambahan yang dicetak di bagian bawah struk.</p>
+                    </div>
                     <div class="grid gap-3 sm:grid-cols-2">
                         <div>
                             <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Model struk</label>
@@ -175,7 +178,50 @@
                 </div>
             </fieldset>
 
-            <fieldset class="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <fieldset class="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 xl:col-start-1 xl:row-start-3">
+                <legend class="px-1 text-lg font-semibold text-slate-950">Biaya dan Pembayaran</legend>
+                <div class="grid gap-4 sm:grid-cols-3">
+                    <div>
+                        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Pajak %</label>
+                        <input name="tax_rate" x-model="preview.taxRate" type="number" step="0.01" value="{{ old('tax_rate', $setting->tax_rate) }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Service %</label>
+                        <input name="service_charge_rate" x-model="preview.serviceRate" type="number" step="0.01" value="{{ old('service_charge_rate', $setting->service_charge_rate) }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Mata uang</label>
+                        <input name="currency" x-model="preview.currency" value="{{ old('currency', $setting->currency) }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
+                    </div>
+                </div>
+                <div class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 lg:grid-cols-[160px_1fr]">
+                    <div class="flex h-40 items-center justify-center overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-slate-50">
+                        @if ($qrisUrl)
+                            <img src="{{ $qrisUrl }}" alt="QRIS {{ $setting->store_name }}" class="h-full w-full object-contain p-2">
+                        @else
+                            <div class="text-center">
+                                <svg class="mx-auto h-8 w-8 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect width="7" height="7" x="3" y="3" rx="1"></rect>
+                                    <rect width="7" height="7" x="14" y="3" rx="1"></rect>
+                                    <rect width="7" height="7" x="3" y="14" rx="1"></rect>
+                                    <path d="M14 14h2v2h-2zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z"></path>
+                                </svg>
+                                <p class="mt-2 text-xs font-medium text-slate-500">Belum ada QRIS</p>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="flex flex-col justify-center gap-3">
+                        <div>
+                            <p class="text-sm font-semibold text-slate-950">Pembayaran QRIS</p>
+                            <p class="mt-1 text-sm leading-6 text-slate-500">Dipakai di checkout Android saat kasir memilih metode QRIS.</p>
+                        </div>
+                        <input name="qris_image" type="file" accept="image/png,image/jpeg,image/webp" @change="preview.qrisUrl = $event.target.files?.[0] ? URL.createObjectURL($event.target.files[0]) : preview.qrisUrl" class="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-950 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white">
+                        @error('qris_image')<p class="text-xs font-medium text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset class="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 xl:col-start-1 xl:row-start-2">
                 <legend class="px-1 text-lg font-semibold text-slate-950">Tampilan Web Admin</legend>
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
@@ -213,7 +259,7 @@
                 </div>
             </fieldset>
 
-            <fieldset class="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 xl:sticky xl:top-24 xl:self-start">
+            <fieldset class="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 xl:sticky xl:top-24 xl:col-start-2 xl:row-span-4 xl:row-start-1 xl:self-start">
                 <legend class="px-1 text-lg font-semibold text-slate-950">Preview Struk</legend>
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
@@ -343,49 +389,6 @@
                         <div class="my-3 border-t border-dashed border-slate-400"></div>
 
                         <p class="text-center text-slate-600" x-text="preview.receiptFooter || 'Terima kasih.'"></p>
-                    </div>
-                </div>
-            </fieldset>
-
-            <fieldset class="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <legend class="px-1 text-lg font-semibold text-slate-950">Biaya dan Struk</legend>
-                <div class="grid gap-4 sm:grid-cols-3">
-                    <div>
-                        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Pajak %</label>
-                        <input name="tax_rate" x-model="preview.taxRate" type="number" step="0.01" value="{{ old('tax_rate', $setting->tax_rate) }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
-                    </div>
-                    <div>
-                        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Service %</label>
-                        <input name="service_charge_rate" x-model="preview.serviceRate" type="number" step="0.01" value="{{ old('service_charge_rate', $setting->service_charge_rate) }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
-                    </div>
-                    <div>
-                        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Mata uang</label>
-                        <input name="currency" x-model="preview.currency" value="{{ old('currency', $setting->currency) }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
-                    </div>
-                </div>
-                <div class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 lg:grid-cols-[160px_1fr]">
-                    <div class="flex h-40 items-center justify-center overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-slate-50">
-                        @if ($qrisUrl)
-                            <img src="{{ $qrisUrl }}" alt="QRIS {{ $setting->store_name }}" class="h-full w-full object-contain p-2">
-                        @else
-                            <div class="text-center">
-                                <svg class="mx-auto h-8 w-8 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect width="7" height="7" x="3" y="3" rx="1"></rect>
-                                    <rect width="7" height="7" x="14" y="3" rx="1"></rect>
-                                    <rect width="7" height="7" x="3" y="14" rx="1"></rect>
-                                    <path d="M14 14h2v2h-2zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z"></path>
-                                </svg>
-                                <p class="mt-2 text-xs font-medium text-slate-500">Belum ada QRIS</p>
-                            </div>
-                        @endif
-                    </div>
-                    <div class="flex flex-col justify-center gap-3">
-                        <div>
-                            <p class="text-sm font-semibold text-slate-950">Pembayaran QRIS</p>
-                            <p class="mt-1 text-sm leading-6 text-slate-500">Dipakai di checkout Android saat kasir memilih metode QRIS.</p>
-                        </div>
-                        <input name="qris_image" type="file" accept="image/png,image/jpeg,image/webp" @change="preview.qrisUrl = $event.target.files?.[0] ? URL.createObjectURL($event.target.files[0]) : preview.qrisUrl" class="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-950 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white">
-                        @error('qris_image')<p class="text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                     </div>
                 </div>
             </fieldset>
