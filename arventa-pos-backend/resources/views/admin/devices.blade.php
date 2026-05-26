@@ -26,7 +26,7 @@
             <div class="flex items-center justify-between gap-4">
                 <div>
                     <h2 class="text-lg font-semibold text-slate-950">Kode Pairing Aktif</h2>
-                    <p class="mt-1 text-sm text-slate-500">Scan QR dari app kasir atau input kode 6 digit.</p>
+                    <p class="mt-1 text-sm text-slate-500">Scan QR dari app kasir. QR sudah membawa URL tenant dan kode pairing.</p>
                 </div>
                 @if ($expiredPairingCodeCount > 0)
                     <form method="post" action="{{ route('admin.devices.pairing-codes.expired.destroy') }}">
@@ -46,8 +46,9 @@
                         $payload = json_encode([
                             'type' => 'arventa_pairing',
                             'code' => $pairing->code,
-                            'api_url' => url('/api/pairing/connect'),
-                        ]);
+                            'base_url' => $pairingBaseUrl,
+                            'api_url' => "{$pairingBaseUrl}/api/pairing/connect",
+                        ], JSON_UNESCAPED_SLASHES);
                         $isPaired = (bool) $pairing->paired_at;
                     @endphp
                     <div

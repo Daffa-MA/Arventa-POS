@@ -307,7 +307,6 @@ fun ArventaApp() {
 private fun PairingScreen(onConnected: (PairingSession) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var baseUrl by remember { mutableStateOf("https://arventa.arventa.my.id") }
     var pairingInput by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
@@ -337,7 +336,7 @@ private fun PairingScreen(onConnected: (PairingSession) -> Unit) {
         message = null
         scope.launch {
             try {
-                onConnected(PosRepository.pair(baseUrl, input))
+                onConnected(PosRepository.pair("", input))
             } catch (error: Exception) {
                 message = error.message ?: "Pairing gagal."
             } finally {
@@ -377,7 +376,7 @@ private fun PairingScreen(onConnected: (PairingSession) -> Unit) {
                 Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(22.dp), elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)) {
                     Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        "Scan QR dari menu Perangkat Kasir, atau masukkan kode pairing manual.",
+                        "Scan QR dari menu Perangkat Kasir di Web Admin tenant. URL toko akan tersimpan otomatis.",
                         color = Color(0xFF475569),
                         style = MaterialTheme.typography.bodyMedium,
                     )
@@ -392,17 +391,9 @@ private fun PairingScreen(onConnected: (PairingSession) -> Unit) {
                         )
                     }
                     OutlinedTextField(
-                        value = baseUrl,
-                        onValueChange = { baseUrl = it },
-                        label = { Text("Base URL web admin") },
-                        singleLine = true,
-                        colors = fieldColors,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedTextField(
                         value = pairingInput,
                         onValueChange = { pairingInput = it },
-                        label = { Text("Kode pairing atau isi QR") },
+                        label = { Text("Isi QR pairing") },
                         minLines = 2,
                         colors = fieldColors,
                         modifier = Modifier.fillMaxWidth(),
@@ -451,7 +442,7 @@ private fun PairingScreen(onConnected: (PairingSession) -> Unit) {
                     }
                     Surface(color = Color(0xFFF8FAFC), shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, Color(0xFFE2E8F0))) {
                         Text(
-                            "Production: https://arventa.arventa.my.id\nEmulator lokal: http://10.0.2.2:8000",
+                            "Buka Web Admin tenant > Perangkat Kasir > Generate QR Pairing. App akan membaca URL tenant dari QR.",
                             color = Color(0xFF64748B),
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(12.dp),
@@ -1951,14 +1942,43 @@ private object PosRepository {
         val trimmed = pairingInput.trim()
         if (trimmed.startsWith("{")) {
             val json = JSONObject(trimmed)
-            val code = json.getString("code")
+            val code = json.getString("code").filter { it.isDigit() }
             val apiUrl = json.optString("api_url")
-            val baseUrl = apiUrl
-                .replace("/api/pairing/connect", "")
+            val baseUrlFromApi = apiUrl
+                .takeIf { it.isNotBlank() }
+                ?.substringBefore("/api/pairing/connect")
+                .orEmpty()
+            val baseUrl = json.optString("base_url")
+                .ifBlank { baseUrlFromApi }
                 .ifBlank { baseUrlInput }
+
+            if (code.isBlank()) {
+                throw IllegalStateException("Kode pairing tidak ditemukan di QR.")
+            }
+
             return code to normalizeBaseUrl(baseUrl)
         }
-        return trimmed.filter { it.isDigit() } to normalizeBaseUrl(baseUrlInput)
+
+        val code = trimmed.filter { it.isDigit() }
+        if (code.isBlank()) {
+            throw IllegalStateException("Kode pairing tidak valid.")
+        }
+
+        return code to normalizeBaseUrl(baseUrlInput)
+    }
+
+    private fun normalizeBaseUrl(value: String): String {
+        val baseUrl = value.trim().trimEnd('/')
+
+        if (baseUrl.isBlank()) {
+            throw IllegalStateException("Base URL tidak ditemukan. Scan QR pairing dari Web Admin tenant.")
+        }
+
+        return if (baseUrl.startsWith("http://") || baseUrl.startsWith("https://")) {
+            baseUrl
+        } else {
+            "https://$baseUrl"
+        }
     }
 
     private fun JSONObject.toSetting(baseUrl: String): StoreSetting {

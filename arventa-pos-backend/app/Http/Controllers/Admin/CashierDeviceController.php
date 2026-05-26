@@ -25,6 +25,7 @@ class CashierDeviceController extends Controller
 
         return view('admin.devices', [
             'setting' => StoreSetting::query()->where('pos_instance_id', $posInstanceId)->firstOrFail(),
+            'pairingBaseUrl' => $this->pairingBaseUrl($request),
             'pairingCodes' => CashierPairingCode::query()
                 ->where('pos_instance_id', $posInstanceId)
                 ->where(function ($query): void {
@@ -116,5 +117,22 @@ class CashierDeviceController extends Controller
     private function posInstanceId(Request $request): int
     {
         return (int) $request->attributes->get('arventa_pos_instance')->id;
+    }
+
+    private function pairingBaseUrl(Request $request): string
+    {
+        $host = $request->getHost();
+        $scheme = (string) $request->headers->get('x-forwarded-proto', $request->getScheme());
+        $scheme = trim(Str::before($scheme, ','));
+
+        if (! in_array($scheme, ['http', 'https'], true)) {
+            $scheme = 'https';
+        }
+
+        if (app()->environment('production') && ! in_array($host, ['localhost', '127.0.0.1'], true)) {
+            $scheme = 'https';
+        }
+
+        return "{$scheme}://{$host}";
     }
 }

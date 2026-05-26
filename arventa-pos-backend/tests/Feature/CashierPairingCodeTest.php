@@ -139,6 +139,28 @@ class CashierPairingCodeTest extends TestCase
         $this->assertDatabaseMissing('cashier_pairing_codes', ['code' => '555555']);
     }
 
+    public function test_devices_page_qr_payload_contains_tenant_base_url(): void
+    {
+        $this->seed();
+
+        CashierPairingCode::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
+            'code' => '888888',
+            'cashier_name' => 'Kasir Tenant',
+            'expires_at' => now()->addMinutes(5),
+        ]);
+
+        $response = $this
+            ->withHeader('X-Forwarded-Proto', 'https')
+            ->withAdminSession()
+            ->get('https://tropizz.arventa.my.id/admin/devices');
+
+        $response->assertOk();
+        $response->assertSee('base_url', false);
+        $response->assertSee('https://tropizz.arventa.my.id', false);
+        $response->assertSee('api\\/pairing\\/connect', false);
+    }
+
     public function test_devices_page_hides_revoked_devices(): void
     {
         $this->seed();
