@@ -6,7 +6,8 @@
 >
     @php
         $logoUrl = $setting->logo_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($setting->logo_path) : null;
-        $qrUrl = $setting->qris_image_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($setting->qris_image_path) : null;
+        $qrisUrl = $setting->qris_image_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($setting->qris_image_path) : null;
+        $receiptQrUrl = $setting->receipt_qr_image_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($setting->receipt_qr_image_path) : null;
     @endphp
 
     <form
@@ -22,7 +23,8 @@
                 address: @js(old('address', $setting->address)),
                 receiptFooter: @js(old('receipt_footer', $setting->receipt_footer)),
                 logoUrl: @js($logoUrl),
-                qrUrl: @js($qrUrl),
+                qrisUrl: @js($qrisUrl),
+                receiptQrUrl: @js($receiptQrUrl),
                 receiptTemplate: @js(old('receipt_template', $setting->receipt_template ?? 'classic')),
                 receiptPaperSize: @js(old('receipt_paper_size', $setting->receipt_paper_size ?? '58')),
                 showLogo: @js((bool) old('receipt_show_logo', $setting->receipt_show_logo ?? false)),
@@ -138,7 +140,7 @@
                         </label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700">
                             <input type="checkbox" name="receipt_show_qris" value="1" x-model="preview.showQris" @checked(old('receipt_show_qris', $setting->receipt_show_qris ?? false)) class="rounded border-slate-300 text-slate-950">
-                            QR
+                            QR struk
                         </label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700">
                             <input type="checkbox" name="receipt_show_business_type" value="1" x-model="preview.showBusinessType" @checked(old('receipt_show_business_type', $setting->receipt_show_business_type ?? true)) class="rounded border-slate-300 text-slate-950">
@@ -152,6 +154,23 @@
                             <input type="checkbox" name="receipt_show_item_price" value="1" x-model="preview.showItemPrice" @checked(old('receipt_show_item_price', $setting->receipt_show_item_price ?? true)) class="rounded border-slate-300 text-slate-950">
                             Harga item
                         </label>
+                    </div>
+                    <div class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 lg:grid-cols-[130px_1fr]">
+                        <div class="flex h-32 items-center justify-center overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-slate-50">
+                            @if ($receiptQrUrl)
+                                <img src="{{ $receiptQrUrl }}" alt="QR struk {{ $setting->store_name }}" class="h-full w-full object-contain p-2">
+                            @else
+                                <p class="px-3 text-center text-xs font-medium text-slate-500">Belum ada QR struk</p>
+                            @endif
+                        </div>
+                        <div class="flex flex-col justify-center gap-3">
+                            <div>
+                                <p class="text-sm font-semibold text-slate-950">QR Struk</p>
+                                <p class="mt-1 text-sm leading-6 text-slate-500">Untuk website, katalog, ulasan, loyalty, atau link toko di bagian struk.</p>
+                            </div>
+                            <input name="receipt_qr_image" type="file" accept="image/png,image/jpeg,image/webp" @change="preview.receiptQrUrl = $event.target.files?.[0] ? URL.createObjectURL($event.target.files[0]) : preview.receiptQrUrl" class="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-950 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white">
+                            @error('receipt_qr_image')<p class="text-xs font-medium text-red-600">{{ $message }}</p>@enderror
+                        </div>
                     </div>
                 </div>
             </fieldset>
@@ -294,10 +313,10 @@
                         <div x-show="preview.showQris" class="pt-3">
                             <div class="my-3 border-t border-dashed border-slate-400"></div>
                             <div class="flex justify-center">
-                                <template x-if="preview.qrUrl">
-                                    <img :src="preview.qrUrl" alt="" class="h-24 w-24 object-contain">
+                                <template x-if="preview.receiptQrUrl">
+                                    <img :src="preview.receiptQrUrl" alt="" class="h-24 w-24 object-contain">
                                 </template>
-                                <template x-if="!preview.qrUrl">
+                                <template x-if="!preview.receiptQrUrl">
                                     <div class="grid h-24 w-24 grid-cols-4 gap-1 rounded-sm border border-slate-300 bg-white p-2">
                                         <span class="rounded-sm bg-slate-950"></span>
                                         <span class="rounded-sm bg-slate-300"></span>
@@ -318,7 +337,7 @@
                                     </div>
                                 </template>
                             </div>
-                            <p class="mt-1 text-center text-slate-500">QR</p>
+                            <p class="mt-1 text-center text-slate-500">QR Struk</p>
                         </div>
 
                         <div class="my-3 border-t border-dashed border-slate-400"></div>
@@ -346,8 +365,8 @@
                 </div>
                 <div class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 lg:grid-cols-[160px_1fr]">
                     <div class="flex h-40 items-center justify-center overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-slate-50">
-                        @if ($qrUrl)
-                            <img src="{{ $qrUrl }}" alt="QR {{ $setting->store_name }}" class="h-full w-full object-contain p-2">
+                        @if ($qrisUrl)
+                            <img src="{{ $qrisUrl }}" alt="QRIS {{ $setting->store_name }}" class="h-full w-full object-contain p-2">
                         @else
                             <div class="text-center">
                                 <svg class="mx-auto h-8 w-8 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -356,16 +375,16 @@
                                     <rect width="7" height="7" x="3" y="14" rx="1"></rect>
                                     <path d="M14 14h2v2h-2zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z"></path>
                                 </svg>
-                                <p class="mt-2 text-xs font-medium text-slate-500">Belum ada QR</p>
+                                <p class="mt-2 text-xs font-medium text-slate-500">Belum ada QRIS</p>
                             </div>
                         @endif
                     </div>
                     <div class="flex flex-col justify-center gap-3">
                         <div>
-                            <p class="text-sm font-semibold text-slate-950">QR Toko</p>
-                            <p class="mt-1 text-sm leading-6 text-slate-500">Upload QR pembayaran, website, katalog, atau link lain milik toko.</p>
+                            <p class="text-sm font-semibold text-slate-950">Pembayaran QRIS</p>
+                            <p class="mt-1 text-sm leading-6 text-slate-500">Dipakai di checkout Android saat kasir memilih metode QRIS.</p>
                         </div>
-                        <input name="qris_image" type="file" accept="image/png,image/jpeg,image/webp" @change="preview.qrUrl = $event.target.files?.[0] ? URL.createObjectURL($event.target.files[0]) : preview.qrUrl" class="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-950 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white">
+                        <input name="qris_image" type="file" accept="image/png,image/jpeg,image/webp" @change="preview.qrisUrl = $event.target.files?.[0] ? URL.createObjectURL($event.target.files[0]) : preview.qrisUrl" class="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-950 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white">
                         @error('qris_image')<p class="text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                     </div>
                 </div>

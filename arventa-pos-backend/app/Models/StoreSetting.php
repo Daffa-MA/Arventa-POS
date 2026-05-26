@@ -13,6 +13,7 @@ class StoreSetting extends Model
         'business_type',
         'logo_path',
         'qris_image_path',
+        'receipt_qr_image_path',
         'admin_brand_name',
         'admin_console_label',
         'theme_color',

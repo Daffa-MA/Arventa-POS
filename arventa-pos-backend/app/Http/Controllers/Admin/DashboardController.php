@@ -70,6 +70,7 @@ class DashboardController extends Controller
             'business_type' => ['required', 'string', 'max:60'],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:2048'],
             'qris_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'receipt_qr_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'admin_brand_name' => ['required', 'string', 'max:80'],
             'admin_console_label' => ['required', 'string', 'max:80'],
             'admin_theme_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
@@ -101,6 +102,7 @@ class DashboardController extends Controller
 
         unset($data['logo']);
         unset($data['qris_image']);
+        unset($data['receipt_qr_image']);
 
         $setting = $this->setting($request);
 
@@ -118,6 +120,14 @@ class DashboardController extends Controller
             }
 
             $data['qris_image_path'] = $request->file('qris_image')->store('payment-qris', 'public');
+        }
+
+        if ($request->hasFile('receipt_qr_image')) {
+            if ($setting->receipt_qr_image_path) {
+                Storage::disk('public')->delete($setting->receipt_qr_image_path);
+            }
+
+            $data['receipt_qr_image_path'] = $request->file('receipt_qr_image')->store('receipt-qr', 'public');
         }
 
         $setting->update($data);

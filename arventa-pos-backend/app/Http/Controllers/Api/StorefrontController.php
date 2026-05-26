@@ -26,6 +26,10 @@ class StorefrontController extends Controller
             $setting->setAttribute('qris_image_url', Storage::disk('public')->url($setting->qris_image_path));
         }
 
+        if ($setting?->receipt_qr_image_path) {
+            $setting->setAttribute('receipt_qr_image_url', Storage::disk('public')->url($setting->receipt_qr_image_path));
+        }
+
         return response()->json([
             'store' => $setting,
             'products' => Product::query()
