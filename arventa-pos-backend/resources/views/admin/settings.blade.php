@@ -4,6 +4,11 @@
     title="Setting"
     subtitle="Pengaturan toko, Web Admin, dan App Kasir dipisah agar masing-masing UI bisa dikembangkan mandiri."
 >
+    @php
+        $logoUrl = $setting->logo_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($setting->logo_path) : null;
+        $qrisUrl = $setting->qris_image_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($setting->qris_image_path) : null;
+    @endphp
+
     <form
         method="post"
         action="{{ route('admin.settings.update') }}"
@@ -16,8 +21,14 @@
                 businessType: @js(old('business_type', $setting->business_type)),
                 address: @js(old('address', $setting->address)),
                 receiptFooter: @js(old('receipt_footer', $setting->receipt_footer)),
+                logoUrl: @js($logoUrl),
+                qrisUrl: @js($qrisUrl),
                 receiptTemplate: @js(old('receipt_template', $setting->receipt_template ?? 'classic')),
                 receiptPaperSize: @js(old('receipt_paper_size', $setting->receipt_paper_size ?? '58')),
+                showLogo: @js((bool) old('receipt_show_logo', $setting->receipt_show_logo ?? false)),
+                showAddress: @js((bool) old('receipt_show_address', $setting->receipt_show_address ?? true)),
+                showDatetime: @js((bool) old('receipt_show_datetime', $setting->receipt_show_datetime ?? true)),
+                showQris: @js((bool) old('receipt_show_qris', $setting->receipt_show_qris ?? false)),
                 showBusinessType: @js((bool) old('receipt_show_business_type', $setting->receipt_show_business_type ?? true)),
                 showPaymentMethod: @js((bool) old('receipt_show_payment_method', $setting->receipt_show_payment_method ?? true)),
                 showItemPrice: @js((bool) old('receipt_show_item_price', $setting->receipt_show_item_price ?? true)),
@@ -70,18 +81,18 @@
                 <div class="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <div class="flex items-center gap-3">
                         <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-950 text-sm font-bold text-white">
-                            @if ($setting->logo_path)
-                                <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($setting->logo_path) }}" alt="Logo {{ $setting->store_name }}" class="h-full w-full object-cover">
+                            @if ($logoUrl)
+                                <img src="{{ $logoUrl }}" alt="Logo {{ $setting->store_name }}" class="h-full w-full object-cover">
                             @else
                                 {{ strtoupper(mb_substr($setting->admin_brand_name ?? $setting->store_name, 0, 1)) }}
                             @endif
                         </div>
                         <div>
-                            <p class="text-sm font-semibold text-slate-950">Logo POS Admin</p>
+                            <p class="text-sm font-semibold text-slate-950">Logo toko</p>
                             <p class="text-xs leading-5 text-slate-500">PNG, JPG, WebP, atau SVG. Maksimal 2MB.</p>
                         </div>
                     </div>
-                    <input name="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" class="w-full rounded-xl border border-dashed border-slate-300 bg-white px-3 py-3 text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-950 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white">
+                    <input name="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" @change="preview.logoUrl = $event.target.files?.[0] ? URL.createObjectURL($event.target.files[0]) : preview.logoUrl" class="w-full rounded-xl border border-dashed border-slate-300 bg-white px-3 py-3 text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-950 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white">
                     @error('logo')<p class="text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                 </div>
                 <div>
@@ -112,7 +123,23 @@
                             </select>
                         </div>
                     </div>
-                    <div class="grid gap-2 sm:grid-cols-3">
+                    <div class="grid gap-2 sm:grid-cols-2">
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700">
+                            <input type="checkbox" name="receipt_show_logo" value="1" x-model="preview.showLogo" @checked(old('receipt_show_logo', $setting->receipt_show_logo ?? false)) class="rounded border-slate-300 text-slate-950">
+                            Logo
+                        </label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700">
+                            <input type="checkbox" name="receipt_show_address" value="1" x-model="preview.showAddress" @checked(old('receipt_show_address', $setting->receipt_show_address ?? true)) class="rounded border-slate-300 text-slate-950">
+                            Alamat
+                        </label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700">
+                            <input type="checkbox" name="receipt_show_datetime" value="1" x-model="preview.showDatetime" @checked(old('receipt_show_datetime', $setting->receipt_show_datetime ?? true)) class="rounded border-slate-300 text-slate-950">
+                            Tanggal & jam
+                        </label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700">
+                            <input type="checkbox" name="receipt_show_qris" value="1" x-model="preview.showQris" @checked(old('receipt_show_qris', $setting->receipt_show_qris ?? false)) class="rounded border-slate-300 text-slate-950">
+                            QRIS
+                        </label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700">
                             <input type="checkbox" name="receipt_show_business_type" value="1" x-model="preview.showBusinessType" @checked(old('receipt_show_business_type', $setting->receipt_show_business_type ?? true)) class="rounded border-slate-300 text-slate-950">
                             Jenis usaha
@@ -182,9 +209,17 @@
                         :class="preview.receiptPaperSize === '80' ? 'w-full max-w-[360px]' : 'w-full max-w-[260px]'"
                     >
                         <div class="text-center">
+                            <div x-show="preview.showLogo" class="mb-2 flex justify-center">
+                                <template x-if="preview.logoUrl">
+                                    <img :src="preview.logoUrl" alt="" class="h-12 w-12 rounded-sm object-contain">
+                                </template>
+                                <template x-if="!preview.logoUrl">
+                                    <div class="flex h-12 w-12 items-center justify-center rounded-sm border border-dashed border-slate-300 text-[9px] font-bold text-slate-400">LOGO</div>
+                                </template>
+                            </div>
                             <p class="text-[13px] font-bold uppercase tracking-wide" x-text="preview.storeName || 'Nama Toko'"></p>
                             <p x-show="preview.showBusinessType && preview.receiptTemplate !== 'compact'" class="text-slate-600" x-text="preview.businessType || 'Jenis Usaha'"></p>
-                            <p x-show="preview.receiptTemplate === 'detailed' && preview.address" class="mt-1 text-slate-600" x-text="preview.address"></p>
+                            <p x-show="preview.showAddress && preview.address" class="mt-1 text-slate-600" x-text="preview.address"></p>
                         </div>
 
                         <div class="my-3 border-t border-dashed border-slate-400"></div>
@@ -194,9 +229,13 @@
                                 <span>Invoice</span>
                                 <span>ARV-0001</span>
                             </div>
-                            <div class="flex justify-between gap-3">
+                            <div x-show="preview.showDatetime" class="flex justify-between gap-3">
                                 <span>Tanggal</span>
                                 <span>26/05/2026</span>
+                            </div>
+                            <div x-show="preview.showDatetime && preview.receiptTemplate !== 'compact'" class="flex justify-between gap-3">
+                                <span>Jam</span>
+                                <span>14:30</span>
                             </div>
                             <div x-show="preview.showPaymentMethod && preview.receiptTemplate !== 'compact'" class="flex justify-between gap-3">
                                 <span>Bayar</span>
@@ -252,6 +291,36 @@
                             </div>
                         </div>
 
+                        <div x-show="preview.showQris" class="pt-3">
+                            <div class="my-3 border-t border-dashed border-slate-400"></div>
+                            <div class="flex justify-center">
+                                <template x-if="preview.qrisUrl">
+                                    <img :src="preview.qrisUrl" alt="" class="h-24 w-24 object-contain">
+                                </template>
+                                <template x-if="!preview.qrisUrl">
+                                    <div class="grid h-24 w-24 grid-cols-4 gap-1 rounded-sm border border-slate-300 bg-white p-2">
+                                        <span class="rounded-sm bg-slate-950"></span>
+                                        <span class="rounded-sm bg-slate-300"></span>
+                                        <span class="rounded-sm bg-slate-950"></span>
+                                        <span class="rounded-sm bg-slate-300"></span>
+                                        <span class="rounded-sm bg-slate-300"></span>
+                                        <span class="rounded-sm bg-slate-950"></span>
+                                        <span class="rounded-sm bg-slate-300"></span>
+                                        <span class="rounded-sm bg-slate-950"></span>
+                                        <span class="rounded-sm bg-slate-950"></span>
+                                        <span class="rounded-sm bg-slate-300"></span>
+                                        <span class="rounded-sm bg-slate-950"></span>
+                                        <span class="rounded-sm bg-slate-300"></span>
+                                        <span class="rounded-sm bg-slate-300"></span>
+                                        <span class="rounded-sm bg-slate-950"></span>
+                                        <span class="rounded-sm bg-slate-300"></span>
+                                        <span class="rounded-sm bg-slate-950"></span>
+                                    </div>
+                                </template>
+                            </div>
+                            <p class="mt-1 text-center text-slate-500">QRIS</p>
+                        </div>
+
                         <div class="my-3 border-t border-dashed border-slate-400"></div>
 
                         <p class="text-center text-slate-600" x-text="preview.receiptFooter || 'Terima kasih.'"></p>
@@ -277,8 +346,8 @@
                 </div>
                 <div class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 lg:grid-cols-[160px_1fr]">
                     <div class="flex h-40 items-center justify-center overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-slate-50">
-                        @if ($setting->qris_image_path)
-                            <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($setting->qris_image_path) }}" alt="QRIS {{ $setting->store_name }}" class="h-full w-full object-contain p-2">
+                        @if ($qrisUrl)
+                            <img src="{{ $qrisUrl }}" alt="QRIS {{ $setting->store_name }}" class="h-full w-full object-contain p-2">
                         @else
                             <div class="text-center">
                                 <svg class="mx-auto h-8 w-8 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -296,7 +365,7 @@
                             <p class="text-sm font-semibold text-slate-950">Pembayaran QRIS</p>
                             <p class="mt-1 text-sm leading-6 text-slate-500">Upload gambar QRIS toko. App kasir akan menampilkannya saat kasir memilih metode QRIS di checkout.</p>
                         </div>
-                        <input name="qris_image" type="file" accept="image/png,image/jpeg,image/webp" class="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-950 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white">
+                        <input name="qris_image" type="file" accept="image/png,image/jpeg,image/webp" @change="preview.qrisUrl = $event.target.files?.[0] ? URL.createObjectURL($event.target.files[0]) : preview.qrisUrl" class="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-950 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white">
                         @error('qris_image')<p class="text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                     </div>
                 </div>

@@ -81,8 +81,13 @@ class PairingControllerTest extends TestCase
         StoreSetting::query()
             ->where('pos_instance_id', $this->defaultPosInstanceId())
             ->update([
+                'address' => 'Jl. Melati No. 10',
                 'receipt_template' => 'detailed',
                 'receipt_paper_size' => '80',
+                'receipt_show_logo' => true,
+                'receipt_show_address' => true,
+                'receipt_show_datetime' => false,
+                'receipt_show_qris' => true,
                 'receipt_show_business_type' => false,
                 'receipt_show_payment_method' => true,
                 'receipt_show_item_price' => true,
@@ -95,6 +100,10 @@ class PairingControllerTest extends TestCase
         $response->assertOk();
         $response->assertJsonPath('store.receipt_template', 'detailed');
         $response->assertJsonPath('store.receipt_paper_size', '80');
+        $response->assertJsonPath('store.receipt_show_logo', true);
+        $response->assertJsonPath('store.receipt_show_address', true);
+        $response->assertJsonPath('store.receipt_show_datetime', false);
+        $response->assertJsonPath('store.receipt_show_qris', true);
         $response->assertJsonPath('store.receipt_show_business_type', false);
         $response->assertJsonPath('store.receipt_show_payment_method', true);
         $response->assertJsonPath('store.receipt_show_item_price', true);

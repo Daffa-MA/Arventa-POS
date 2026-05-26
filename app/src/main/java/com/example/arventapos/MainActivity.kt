@@ -9,6 +9,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -104,6 +106,8 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.Charset
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.Executors
@@ -128,6 +132,8 @@ class MainActivity : ComponentActivity() {
 data class StoreSetting(
     val storeName: String,
     val businessType: String,
+    val address: String,
+    val logoUrl: String?,
     val qrisImageUrl: String?,
     val themeColor: Color,
     val textColor: Color,
@@ -148,6 +154,10 @@ data class StoreSetting(
     val receiptFooter: String,
     val receiptTemplate: String,
     val receiptPaperSize: String,
+    val receiptShowLogo: Boolean,
+    val receiptShowAddress: Boolean,
+    val receiptShowDatetime: Boolean,
+    val receiptShowQris: Boolean,
     val receiptShowBusinessType: Boolean,
     val receiptShowPaymentMethod: Boolean,
     val receiptShowItemPrice: Boolean,
@@ -240,6 +250,8 @@ private object PrinterStore {
 private val demoSetting = StoreSetting(
     storeName = "Arventa POS",
     businessType = "Retail",
+    address = "",
+    logoUrl = null,
     qrisImageUrl = null,
     themeColor = Color(0xFF2563EB),
     textColor = Color(0xFF0F172A),
@@ -260,6 +272,10 @@ private val demoSetting = StoreSetting(
     receiptFooter = "Terima kasih.",
     receiptTemplate = "classic",
     receiptPaperSize = "58",
+    receiptShowLogo = false,
+    receiptShowAddress = true,
+    receiptShowDatetime = true,
+    receiptShowQris = false,
     receiptShowBusinessType = true,
     receiptShowPaymentMethod = true,
     receiptShowItemPrice = true,
@@ -1995,6 +2011,8 @@ private object PosRepository {
         return StoreSetting(
             storeName = optString("store_name", "Arventa POS"),
             businessType = optString("business_type", "Retail"),
+            address = optString("address", ""),
+            logoUrl = optString("logo_url").takeIf { it.isNotBlank() && it != "null" }?.let { absoluteUrl(baseUrl, it) },
             qrisImageUrl = optString("qris_image_url").takeIf { it.isNotBlank() && it != "null" }?.let { absoluteUrl(baseUrl, it) },
             themeColor = parseColor(optString("theme_color", "#2563EB")),
             textColor = parseColor(optString("app_text_color", "#0F172A")),
@@ -2015,6 +2033,10 @@ private object PosRepository {
             receiptFooter = optString("receipt_footer", "Terima kasih."),
             receiptTemplate = optString("receipt_template", "classic"),
             receiptPaperSize = optString("receipt_paper_size", "58"),
+            receiptShowLogo = optBoolean("receipt_show_logo", false),
+            receiptShowAddress = optBoolean("receipt_show_address", true),
+            receiptShowDatetime = optBoolean("receipt_show_datetime", true),
+            receiptShowQris = optBoolean("receipt_show_qris", false),
             receiptShowBusinessType = optBoolean("receipt_show_business_type", true),
             receiptShowPaymentMethod = optBoolean("receipt_show_payment_method", true),
             receiptShowItemPrice = optBoolean("receipt_show_item_price", true),
@@ -2232,15 +2254,25 @@ private object BluetoothReceiptPrinter {
 
         command(0x1B, 0x40)
         command(0x1B, 0x61, 0x01)
+        if (setting.receiptShowLogo && !setting.logoUrl.isNullOrBlank()) {
+            writeImage(buffer, setting.logoUrl, maxWidth = if (width == 48) 220 else 160)
+            text()
+        }
         command(0x1B, 0x21, 0x08)
         text(setting.storeName)
         command(0x1B, 0x21, 0x00)
         if (setting.receiptShowBusinessType && !compact) {
             text(setting.businessType)
         }
+        if (setting.receiptShowAddress && setting.address.isNotBlank()) {
+            wrapReceiptLine(setting.address, width).forEach(::text)
+        }
         text(line(width))
         command(0x1B, 0x61, 0x00)
         text("Invoice: ${sale.invoiceNumber}")
+        if (setting.receiptShowDatetime) {
+            text("Tanggal: ${SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("id", "ID")).format(Date())}")
+        }
         if (setting.receiptShowPaymentMethod && !compact) {
             text("Pembayaran: ${sale.paymentMethod.uppercase(Locale.US)}")
         }
@@ -2263,6 +2295,13 @@ private object BluetoothReceiptPrinter {
         text(twoColumn("Total", formatRupiah(sale.grandTotal), width))
         text(twoColumn("Dibayar", formatRupiah(sale.paidAmount), width))
         text(twoColumn("Kembali", formatRupiah(sale.changeAmount), width))
+        if (setting.receiptShowQris && !setting.qrisImageUrl.isNullOrBlank()) {
+            text(line(width))
+            command(0x1B, 0x61, 0x01)
+            text("QRIS")
+            writeImage(buffer, setting.qrisImageUrl, maxWidth = if (width == 48) 260 else 220)
+            command(0x1B, 0x61, 0x00)
+        }
         text(line(width))
         command(0x1B, 0x61, 0x01)
         wrapReceiptLine(setting.receiptFooter.ifBlank { "Terima kasih." }, width).forEach(::text)
@@ -2271,6 +2310,45 @@ private object BluetoothReceiptPrinter {
         command(0x1D, 0x56, 0x42, 0x00)
 
         return buffer.toByteArray()
+    }
+
+    private fun writeImage(buffer: ByteArrayOutputStream, imageUrl: String, maxWidth: Int) {
+        val bitmap = loadReceiptBitmap(imageUrl, maxWidth) ?: return
+        val widthBytes = (bitmap.width + 7) / 8
+        val data = ByteArray(widthBytes * bitmap.height)
+
+        for (y in 0 until bitmap.height) {
+            for (x in 0 until bitmap.width) {
+                val pixel = bitmap.getPixel(x, y)
+                val red = android.graphics.Color.red(pixel)
+                val green = android.graphics.Color.green(pixel)
+                val blue = android.graphics.Color.blue(pixel)
+                val alpha = android.graphics.Color.alpha(pixel)
+                val luminance = (red * 0.299 + green * 0.587 + blue * 0.114).toInt()
+
+                if (alpha > 80 && luminance < 170) {
+                    val index = y * widthBytes + x / 8
+                    data[index] = (data[index].toInt() or (0x80 shr (x % 8))).toByte()
+                }
+            }
+        }
+
+        buffer.write(byteArrayOf(0x1D, 0x76, 0x30, 0x00))
+        buffer.write(byteArrayOf((widthBytes % 256).toByte(), (widthBytes / 256).toByte()))
+        buffer.write(byteArrayOf((bitmap.height % 256).toByte(), (bitmap.height / 256).toByte()))
+        buffer.write(data)
+        buffer.write('\n'.code)
+    }
+
+    private fun loadReceiptBitmap(imageUrl: String, maxWidth: Int): Bitmap? {
+        return runCatching {
+            URL(imageUrl).openStream().use { stream ->
+                val original = BitmapFactory.decodeStream(stream) ?: return null
+                val width = original.width.coerceAtMost(maxWidth)
+                val height = (original.height * (width.toFloat() / original.width)).roundToInt().coerceAtLeast(1)
+                Bitmap.createScaledBitmap(original, width, height, true)
+            }
+        }.getOrNull()
     }
 
     private fun sanitizeReceiptText(value: String): String {
