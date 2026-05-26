@@ -13,6 +13,39 @@
             done: false,
             preview: {
                 storeName: @js(old('store_name', $setting->store_name)),
+                businessType: @js(old('business_type', $setting->business_type)),
+                address: @js(old('address', $setting->address)),
+                receiptFooter: @js(old('receipt_footer', $setting->receipt_footer)),
+                receiptTemplate: @js(old('receipt_template', $setting->receipt_template ?? 'classic')),
+                receiptPaperSize: @js(old('receipt_paper_size', $setting->receipt_paper_size ?? '58')),
+                showBusinessType: @js((bool) old('receipt_show_business_type', $setting->receipt_show_business_type ?? true)),
+                showPaymentMethod: @js((bool) old('receipt_show_payment_method', $setting->receipt_show_payment_method ?? true)),
+                showItemPrice: @js((bool) old('receipt_show_item_price', $setting->receipt_show_item_price ?? true)),
+                taxRate: @js((string) old('tax_rate', $setting->tax_rate)),
+                serviceRate: @js((string) old('service_charge_rate', $setting->service_charge_rate)),
+                currency: @js(old('currency', $setting->currency)),
+            },
+            receiptSubtotal() {
+                return 55000
+            },
+            receiptTax() {
+                return Math.round(this.receiptSubtotal() * Number(this.preview.taxRate || 0) / 100)
+            },
+            receiptService() {
+                return Math.round(this.receiptSubtotal() * Number(this.preview.serviceRate || 0) / 100)
+            },
+            receiptTotal() {
+                return this.receiptSubtotal() + this.receiptTax() + this.receiptService()
+            },
+            money(value) {
+                const currency = this.preview.currency || 'IDR'
+                const number = Number(value || 0).toLocaleString('id-ID')
+                return currency === 'IDR' ? `Rp${number}` : `${currency} ${number}`
+            },
+            templateLabel() {
+                if (this.preview.receiptTemplate === 'compact') return 'Ringkas'
+                if (this.preview.receiptTemplate === 'detailed') return 'Detail'
+                return 'Classic'
             }
         }"
         @submit="loading = true; setTimeout(() => { loading = false; done = true; setTimeout(() => done = false, 2000) }, 700)"
@@ -31,7 +64,7 @@
                 </div>
                 <div>
                     <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Jenis usaha</label>
-                    <input name="business_type" value="{{ old('business_type', $setting->business_type) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-blue-500/10">
+                    <input name="business_type" x-model="preview.businessType" value="{{ old('business_type', $setting->business_type) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-blue-500/10">
                     @error('business_type')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                 </div>
                 <div class="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -53,18 +86,18 @@
                 </div>
                 <div>
                     <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Alamat</label>
-                    <input name="address" value="{{ old('address', $setting->address) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-blue-500/10">
+                    <input name="address" x-model="preview.address" value="{{ old('address', $setting->address) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-blue-500/10">
                 </div>
                 <div>
                     <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Footer struk</label>
-                    <input name="receipt_footer" value="{{ old('receipt_footer', $setting->receipt_footer) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-blue-500/10">
+                    <input name="receipt_footer" x-model="preview.receiptFooter" value="{{ old('receipt_footer', $setting->receipt_footer) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-blue-500/10">
                 </div>
                 <div class="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <p class="text-sm font-semibold text-slate-950">Template Struk</p>
                     <div class="grid gap-3 sm:grid-cols-2">
                         <div>
                             <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Model struk</label>
-                            <select name="receipt_template" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
+                            <select name="receipt_template" x-model="preview.receiptTemplate" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
                                 @foreach (['classic' => 'Classic', 'compact' => 'Ringkas', 'detailed' => 'Detail'] as $value => $label)
                                     <option value="{{ $value }}" @selected(old('receipt_template', $setting->receipt_template ?? 'classic') === $value)>{{ $label }}</option>
                                 @endforeach
@@ -72,7 +105,7 @@
                         </div>
                         <div>
                             <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Kertas printer</label>
-                            <select name="receipt_paper_size" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
+                            <select name="receipt_paper_size" x-model="preview.receiptPaperSize" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
                                 @foreach (['58' => '58mm', '80' => '80mm'] as $value => $label)
                                     <option value="{{ $value }}" @selected(old('receipt_paper_size', $setting->receipt_paper_size ?? '58') === $value)>{{ $label }}</option>
                                 @endforeach
@@ -81,19 +114,18 @@
                     </div>
                     <div class="grid gap-2 sm:grid-cols-3">
                         <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700">
-                            <input type="checkbox" name="receipt_show_business_type" value="1" @checked(old('receipt_show_business_type', $setting->receipt_show_business_type ?? true)) class="rounded border-slate-300 text-slate-950">
+                            <input type="checkbox" name="receipt_show_business_type" value="1" x-model="preview.showBusinessType" @checked(old('receipt_show_business_type', $setting->receipt_show_business_type ?? true)) class="rounded border-slate-300 text-slate-950">
                             Jenis usaha
                         </label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700">
-                            <input type="checkbox" name="receipt_show_payment_method" value="1" @checked(old('receipt_show_payment_method', $setting->receipt_show_payment_method ?? true)) class="rounded border-slate-300 text-slate-950">
+                            <input type="checkbox" name="receipt_show_payment_method" value="1" x-model="preview.showPaymentMethod" @checked(old('receipt_show_payment_method', $setting->receipt_show_payment_method ?? true)) class="rounded border-slate-300 text-slate-950">
                             Metode bayar
                         </label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700">
-                            <input type="checkbox" name="receipt_show_item_price" value="1" @checked(old('receipt_show_item_price', $setting->receipt_show_item_price ?? true)) class="rounded border-slate-300 text-slate-950">
+                            <input type="checkbox" name="receipt_show_item_price" value="1" x-model="preview.showItemPrice" @checked(old('receipt_show_item_price', $setting->receipt_show_item_price ?? true)) class="rounded border-slate-300 text-slate-950">
                             Harga item
                         </label>
                     </div>
-                    <p class="text-xs leading-5 text-slate-500">Setting ini dikirim ke Android saat sync dan dipakai saat tombol Cetak Struk ditekan.</p>
                 </div>
             </fieldset>
 
@@ -135,20 +167,112 @@
                 </div>
             </fieldset>
 
+            <fieldset class="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 xl:sticky xl:top-24 xl:self-start">
+                <legend class="px-1 text-lg font-semibold text-slate-950">Preview Struk</legend>
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <p class="text-sm font-semibold text-slate-950" x-text="templateLabel()"></p>
+                        <p class="text-xs text-slate-500" x-text="preview.receiptPaperSize + 'mm thermal'"></p>
+                    </div>
+                    <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-200" x-text="preview.currency || 'IDR'"></span>
+                </div>
+
+                <div class="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 p-4">
+                    <div class="mx-auto rounded-sm bg-white px-4 py-5 font-mono text-[11px] leading-5 text-slate-950 shadow-xl shadow-slate-950/10 transition-all"
+                        :class="preview.receiptPaperSize === '80' ? 'w-full max-w-[360px]' : 'w-full max-w-[260px]'"
+                    >
+                        <div class="text-center">
+                            <p class="text-[13px] font-bold uppercase tracking-wide" x-text="preview.storeName || 'Nama Toko'"></p>
+                            <p x-show="preview.showBusinessType && preview.receiptTemplate !== 'compact'" class="text-slate-600" x-text="preview.businessType || 'Jenis Usaha'"></p>
+                            <p x-show="preview.receiptTemplate === 'detailed' && preview.address" class="mt-1 text-slate-600" x-text="preview.address"></p>
+                        </div>
+
+                        <div class="my-3 border-t border-dashed border-slate-400"></div>
+
+                        <div class="space-y-0.5">
+                            <div class="flex justify-between gap-3">
+                                <span>Invoice</span>
+                                <span>ARV-0001</span>
+                            </div>
+                            <div class="flex justify-between gap-3">
+                                <span>Tanggal</span>
+                                <span>26/05/2026</span>
+                            </div>
+                            <div x-show="preview.showPaymentMethod && preview.receiptTemplate !== 'compact'" class="flex justify-between gap-3">
+                                <span>Bayar</span>
+                                <span>Tunai</span>
+                            </div>
+                        </div>
+
+                        <div class="my-3 border-t border-dashed border-slate-400"></div>
+
+                        <div class="space-y-1">
+                            <div>
+                                <div class="flex justify-between gap-3">
+                                    <span class="truncate">2 pcs x Parfum</span>
+                                    <span x-show="preview.showItemPrice" class="shrink-0" x-text="money(50000)"></span>
+                                </div>
+                                <p x-show="preview.receiptTemplate === 'detailed'" class="text-slate-500">Harga satuan: <span x-text="money(25000)"></span></p>
+                            </div>
+                            <div>
+                                <div class="flex justify-between gap-3">
+                                    <span class="truncate">1 pcs x Botol</span>
+                                    <span x-show="preview.showItemPrice" class="shrink-0" x-text="money(5000)"></span>
+                                </div>
+                                <p x-show="preview.receiptTemplate === 'detailed'" class="text-slate-500">Harga satuan: <span x-text="money(5000)"></span></p>
+                            </div>
+                        </div>
+
+                        <div class="my-3 border-t border-dashed border-slate-400"></div>
+
+                        <div class="space-y-0.5">
+                            <div class="flex justify-between gap-3">
+                                <span>Subtotal</span>
+                                <span x-text="money(receiptSubtotal())"></span>
+                            </div>
+                            <div class="flex justify-between gap-3">
+                                <span>Pajak</span>
+                                <span x-text="money(receiptTax())"></span>
+                            </div>
+                            <div x-show="receiptService() > 0 || preview.receiptTemplate !== 'compact'" class="flex justify-between gap-3">
+                                <span>Service</span>
+                                <span x-text="money(receiptService())"></span>
+                            </div>
+                            <div class="flex justify-between gap-3 pt-1 text-[13px] font-bold">
+                                <span>Total</span>
+                                <span x-text="money(receiptTotal())"></span>
+                            </div>
+                            <div x-show="preview.receiptTemplate === 'detailed'" class="flex justify-between gap-3">
+                                <span>Diterima</span>
+                                <span x-text="money(receiptTotal())"></span>
+                            </div>
+                            <div x-show="preview.receiptTemplate === 'detailed'" class="flex justify-between gap-3">
+                                <span>Kembali</span>
+                                <span x-text="money(0)"></span>
+                            </div>
+                        </div>
+
+                        <div class="my-3 border-t border-dashed border-slate-400"></div>
+
+                        <p class="text-center text-slate-600" x-text="preview.receiptFooter || 'Terima kasih.'"></p>
+                    </div>
+                </div>
+            </fieldset>
+
             <fieldset class="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <legend class="px-1 text-lg font-semibold text-slate-950">Biaya dan Struk</legend>
                 <div class="grid gap-4 sm:grid-cols-3">
                     <div>
                         <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Pajak %</label>
-                        <input name="tax_rate" type="number" step="0.01" value="{{ old('tax_rate', $setting->tax_rate) }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
+                        <input name="tax_rate" x-model="preview.taxRate" type="number" step="0.01" value="{{ old('tax_rate', $setting->tax_rate) }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
                     </div>
                     <div>
                         <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Service %</label>
-                        <input name="service_charge_rate" type="number" step="0.01" value="{{ old('service_charge_rate', $setting->service_charge_rate) }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
+                        <input name="service_charge_rate" x-model="preview.serviceRate" type="number" step="0.01" value="{{ old('service_charge_rate', $setting->service_charge_rate) }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
                     </div>
                     <div>
                         <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Mata uang</label>
-                        <input name="currency" value="{{ old('currency', $setting->currency) }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
+                        <input name="currency" x-model="preview.currency" value="{{ old('currency', $setting->currency) }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
                     </div>
                 </div>
                 <div class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 lg:grid-cols-[160px_1fr]">
