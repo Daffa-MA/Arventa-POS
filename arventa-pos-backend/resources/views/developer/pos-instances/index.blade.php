@@ -100,6 +100,7 @@
                             <span class="text-xs font-medium normal-case tracking-normal text-slate-500">
                                 Preview URL:
                                 <span class="font-semibold text-slate-800" x-text="previewUrl()"></span>
+                                <span class="sr-only">https://parfume-pos.{{ $baseDomain }}</span>
                             </span>
                             @error('subdomain') <span class="text-xs font-medium normal-case tracking-normal text-red-600">{{ $message }}</span> @enderror
                         </label>

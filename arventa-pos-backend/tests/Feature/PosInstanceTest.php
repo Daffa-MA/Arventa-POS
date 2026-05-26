@@ -51,6 +51,18 @@ class PosInstanceTest extends TestCase
         $this->assertTrue(Hash::check($instance->admin_password, $admin->password));
     }
 
+    public function test_developer_pos_page_preview_uses_configured_tenant_base_domain(): void
+    {
+        $this->seed();
+        Config::set('services.arventa_deployment.pos_base_domain', 'pos.arventa.my.id');
+
+        $this->withDeveloperSession()
+            ->get('/developer/pos')
+            ->assertOk()
+            ->assertSee('https://parfume-pos.pos.arventa.my.id')
+            ->assertDontSee('https://parfume-pos.arventa.my.id');
+    }
+
     public function test_developer_can_update_status_and_deploy_pos_instance(): void
     {
         $this->seed();
