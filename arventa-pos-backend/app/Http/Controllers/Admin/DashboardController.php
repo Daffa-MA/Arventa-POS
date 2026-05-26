@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CashierDevice;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\StoreSetting;
@@ -54,13 +55,30 @@ class DashboardController extends Controller
 
     public function transactions(Request $request): View
     {
+        $posInstanceId = $this->posInstanceId($request);
+        $selectedDevice = $request->query('device', 'all');
+        $devices = CashierDevice::query()
+            ->with('user')
+            ->where('pos_instance_id', $posInstanceId)
+            ->orderBy('device_name')
+            ->get();
+
+        $sales = Sale::query()
+            ->with(['items', 'cashier', 'cashierDevice'])
+            ->where('pos_instance_id', $posInstanceId)
+            ->latest();
+
+        if ($selectedDevice === 'unknown') {
+            $sales->whereNull('cashier_device_id');
+        } elseif ($selectedDevice !== 'all' && ctype_digit((string) $selectedDevice)) {
+            $sales->where('cashier_device_id', (int) $selectedDevice);
+        }
+
         return view('admin.transactions', [
             'setting' => $this->setting($request),
-            'sales' => Sale::query()
-                ->with('items')
-                ->where('pos_instance_id', $this->posInstanceId($request))
-                ->latest()
-                ->paginate(15),
+            'sales' => $sales->paginate(15)->withQueryString(),
+            'devices' => $devices,
+            'selectedDevice' => $selectedDevice,
         ]);
     }
 

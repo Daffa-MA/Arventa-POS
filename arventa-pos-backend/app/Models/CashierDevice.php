@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CashierDevice extends Model
 {
@@ -34,5 +35,10 @@ class CashierDevice extends Model
     public function posInstance(): BelongsTo
     {
         return $this->belongsTo(PosInstance::class);
+    }
+
+    public function sales(): HasMany
+    {
+        return $this->hasMany(Sale::class);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\CashierDevice;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\StoreSetting;
@@ -28,6 +29,7 @@ class TransactionController extends Controller
 
         $posInstanceId = $request->user()?->pos_instance_id;
         abort_unless($posInstanceId, 403, 'Akun kasir belum terhubung ke POS.');
+        $cashierDevice = $this->cashierDevice($request, (int) $posInstanceId);
 
         $setting = StoreSetting::query()->where('pos_instance_id', $posInstanceId)->firstOrFail();
         $productIds = collect($payload['items'])->pluck('product_id')->filter()->values();
@@ -100,11 +102,17 @@ class TransactionController extends Controller
             ]);
         }
 
-        $sale = DB::transaction(function () use ($request, $payload, $lines, $subtotal, $taxTotal, $serviceTotal, $grandTotal, $posInstanceId): Sale {
+        $sale = DB::transaction(function () use ($request, $payload, $lines, $subtotal, $taxTotal, $serviceTotal, $grandTotal, $posInstanceId, $cashierDevice): Sale {
+            if ($cashierDevice) {
+                $cashierDevice->forceFill(['last_seen_at' => now()])->save();
+            }
+
             $sale = Sale::query()->create([
                 'pos_instance_id' => $posInstanceId,
                 'invoice_number' => 'ARV-'.now()->format('YmdHis').'-'.random_int(100, 999),
                 'cashier_id' => $request->user()?->id,
+                'cashier_device_id' => $cashierDevice?->id,
+                'cashier_device_name' => $cashierDevice?->device_name,
                 'subtotal' => $subtotal,
                 'tax_total' => $taxTotal,
                 'service_charge_total' => $serviceTotal,
@@ -134,5 +142,28 @@ class TransactionController extends Controller
         });
 
         return response()->json(['sale' => $sale], 201);
+    }
+
+    private function cashierDevice(Request $request, int $posInstanceId): ?CashierDevice
+    {
+        $token = $request->user()?->currentAccessToken();
+        $tokenName = '';
+
+        if (is_object($token)) {
+            $tokenName = method_exists($token, 'getAttribute')
+                ? (string) $token->getAttribute('name')
+                : (string) ($token->name ?? '');
+        }
+
+        if (! preg_match('/^cashier-device-(\d+)$/', $tokenName, $matches)) {
+            return null;
+        }
+
+        return CashierDevice::query()
+            ->whereKey((int) $matches[1])
+            ->where('pos_instance_id', $posInstanceId)
+            ->where('user_id', $request->user()?->id)
+            ->whereNull('revoked_at')
+            ->first();
     }
 }

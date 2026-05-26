@@ -12,6 +12,8 @@ class Sale extends Model
         'pos_instance_id',
         'invoice_number',
         'cashier_id',
+        'cashier_device_id',
+        'cashier_device_name',
         'subtotal',
         'tax_total',
         'service_charge_total',
@@ -36,6 +38,16 @@ class Sale extends Model
     public function posInstance(): BelongsTo
     {
         return $this->belongsTo(PosInstance::class);
+    }
+
+    public function cashier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cashier_id');
+    }
+
+    public function cashierDevice(): BelongsTo
+    {
+        return $this->belongsTo(CashierDevice::class);
     }
 
     public function items(): HasMany

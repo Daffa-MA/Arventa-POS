@@ -2021,9 +2021,9 @@ private object PosRepository {
 
     private fun JSONObject.toSetting(baseUrl: String): StoreSetting {
         return StoreSetting(
-            storeName = optString("store_name", "Arventa POS"),
-            businessType = optString("business_type", "Retail"),
-            address = optString("address", ""),
+            storeName = cleanString("store_name", "Arventa POS"),
+            businessType = cleanString("business_type", "Retail"),
+            address = cleanString("address"),
             logoUrl = optString("logo_url").takeIf { it.isNotBlank() && it != "null" }?.let { absoluteUrl(baseUrl, it) },
             qrisImageUrl = optString("qris_image_url").takeIf { it.isNotBlank() && it != "null" }?.let { absoluteUrl(baseUrl, it) },
             receiptQrImageUrl = optString("receipt_qr_image_url").takeIf { it.isNotBlank() && it != "null" }?.let { absoluteUrl(baseUrl, it) },
@@ -2043,13 +2043,13 @@ private object PosRepository {
             showOrderSummary = optBoolean("show_order_summary_on_app", true),
             taxRate = optDouble("tax_rate", 0.0),
             serviceChargeRate = optDouble("service_charge_rate", 0.0),
-            receiptFooter = optString("receipt_footer", "Terima kasih."),
-            receiptHeaderTitle = optString("receipt_header_title", ""),
-            receiptHeaderSubtitle = optString("receipt_header_subtitle", ""),
-            receiptHeaderNotes = optString("receipt_header_notes", ""),
-            receiptHeaderAlignment = optString("receipt_header_alignment", "center"),
-            receiptTemplate = optString("receipt_template", "classic"),
-            receiptPaperSize = optString("receipt_paper_size", "58"),
+            receiptFooter = cleanString("receipt_footer", "Terima kasih."),
+            receiptHeaderTitle = cleanString("receipt_header_title"),
+            receiptHeaderSubtitle = cleanString("receipt_header_subtitle"),
+            receiptHeaderNotes = cleanString("receipt_header_notes"),
+            receiptHeaderAlignment = cleanString("receipt_header_alignment", "center"),
+            receiptTemplate = cleanString("receipt_template", "classic"),
+            receiptPaperSize = cleanString("receipt_paper_size", "58"),
             receiptShowLogo = optBoolean("receipt_show_logo", false),
             receiptShowStoreName = optBoolean("receipt_show_store_name", true),
             receiptShowAddress = optBoolean("receipt_show_address", true),
@@ -2059,6 +2059,13 @@ private object PosRepository {
             receiptShowPaymentMethod = optBoolean("receipt_show_payment_method", true),
             receiptShowItemPrice = optBoolean("receipt_show_item_price", true),
         )
+    }
+
+    private fun JSONObject.cleanString(key: String, fallback: String = ""): String {
+        if (!has(key) || isNull(key)) return fallback
+
+        val value = optString(key, fallback).trim()
+        return if (value.equals("null", ignoreCase = true)) fallback else value
     }
 
     private fun absoluteUrl(baseUrl: String, value: String): String {
@@ -2306,7 +2313,9 @@ private object BluetoothReceiptPrinter {
         command(0x1B, 0x61, 0x00)
         text("Invoice: ${sale.invoiceNumber}")
         if (setting.receiptShowDatetime) {
-            text("Tanggal: ${SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("id", "ID")).format(Date())}")
+            val now = Date()
+            text("Tanggal: ${SimpleDateFormat("dd/MM/yyyy", Locale("id", "ID")).format(now)}")
+            text("Jam: ${SimpleDateFormat("HH:mm", Locale("id", "ID")).format(now)}")
         }
         if (setting.receiptShowPaymentMethod && !compact) {
             text("Pembayaran: ${sale.paymentMethod.uppercase(Locale.US)}")
@@ -2514,7 +2523,7 @@ private fun quantityStep(unit: String): Double {
     return when (unit.lowercase(Locale.US)) {
         "pcs" -> 1.0
         "trx" -> 1.0
-        "ml" -> 50.0
+        "ml" -> 5.0
         "gram" -> 100.0
         "kg" -> 0.1
         "meter" -> 0.1
