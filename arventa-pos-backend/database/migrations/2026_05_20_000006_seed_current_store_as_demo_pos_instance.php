@@ -26,7 +26,7 @@ return new class extends Migration
 
         $subdomain = Str::slug($setting->store_name) ?: 'arventa-demo-store';
         $databaseName = 'arventa_pos_'.str_replace('-', '_', $subdomain);
-        $domain = $subdomain.'.arventa.my.id';
+        $domain = $subdomain.'.'.env('ARVENTA_POS_BASE_DOMAIN', 'pos.localhost');
         $now = now();
 
         DB::table('pos_instances')->insert([

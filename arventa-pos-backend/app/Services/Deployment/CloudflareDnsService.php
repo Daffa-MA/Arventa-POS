@@ -21,7 +21,7 @@ class CloudflareDnsService
         }
 
         if (! preg_match('/^[a-f0-9]{32}$/i', (string) $zoneId)) {
-            throw new \RuntimeException('CLOUDFLARE_ZONE_ID tidak valid. Gunakan Zone ID 32 karakter dari halaman Overview zone arventa.my.id, bukan API token ID atau account ID.');
+            throw new \RuntimeException('CLOUDFLARE_ZONE_ID tidak valid. Gunakan Zone ID 32 karakter dari halaman Overview zone Cloudflare, bukan API token ID atau account ID.');
         }
 
         if (blank($content)) {
@@ -99,15 +99,34 @@ class CloudflareDnsService
         $suffix = '.'.$baseDomain;
 
         if (! Str::endsWith($domain, $suffix)) {
-            throw new \RuntimeException("Domain {$domain} bukan subdomain dari {$baseDomain}. Automation hanya membuat DNS untuk tenant *.{$baseDomain}.");
+            throw new \RuntimeException("Domain {$domain} tidak valid untuk tenant. Domain harus berakhiran .{$baseDomain}. Jalankan php artisan arventa:repair-pos-domains untuk memperbaiki record lama.");
         }
 
-        return Str::beforeLast($domain, $suffix);
+        return Str::beforeLast($domain, '.'.$this->zoneDomain());
     }
 
     private function baseDomain(): string
     {
-        return $this->normalizeDomain((string) config('services.arventa_deployment.pos_base_domain', 'arventa.my.id'));
+        $domain = $this->normalizeDomain((string) config('services.arventa_deployment.pos_base_domain'));
+
+        if (blank($domain)) {
+            throw new \RuntimeException('ARVENTA_POS_BASE_DOMAIN wajib diisi, contoh: pos.arventa.my.id.');
+        }
+
+        return $domain;
+    }
+
+    private function zoneDomain(): string
+    {
+        $labels = explode('.', $this->baseDomain());
+
+        if (count($labels) < 3) {
+            return $this->baseDomain();
+        }
+
+        array_shift($labels);
+
+        return implode('.', $labels);
     }
 
     private function normalizeDomain(string $domain): string
@@ -130,7 +149,7 @@ class CloudflareDnsService
             ->implode('; ');
 
         if (Str::contains($errors, ['7003', 'Could not route'])) {
-            return 'Cloudflare zone tidak ditemukan atau token tidak punya akses. Cek CLOUDFLARE_ZONE_ID untuk zone arventa.my.id dan permission API token DNS Edit/Zone Read. Zone ID saat ini: '.$zoneId;
+            return 'Cloudflare zone tidak ditemukan atau token tidak punya akses. Cek CLOUDFLARE_ZONE_ID dan permission API token DNS Edit/Zone Read. Zone ID saat ini: '.$zoneId;
         }
 
         return 'Cloudflare DNS gagal'.($errors ? ': '.$errors : '. HTTP '.$response?->status());

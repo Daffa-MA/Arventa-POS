@@ -23,11 +23,12 @@ class DeveloperPosController extends Controller
     public function index(): View
     {
         $instances = PosInstance::query()->latest()->get();
+        $baseDomain = $this->posBaseDomain();
 
         return view('developer.pos-instances.index', [
             'setting' => StoreSetting::query()->firstOrFail(),
             'instances' => $instances,
-            'baseDomain' => $this->posBaseDomain(),
+            'baseDomain' => $baseDomain,
             'stats' => [
                 'total' => $instances->count(),
                 'active' => $instances->where('status', 'active')->count(),
@@ -291,12 +292,18 @@ class DeveloperPosController extends Controller
 
     private function posBaseDomain(): string
     {
-        return Str::of((string) config('services.arventa_deployment.pos_base_domain', 'arventa.my.id'))
+        $domain = Str::of((string) config('services.arventa_deployment.pos_base_domain'))
             ->lower()
             ->replaceMatches('/^https?:\/\//', '')
             ->replaceMatches('/\/.*$/', '')
             ->trim('.')
             ->toString();
+
+        if (blank($domain)) {
+            throw new \RuntimeException('ARVENTA_POS_BASE_DOMAIN wajib diisi, contoh: pos.arventa.my.id.');
+        }
+
+        return $domain;
     }
 
     private function domainForSubdomain(string $subdomain): string

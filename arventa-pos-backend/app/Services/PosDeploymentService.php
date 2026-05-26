@@ -30,6 +30,8 @@ class PosDeploymentService
             throw new \RuntimeException('Domain wajib tersedia sebelum deploy.');
         }
 
+        $this->assertTenantDomain($domain);
+
         if (config('services.arventa_deployment.mode') !== 'automatic') {
             $this->saveNotes($instance, [
                 'Deploy automation masih mode manual.',
@@ -78,6 +80,26 @@ class PosDeploymentService
             ->replaceMatches('/\/.*$/', '')
             ->trim('.')
             ->toString();
+    }
+
+    private function assertTenantDomain(string $domain): void
+    {
+        $baseDomain = $this->baseDomain();
+
+        if (! Str::endsWith($domain, '.'.$baseDomain)) {
+            throw new \RuntimeException("Domain {$domain} tidak valid untuk tenant. Domain harus berakhiran .{$baseDomain}. Jalankan php artisan arventa:repair-pos-domains.");
+        }
+    }
+
+    private function baseDomain(): string
+    {
+        $domain = $this->normalizeDomain((string) config('services.arventa_deployment.pos_base_domain'));
+
+        if (blank($domain)) {
+            throw new \RuntimeException('ARVENTA_POS_BASE_DOMAIN wajib diisi, contoh: pos.arventa.my.id.');
+        }
+
+        return $domain;
     }
 
     private function saveNotes(PosInstance $instance, array $notes): void

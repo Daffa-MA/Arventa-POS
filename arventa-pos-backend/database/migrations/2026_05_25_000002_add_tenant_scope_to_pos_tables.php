@@ -126,7 +126,7 @@ return new class extends Migration
             'owner_name' => 'Demo Arventa',
             'owner_phone' => null,
             'subdomain' => $subdomain,
-            'domain' => $subdomain.'.arventa.my.id',
+            'domain' => $subdomain.'.'.env('ARVENTA_POS_BASE_DOMAIN', 'pos.localhost'),
             'database_name' => 'arventa_pos_'.str_replace('-', '_', $subdomain),
             'package_name' => 'com.arventapos.'.str_replace('-', '', $subdomain),
             'admin_username' => 'admin_'.str_replace('-', '_', $subdomain),

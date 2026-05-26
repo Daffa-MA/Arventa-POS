@@ -173,8 +173,8 @@
                         <tbody class="divide-y divide-slate-100">
                             @foreach ($instances as $instance)
                                 @php
-                                    $generatedDomain = $instance->subdomain.'.'.$baseDomain;
-                                    $adminUrl = 'https://'.$generatedDomain.'/admin/login';
+                                    $domain = trim(preg_replace('/^https?:\/\//', '', (string) $instance->domain), '/');
+                                    $adminUrl = 'https://'.$domain.'/admin/login';
                                 @endphp
                                 <tr class="transition hover:bg-slate-50/80">
                                     <td class="px-5 py-4 align-top">
@@ -182,7 +182,7 @@
                                         <p class="mt-1 text-xs text-slate-500">{{ $instance->buyer_name ?: $instance->owner_name ?: 'Tanpa nama pembeli' }}{{ ($instance->contact ?: $instance->owner_phone) ? ' - '.($instance->contact ?: $instance->owner_phone) : '' }}</p>
                                     </td>
                                     <td class="px-5 py-4 align-top">
-                                        <p class="font-medium text-slate-900">{{ $generatedDomain }}</p>
+                                        <p class="font-medium text-slate-900">{{ $domain }}</p>
                                         <p class="mt-1 text-xs text-slate-500">{{ $instance->subdomain }}</p>
                                     </td>
                                     <td class="px-5 py-4 align-top" x-data="{ copiedUrl: false, url: @js($adminUrl) }">

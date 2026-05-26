@@ -32,7 +32,7 @@ class PosInstanceTest extends TestCase
             'buyer_name' => 'Pemilik Parfume',
             'contact' => '08123456789',
             'subdomain' => 'parfume-pos',
-            'domain' => 'parfume-pos.arventa.my.id',
+            'domain' => 'parfume-pos.pos.arventa.my.id',
             'database_name' => 'arventa_pos_parfume_pos',
             'package_name' => 'com.arventapos.parfumepos',
             'admin_username' => 'admin_parfume_pos',
@@ -55,7 +55,7 @@ class PosInstanceTest extends TestCase
     {
         $this->seed();
         Config::set('services.arventa_deployment.mode', 'automatic');
-        Config::set('services.arventa_deployment.pos_base_domain', 'arventa.my.id');
+        Config::set('services.arventa_deployment.pos_base_domain', 'pos.arventa.my.id');
         Config::set('services.arventa_deployment.dns.provider', 'cloudflare');
         Config::set('services.arventa_deployment.dns.record_type', 'CNAME');
         Config::set('services.arventa_deployment.dns.record_content', 'arventa.arventa.my.id');
@@ -79,7 +79,7 @@ class PosInstanceTest extends TestCase
             'buyer_name' => 'Buyer',
             'contact' => '08123',
             'subdomain' => 'deploy-store',
-            'domain' => 'deploy-store.arventa.my.id',
+            'domain' => 'deploy-store.pos.arventa.my.id',
             'database_name' => 'arventa_pos_deploy_store',
             'package_name' => 'com.arventapos.deploystore',
             'admin_username' => 'admin_deploy_store',
@@ -115,9 +115,16 @@ class PosInstanceTest extends TestCase
                 return false;
             }
 
-            return $request['name'] === 'deploy-store'
+            return $request['name'] === 'deploy-store.pos'
                 && $request['type'] === 'CNAME'
                 && $request['content'] === 'arventa.arventa.my.id';
+        });
+
+        Http::assertSent(function ($request): bool {
+            return $request->method() === 'POST'
+                && str_contains($request->url(), '/customdomain')
+                && $request['appName'] === 'arventa'
+                && $request['customDomain'] === 'deploy-store.pos.arventa.my.id';
         });
     }
 
@@ -136,7 +143,7 @@ class PosInstanceTest extends TestCase
         $this->assertDatabaseHas('pos_instances', [
             'store_name' => 'Tropizz',
             'subdomain' => 'tropizz',
-            'domain' => 'tropizz.arventa.my.id',
+            'domain' => 'tropizz.pos.arventa.my.id',
         ]);
     }
 
@@ -152,6 +159,38 @@ class PosInstanceTest extends TestCase
                 'subdomain' => $subdomain,
             ])->assertSessionHasErrors('subdomain');
         }
+    }
+
+    public function test_repair_pos_domains_command_recalculates_old_domains(): void
+    {
+        $this->seed();
+
+        $instance = PosInstance::query()->create([
+            'store_name' => 'Tropizz',
+            'buyer_name' => 'Iwan',
+            'contact' => '08973128675',
+            'subdomain' => 'tropizz',
+            'domain' => 'tropizz.arventa.my.id',
+            'database_name' => 'tropizz',
+            'package_name' => 'com.tropizz',
+            'admin_username' => 'iwan',
+            'admin_password' => 'secret-password',
+            'admin_password_hash' => Hash::make('secret-password'),
+            'status' => 'active',
+            'deployment_status' => 'failed',
+            'deployment_error' => 'old domain rejected',
+        ]);
+
+        $this->artisan('arventa:repair-pos-domains')
+            ->expectsOutput("UPDATED #{$instance->id} Tropizz: tropizz.arventa.my.id -> tropizz.pos.arventa.my.id")
+            ->assertExitCode(0);
+
+        $this->assertDatabaseHas('pos_instances', [
+            'id' => $instance->id,
+            'domain' => 'tropizz.pos.arventa.my.id',
+            'deployment_status' => 'pending',
+            'deployment_error' => null,
+        ]);
     }
 
     public function test_developer_can_permanently_delete_pos_instance_and_tenant_data(): void

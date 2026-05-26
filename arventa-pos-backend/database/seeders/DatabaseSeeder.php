@@ -17,6 +17,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $baseDomain = config('services.arventa_deployment.pos_base_domain') ?: 'pos.localhost';
+
         $instance = PosInstance::query()->firstOrCreate([
             'subdomain' => 'arventa-pos',
         ], [
@@ -25,7 +27,7 @@ class DatabaseSeeder extends Seeder
             'contact' => null,
             'owner_name' => 'Demo Arventa',
             'owner_phone' => null,
-            'domain' => 'arventa-pos.arventa.my.id',
+            'domain' => 'arventa-pos.'.$baseDomain,
             'database_name' => 'arventa_pos_arventa_pos',
             'package_name' => 'com.arventapos.arventapos',
             'admin_username' => 'admin_arventa_pos',
@@ -38,7 +40,7 @@ class DatabaseSeeder extends Seeder
             'provisioned_at' => now(),
             'deployment_notes' => implode(PHP_EOL, [
                 'POS contoh dari admin toko lokal.',
-                'Domain demo: arventa-pos.arventa.my.id',
+                'Domain demo: arventa-pos.'.$baseDomain,
                 'Database demo: arventa_pos_arventa_pos',
                 'Gunakan record ini sebagai contoh format saat generate POS pembeli.',
             ]),
