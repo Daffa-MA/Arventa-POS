@@ -8,6 +8,7 @@ use App\Models\Sale;
 use App\Models\StoreSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -139,6 +140,36 @@ class DashboardController extends Controller
         $setting->update($data);
 
         return back()->with('status', 'Setting toko berhasil diperbarui.');
+    }
+
+    public function updatePassword(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'current_password' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:8', 'max:120', 'confirmed'],
+        ]);
+
+        $user = $request->attributes->get('arventa_admin');
+
+        if (! $user || ! Hash::check($data['current_password'], $user->password)) {
+            return back()
+                ->withErrors(['current_password' => 'Password lama tidak sesuai.'])
+                ->withInput();
+        }
+
+        $user->forceFill([
+            'password' => $data['password'],
+        ])->save();
+
+        $posInstance = $request->attributes->get('arventa_pos_instance');
+        if ($posInstance && $posInstance->admin_username === $user->username) {
+            $posInstance->forceFill([
+                'admin_password' => $data['password'],
+                'admin_password_hash' => Hash::make($data['password']),
+            ])->save();
+        }
+
+        return back()->with('status', 'Password admin berhasil diperbarui.');
     }
 
     public function updateAppPreview(Request $request): RedirectResponse

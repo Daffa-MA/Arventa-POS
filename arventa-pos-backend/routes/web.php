@@ -28,6 +28,7 @@ Route::middleware('arventa.admin')->group(function (): void {
     Route::put('/admin/devices/{device}/revoke', [CashierDeviceController::class, 'revoke'])->name('admin.devices.revoke');
     Route::get('/admin/transactions', [DashboardController::class, 'transactions'])->name('admin.transactions');
     Route::put('/admin/settings', [DashboardController::class, 'updateSetting'])->name('admin.settings.update');
+    Route::put('/admin/password', [DashboardController::class, 'updatePassword'])->name('admin.password.update');
     Route::put('/admin/app-preview', [DashboardController::class, 'updateAppPreview'])->name('admin.app-preview.update');
     Route::post('/admin/products', [ProductController::class, 'store'])->name('admin.products.store');
     Route::put('/admin/products/{product}', [ProductController::class, 'update'])->name('admin.products.update');

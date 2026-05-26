@@ -460,4 +460,46 @@
             <span x-text="loading ? 'Menyimpan...' : (done ? 'Tersimpan' : 'Simpan Setting')">Simpan Setting</span>
         </button>
     </form>
+
+    <form
+        method="post"
+        action="{{ route('admin.password.update') }}"
+        class="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/[0.03] sm:p-6"
+    >
+        @csrf
+        @method('put')
+
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+                <p class="text-lg font-semibold text-slate-950">Akun Admin</p>
+                <p class="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+                    Ganti password login owner toko untuk akses Web Admin dan pairing operasional tenant ini.
+                </p>
+            </div>
+            <div class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                {{ $currentAdmin?->username ?? 'admin' }}
+            </div>
+        </div>
+
+        <div class="mt-5 grid gap-4 lg:grid-cols-3">
+            <div>
+                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Password lama</label>
+                <input name="current_password" type="password" autocomplete="current-password" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-blue-500/10">
+                @error('current_password')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Password baru</label>
+                <input name="password" type="password" autocomplete="new-password" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-blue-500/10">
+                @error('password')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Ulangi password baru</label>
+                <input name="password_confirmation" type="password" autocomplete="new-password" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-blue-500/10">
+            </div>
+        </div>
+
+        <button class="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 active:scale-[0.97] sm:w-auto" type="submit">
+            Simpan Password
+        </button>
+    </form>
 </x-admin.shell>
