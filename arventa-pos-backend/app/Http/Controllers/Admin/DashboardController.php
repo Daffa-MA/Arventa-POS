@@ -89,7 +89,7 @@ class DashboardController extends Controller
             'receipt_show_business_type' => $request->boolean('receipt_show_business_type'),
             'receipt_show_payment_method' => $request->boolean('receipt_show_payment_method'),
             'receipt_show_item_price' => $request->boolean('receipt_show_item_price'),
-        ]);
+        ];
 
         unset($data['logo']);
         unset($data['qris_image']);
