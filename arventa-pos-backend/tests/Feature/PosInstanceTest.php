@@ -128,6 +128,69 @@ class PosInstanceTest extends TestCase
         });
     }
 
+    public function test_developer_can_deploy_pos_instance_with_wildcard_dns_without_cloudflare_call(): void
+    {
+        $this->seed();
+        Config::set('services.arventa_deployment.mode', 'automatic');
+        Config::set('services.arventa_deployment.pos_base_domain', 'pos.arventa.my.id');
+        Config::set('services.arventa_deployment.dns.provider', 'wildcard');
+        Config::set('services.arventa_deployment.caprover.enabled', true);
+        Config::set('services.arventa_deployment.caprover.base_url', 'https://captain.arventa.my.id');
+        Config::set('services.arventa_deployment.caprover.auth_token', 'test-captain-token');
+        Config::set('services.arventa_deployment.caprover.app_name', 'arventa');
+        Config::set('services.arventa_deployment.caprover.enable_ssl', true);
+
+        Http::fake([
+            'https://captain.arventa.my.id/api/v2/user/apps/appDefinitions/customdomain' => Http::response(['status' => 100, 'description' => 'OK']),
+            'https://captain.arventa.my.id/api/v2/user/apps/appDefinitions/enablecustomdomainssl' => Http::response(['status' => 100, 'description' => 'OK']),
+            'https://api.cloudflare.com/*' => Http::response(['success' => false], 500),
+        ]);
+
+        $instance = PosInstance::query()->create([
+            'store_name' => 'Wildcard Store',
+            'buyer_name' => 'Buyer',
+            'contact' => '08123',
+            'subdomain' => 'wildcard-store',
+            'domain' => 'wildcard-store.pos.arventa.my.id',
+            'database_name' => 'arventa_pos_wildcard_store',
+            'package_name' => 'com.arventapos.wildcardstore',
+            'admin_username' => 'admin_wildcard_store',
+            'admin_password' => 'secret-password',
+            'admin_password_hash' => Hash::make('secret-password'),
+            'status' => 'active',
+            'deployment_status' => 'pending',
+        ]);
+
+        $this->withDeveloperSession()
+            ->from('/developer/pos')
+            ->post("/developer/pos/{$instance->id}/deploy")
+            ->assertRedirect('/developer/pos');
+
+        $this->assertDatabaseHas('pos_instances', [
+            'id' => $instance->id,
+            'deployment_status' => 'deployed',
+            'deployment_error' => null,
+        ]);
+
+        $instance->refresh();
+        $this->assertStringContainsString('DNS covered by wildcard: *.pos.arventa.my.id', (string) $instance->deployment_notes);
+
+        Http::assertNotSent(fn ($request): bool => str_contains($request->url(), 'api.cloudflare.com'));
+
+        Http::assertSent(function ($request): bool {
+            return $request->method() === 'POST'
+                && str_contains($request->url(), '/customdomain')
+                && $request['appName'] === 'arventa'
+                && $request['customDomain'] === 'wildcard-store.pos.arventa.my.id';
+        });
+
+        Http::assertSent(function ($request): bool {
+            return $request->method() === 'POST'
+                && str_contains($request->url(), '/enablecustomdomainssl')
+                && $request['customDomain'] === 'wildcard-store.pos.arventa.my.id';
+        });
+    }
+
     public function test_developer_domain_request_is_ignored_and_subdomain_domain_is_generated(): void
     {
         $this->seed();

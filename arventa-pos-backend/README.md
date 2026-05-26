@@ -30,7 +30,7 @@ Field `database_name` pada POS instance dipakai sebagai tenant key/metadata, buk
 2. Buka `/developer/pos`.
 3. Generate POS dengan nama toko, pembeli, kontak, subdomain, package app, dan akun admin.
 4. Klik Deploy.
-5. Sistem automation membuat DNS `{subdomain}.pos.arventa.my.id`, attach domain ke app CapRover yang sama, dan enable SSL.
+5. Sistem automation memakai wildcard DNS `*.pos.arventa.my.id`, attach domain ke app CapRover yang sama, dan enable SSL.
 6. Pembeli buka `https://{subdomain}.pos.arventa.my.id/admin/login`.
 7. Pembeli login memakai admin username/password hasil generate.
 8. Pembeli pairing Android dari menu Perangkat Kasir.
@@ -78,22 +78,22 @@ ARVENTA_DEPLOYMENT_MODE=automatic
 ARVENTA_POS_BASE_DOMAIN=pos.arventa.my.id
 ARVENTA_APP_PUBLIC_HOST=arventa.arventa.my.id
 
-ARVENTA_DNS_PROVIDER=cloudflare
+ARVENTA_DNS_PROVIDER=wildcard
 ARVENTA_DNS_RECORD_TYPE=CNAME
 ARVENTA_DNS_RECORD_CONTENT=arventa.arventa.my.id
 ARVENTA_DNS_TTL=1
 ARVENTA_DNS_PROXIED=false
-CLOUDFLARE_API_TOKEN=...
-CLOUDFLARE_ZONE_ID=...
 
 CAPROVER_AUTOMATION_ENABLED=true
-CAPROVER_BASE_URL=https://captain.your-domain.com
+CAPROVER_BASE_URL=https://captain.arventa.my.id
 CAPROVER_PASSWORD=...
 CAPROVER_AUTH_TOKEN=
 CAPROVER_NAMESPACE=captain
 CAPROVER_APP_NAME=arventa
 CAPROVER_ENABLE_SSL=true
 ```
+
+Gunakan `ARVENTA_DNS_PROVIDER=cloudflare` hanya jika ingin membuat DNS record per tenant. Untuk setup production saat ini, DNS sudah ditutup oleh wildcard `*.pos.arventa.my.id`, sehingga deploy tenant tidak memanggil Cloudflare API.
 
 Jika `ARVENTA_DEPLOYMENT_MODE` masih `manual`, tombol Deploy akan menyimpan status `failed` dengan pesan konfigurasi yang harus dilengkapi. Ini sengaja supaya UI tidak memalsukan deploy.
 

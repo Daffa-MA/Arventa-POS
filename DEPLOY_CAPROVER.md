@@ -127,7 +127,7 @@ The `/admin` route reads the `store_settings`, `products`, and `sales` tables. I
 
 The developer panel at `/developer/pos` creates one tenant record for each buyer. Deploying a tenant does not create a second Laravel app or a second physical database. It:
 
-- creates or updates a DNS record for the buyer subdomain under `pos.arventa.my.id`
+- uses wildcard DNS for the buyer subdomain under `pos.arventa.my.id`
 - attaches that domain to the existing CapRover app `arventa`
 - enables SSL for the buyer domain
 - keeps all buyer data inside the shared Laravel database using `pos_instance_id`
@@ -139,13 +139,11 @@ ARVENTA_DEPLOYMENT_MODE=automatic
 ARVENTA_POS_BASE_DOMAIN=pos.arventa.my.id
 ARVENTA_APP_PUBLIC_HOST=arventa.arventa.my.id
 
-ARVENTA_DNS_PROVIDER=cloudflare
+ARVENTA_DNS_PROVIDER=wildcard
 ARVENTA_DNS_RECORD_TYPE=CNAME
 ARVENTA_DNS_RECORD_CONTENT=arventa.arventa.my.id
 ARVENTA_DNS_TTL=1
 ARVENTA_DNS_PROXIED=false
-CLOUDFLARE_API_TOKEN=CHANGE_THIS
-CLOUDFLARE_ZONE_ID=CHANGE_THIS
 
 CAPROVER_AUTOMATION_ENABLED=true
 CAPROVER_BASE_URL=https://captain.arventa.my.id
@@ -155,6 +153,8 @@ CAPROVER_APP_NAME=arventa
 CAPROVER_NAMESPACE=captain
 CAPROVER_ENABLE_SSL=true
 ```
+
+With `ARVENTA_DNS_PROVIDER=wildcard`, deployment skips Cloudflare API calls completely. This expects DNS like `*.pos.arventa.my.id` to already point at the CapRover server. Use `ARVENTA_DNS_PROVIDER=cloudflare` only if you want the app to create per-tenant DNS records instead.
 
 After changing these values:
 

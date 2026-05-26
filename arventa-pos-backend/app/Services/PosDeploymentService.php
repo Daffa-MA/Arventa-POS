@@ -43,16 +43,11 @@ class PosDeploymentService
             throw new \RuntimeException('Deploy automation belum aktif. Isi env DNS/CapRover lalu set ARVENTA_DEPLOYMENT_MODE=automatic.');
         }
 
-        if (config('services.arventa_deployment.dns.provider') !== 'cloudflare') {
-            throw new \RuntimeException('Automation DNS saat ini membutuhkan ARVENTA_DNS_PROVIDER=cloudflare.');
-        }
-
         if (! config('services.arventa_deployment.caprover.enabled')) {
             throw new \RuntimeException('Automation CapRover belum aktif. Set CAPROVER_AUTOMATION_ENABLED=true.');
         }
 
-        $dns = $this->cloudflareDns->upsert($domain);
-        $notes[] = "DNS {$dns['action']}: {$dns['type']} {$dns['name']} -> {$dns['content']}";
+        $notes[] = $this->prepareDns($domain);
 
         $domainResult = $this->capRover->attachDomain($domain);
         $notes[] = 'CapRover domain attached: '.$domainResult['description'];
@@ -70,6 +65,31 @@ class PosDeploymentService
         Log::info('POS deployment finished.', [
             'pos_instance_id' => $instance->id,
         ]);
+    }
+
+    private function prepareDns(string $domain): string
+    {
+        $provider = Str::of((string) config('services.arventa_deployment.dns.provider'))
+            ->lower()
+            ->trim()
+            ->toString();
+
+        if ($provider === 'wildcard') {
+            Log::info('DNS covered by wildcard.', [
+                'domain' => $domain,
+                'wildcard' => '*.'.$this->baseDomain(),
+            ]);
+
+            return 'DNS covered by wildcard: *.'.$this->baseDomain();
+        }
+
+        if ($provider === 'cloudflare') {
+            $dns = $this->cloudflareDns->upsert($domain);
+
+            return "DNS {$dns['action']}: {$dns['type']} {$dns['name']} -> {$dns['content']}";
+        }
+
+        throw new \RuntimeException('ARVENTA_DNS_PROVIDER wajib cloudflare atau wildcard untuk deploy otomatis.');
     }
 
     private function normalizeDomain(?string $domain): string
