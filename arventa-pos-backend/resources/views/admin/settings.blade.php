@@ -22,12 +22,17 @@
                 businessType: @js(old('business_type', $setting->business_type)),
                 address: @js(old('address', $setting->address)),
                 receiptFooter: @js(old('receipt_footer', $setting->receipt_footer)),
+                receiptHeaderTitle: @js(old('receipt_header_title', $setting->receipt_header_title)),
+                receiptHeaderSubtitle: @js(old('receipt_header_subtitle', $setting->receipt_header_subtitle)),
+                receiptHeaderNotes: @js(old('receipt_header_notes', $setting->receipt_header_notes)),
+                receiptHeaderAlignment: @js(old('receipt_header_alignment', $setting->receipt_header_alignment ?? 'center')),
                 logoUrl: @js($logoUrl),
                 qrisUrl: @js($qrisUrl),
                 receiptQrUrl: @js($receiptQrUrl),
                 receiptTemplate: @js(old('receipt_template', $setting->receipt_template ?? 'classic')),
                 receiptPaperSize: @js(old('receipt_paper_size', $setting->receipt_paper_size ?? '58')),
                 showLogo: @js((bool) old('receipt_show_logo', $setting->receipt_show_logo ?? false)),
+                showStoreName: @js((bool) old('receipt_show_store_name', $setting->receipt_show_store_name ?? true)),
                 showAddress: @js((bool) old('receipt_show_address', $setting->receipt_show_address ?? true)),
                 showDatetime: @js((bool) old('receipt_show_datetime', $setting->receipt_show_datetime ?? true)),
                 showQris: @js((bool) old('receipt_show_qris', $setting->receipt_show_qris ?? false)),
@@ -59,6 +64,14 @@
                 if (this.preview.receiptTemplate === 'compact') return 'Ringkas'
                 if (this.preview.receiptTemplate === 'detailed') return 'Detail'
                 return 'Classic'
+            },
+            headerAlignClass() {
+                if (this.preview.receiptHeaderAlignment === 'left') return 'text-left'
+                if (this.preview.receiptHeaderAlignment === 'right') return 'text-right'
+                return 'text-center'
+            },
+            headerLines() {
+                return String(this.preview.receiptHeaderNotes || '').split(/\r?\n/).filter((line) => line.trim().length)
             }
         }"
         @submit="loading = true; setTimeout(() => { loading = false; done = true; setTimeout(() => done = false, 2000) }, 700)"
@@ -110,6 +123,48 @@
                         <p class="text-sm font-semibold text-slate-950">Template Struk</p>
                         <p class="mt-1 text-sm leading-6 text-slate-500">Atur isi struk, ukuran kertas, dan QR tambahan yang dicetak di bagian bawah struk.</p>
                     </div>
+                    <div class="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <p class="text-sm font-semibold text-slate-950">Header struk</p>
+                                <p class="text-sm leading-6 text-slate-500">Isi bebas untuk nama brand, tagline, cabang, kontak, atau catatan legal.</p>
+                            </div>
+                            <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+                                <input type="checkbox" name="receipt_show_store_name" value="1" x-model="preview.showStoreName" @checked(old('receipt_show_store_name', $setting->receipt_show_store_name ?? true)) class="rounded border-slate-300 text-slate-950">
+                                Nama toko
+                            </label>
+                        </div>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <div>
+                                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Judul header opsional</label>
+                                <input name="receipt_header_title" x-model="preview.receiptHeaderTitle" value="{{ old('receipt_header_title', $setting->receipt_header_title) }}" placeholder="Kosongkan untuk pakai nama toko" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
+                                @error('receipt_header_title')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Subtitle/tagline</label>
+                                <input name="receipt_header_subtitle" x-model="preview.receiptHeaderSubtitle" value="{{ old('receipt_header_subtitle', $setting->receipt_header_subtitle) }}" placeholder="Contoh: Cabang Utama / Since 2026" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
+                                @error('receipt_header_subtitle')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Catatan header multiline</label>
+                            <textarea name="receipt_header_notes" x-model="preview.receiptHeaderNotes" rows="3" placeholder="Contoh: WA 08xxxx&#10;Instagram @nama_toko&#10;NPWP / izin usaha / catatan lain" class="mt-1 w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">{{ old('receipt_header_notes', $setting->receipt_header_notes) }}</textarea>
+                            @error('receipt_header_notes')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Rata header</label>
+                            <div class="mt-1 grid gap-2 sm:grid-cols-3">
+                                @foreach (['left' => 'Kiri', 'center' => 'Tengah', 'right' => 'Kanan'] as $value => $label)
+                                    <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700">
+                                        <input type="radio" name="receipt_header_alignment" value="{{ $value }}" x-model="preview.receiptHeaderAlignment" @checked(old('receipt_header_alignment', $setting->receipt_header_alignment ?? 'center') === $value) class="border-slate-300 text-slate-950">
+                                        {{ $label }}
+                                    </label>
+                                @endforeach
+                            </div>
+                            @error('receipt_header_alignment')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+
                     <div class="grid gap-3 sm:grid-cols-2">
                         <div>
                             <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Model struk</label>
@@ -273,7 +328,7 @@
                     <div class="mx-auto rounded-sm bg-white px-4 py-5 font-mono text-[11px] leading-5 text-slate-950 shadow-xl shadow-slate-950/10 transition-all"
                         :class="preview.receiptPaperSize === '80' ? 'w-full max-w-[360px]' : 'w-full max-w-[260px]'"
                     >
-                        <div class="text-center">
+                        <div :class="headerAlignClass()">
                             <div x-show="preview.showLogo" class="mb-2 flex justify-center">
                                 <template x-if="preview.logoUrl">
                                     <img :src="preview.logoUrl" alt="" class="h-12 w-12 rounded-sm object-contain">
@@ -282,9 +337,14 @@
                                     <div class="flex h-12 w-12 items-center justify-center rounded-sm border border-dashed border-slate-300 text-[9px] font-bold text-slate-400">LOGO</div>
                                 </template>
                             </div>
-                            <p class="text-[13px] font-bold uppercase tracking-wide" x-text="preview.storeName || 'Nama Toko'"></p>
+                            <p x-show="preview.receiptHeaderTitle || preview.showStoreName" class="text-[13px] font-bold uppercase tracking-wide" x-text="preview.receiptHeaderTitle || preview.storeName || 'Nama Toko'"></p>
+                            <p x-show="preview.showStoreName && preview.receiptHeaderTitle" class="font-semibold" x-text="preview.storeName || 'Nama Toko'"></p>
+                            <p x-show="preview.receiptHeaderSubtitle" class="text-slate-600" x-text="preview.receiptHeaderSubtitle"></p>
                             <p x-show="preview.showBusinessType && preview.receiptTemplate !== 'compact'" class="text-slate-600" x-text="preview.businessType || 'Jenis Usaha'"></p>
                             <p x-show="preview.showAddress && preview.address" class="mt-1 text-slate-600" x-text="preview.address"></p>
+                            <template x-for="line in headerLines()" :key="line">
+                                <p class="text-slate-600" x-text="line"></p>
+                            </template>
                         </div>
 
                         <div class="my-3 border-t border-dashed border-slate-400"></div>

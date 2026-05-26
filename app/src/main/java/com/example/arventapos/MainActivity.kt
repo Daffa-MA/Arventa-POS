@@ -153,9 +153,14 @@ data class StoreSetting(
     val taxRate: Double,
     val serviceChargeRate: Double,
     val receiptFooter: String,
+    val receiptHeaderTitle: String,
+    val receiptHeaderSubtitle: String,
+    val receiptHeaderNotes: String,
+    val receiptHeaderAlignment: String,
     val receiptTemplate: String,
     val receiptPaperSize: String,
     val receiptShowLogo: Boolean,
+    val receiptShowStoreName: Boolean,
     val receiptShowAddress: Boolean,
     val receiptShowDatetime: Boolean,
     val receiptShowQris: Boolean,
@@ -272,9 +277,14 @@ private val demoSetting = StoreSetting(
     taxRate = 11.0,
     serviceChargeRate = 0.0,
     receiptFooter = "Terima kasih.",
+    receiptHeaderTitle = "",
+    receiptHeaderSubtitle = "",
+    receiptHeaderNotes = "",
+    receiptHeaderAlignment = "center",
     receiptTemplate = "classic",
     receiptPaperSize = "58",
     receiptShowLogo = false,
+    receiptShowStoreName = true,
     receiptShowAddress = true,
     receiptShowDatetime = true,
     receiptShowQris = false,
@@ -2034,9 +2044,14 @@ private object PosRepository {
             taxRate = optDouble("tax_rate", 0.0),
             serviceChargeRate = optDouble("service_charge_rate", 0.0),
             receiptFooter = optString("receipt_footer", "Terima kasih."),
+            receiptHeaderTitle = optString("receipt_header_title", ""),
+            receiptHeaderSubtitle = optString("receipt_header_subtitle", ""),
+            receiptHeaderNotes = optString("receipt_header_notes", ""),
+            receiptHeaderAlignment = optString("receipt_header_alignment", "center"),
             receiptTemplate = optString("receipt_template", "classic"),
             receiptPaperSize = optString("receipt_paper_size", "58"),
             receiptShowLogo = optBoolean("receipt_show_logo", false),
+            receiptShowStoreName = optBoolean("receipt_show_store_name", true),
             receiptShowAddress = optBoolean("receipt_show_address", true),
             receiptShowDatetime = optBoolean("receipt_show_datetime", true),
             receiptShowQris = optBoolean("receipt_show_qris", false),
@@ -2261,15 +2276,32 @@ private object BluetoothReceiptPrinter {
             writeImage(buffer, setting.logoUrl, maxWidth = if (width == 48) 220 else 160)
             text()
         }
+        command(0x1B, 0x61, receiptAlignmentCode(setting.receiptHeaderAlignment))
         command(0x1B, 0x21, 0x08)
-        text(setting.storeName)
+        val headerTitle = setting.receiptHeaderTitle.ifBlank {
+            if (setting.receiptShowStoreName) setting.storeName else ""
+        }
+        if (headerTitle.isNotBlank()) {
+            wrapReceiptLine(headerTitle, width).forEach(::text)
+        }
         command(0x1B, 0x21, 0x00)
+        if (setting.receiptShowStoreName && setting.receiptHeaderTitle.isNotBlank()) {
+            wrapReceiptLine(setting.storeName, width).forEach(::text)
+        }
+        if (setting.receiptHeaderSubtitle.isNotBlank()) {
+            wrapReceiptLine(setting.receiptHeaderSubtitle, width).forEach(::text)
+        }
         if (setting.receiptShowBusinessType && !compact) {
             text(setting.businessType)
         }
         if (setting.receiptShowAddress && setting.address.isNotBlank()) {
             wrapReceiptLine(setting.address, width).forEach(::text)
         }
+        setting.receiptHeaderNotes
+            .lineSequence()
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .forEach { line -> wrapReceiptLine(line, width).forEach(::text) }
         text(line(width))
         command(0x1B, 0x61, 0x00)
         text("Invoice: ${sale.invoiceNumber}")
@@ -2364,6 +2396,14 @@ private object BluetoothReceiptPrinter {
     }
 
     private fun receiptWidth(setting: StoreSetting): Int = if (setting.receiptPaperSize == "80") 48 else 32
+
+    private fun receiptAlignmentCode(value: String): Int {
+        return when (value.lowercase(Locale.US)) {
+            "left" -> 0x00
+            "right" -> 0x02
+            else -> 0x01
+        }
+    }
 
     private fun line(width: Int): String = "-".repeat(width)
 
