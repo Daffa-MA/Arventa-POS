@@ -227,4 +227,54 @@ class CashierPairingCodeTest extends TestCase
         $response->assertDontSee('Infinix X6833B');
         $response->assertSee('Pixel Tablet');
     }
+
+    public function test_cashier_logout_revokes_current_device_token_and_removes_paired_qr_from_admin_page(): void
+    {
+        $this->seed();
+
+        $user = User::query()->create([
+            'name' => 'Kasir Logout',
+            'email' => 'kasir-logout@example.test',
+            'username' => 'kasir_logout',
+            'password' => bcrypt('password'),
+            'role' => 'cashier',
+            'is_active' => true,
+            'pos_instance_id' => $this->defaultPosInstanceId(),
+        ]);
+
+        $device = CashierDevice::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
+            'user_id' => $user->id,
+            'device_name' => 'Infinix X1102',
+            'device_uid' => 'logout-device',
+            'paired_at' => now(),
+            'last_seen_at' => now(),
+        ]);
+
+        CashierPairingCode::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
+            'code' => '919191',
+            'cashier_name' => 'Kasir Logout',
+            'expires_at' => now()->addMinutes(5),
+            'paired_at' => now(),
+            'paired_user_id' => $user->id,
+        ]);
+
+        $token = $user->createToken('cashier-device-'.$device->id)->plainTextToken;
+
+        $response = $this
+            ->withHeader('Authorization', 'Bearer '.$token)
+            ->postJson('/api/logout');
+
+        $response->assertOk();
+        $this->assertNotNull($device->refresh()->revoked_at);
+        $this->assertSame(0, $user->tokens()->count());
+        $this->assertDatabaseMissing('cashier_pairing_codes', ['code' => '919191']);
+
+        $devicesPage = $this->withAdminSession()->get('/admin/devices');
+
+        $devicesPage->assertOk();
+        $devicesPage->assertDontSee('Infinix X1102');
+        $devicesPage->assertDontSee('919191');
+    }
 }

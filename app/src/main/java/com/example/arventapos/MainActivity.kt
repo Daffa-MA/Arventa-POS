@@ -334,8 +334,14 @@ fun ArventaApp() {
                 }
             },
             onDisconnect = {
-                SessionStore.clear(context)
+                val active = session
                 session = null
+                SessionStore.clear(context)
+                if (active != null) {
+                    scope.launch {
+                        PosRepository.logout(active)
+                    }
+                }
             },
         )
     }
@@ -1899,6 +1905,12 @@ private object PosRepository {
             token = json.getString("token"),
             cashierName = cashier?.optString("name")?.takeIf { it.isNotBlank() } ?: "Kasir",
         )
+    }
+
+    suspend fun logout(session: PairingSession) = withContext(Dispatchers.IO) {
+        runCatching {
+            request("${session.baseUrl}/api/logout", "POST", "{}", session.token)
+        }
     }
 
     suspend fun sync(session: PairingSession): PosState = withContext(Dispatchers.IO) {

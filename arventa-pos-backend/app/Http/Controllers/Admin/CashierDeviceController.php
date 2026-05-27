@@ -108,10 +108,15 @@ class CashierDeviceController extends Controller
     {
         abort_unless((int) $device->pos_instance_id === $this->posInstanceId($request), 404);
 
-        $device->forceFill(['revoked_at' => now()])->save();
-        $device->user->tokens()->delete();
+        CashierPairingCode::query()
+            ->where('pos_instance_id', $device->pos_instance_id)
+            ->where('paired_user_id', $device->user_id)
+            ->delete();
 
-        return back()->with('status', 'Akses perangkat kasir berhasil dicabut.');
+        $device->user->tokens()->delete();
+        $device->delete();
+
+        return back()->with('status', 'Perangkat kasir berhasil dihapus dan aksesnya dicabut.');
     }
 
     private function posInstanceId(Request $request): int

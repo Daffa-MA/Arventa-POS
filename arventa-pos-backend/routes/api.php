@@ -11,5 +11,6 @@ Route::post('/pairing/connect', [PairingController::class, 'connect']);
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/sync', [StorefrontController::class, 'sync']);
+    Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/transactions', [TransactionController::class, 'store']);
 });
