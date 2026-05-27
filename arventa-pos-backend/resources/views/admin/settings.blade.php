@@ -14,6 +14,7 @@
         method="post"
         action="{{ route('admin.settings.update') }}"
         enctype="multipart/form-data"
+        data-turbo="false"
         x-data="{
             loading: false,
             done: false,

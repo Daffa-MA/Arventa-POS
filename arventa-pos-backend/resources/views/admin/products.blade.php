@@ -56,6 +56,7 @@
                 method="post"
                 action="{{ route('admin.products.store') }}"
                 enctype="multipart/form-data"
+                data-turbo="false"
                 x-data="{ imagePreview: null, itemType: @js($createItemType), pricingRule: @js($createPricingRule) }"
                 class="mt-6 grid gap-4"
             >
@@ -239,6 +240,7 @@
                                             method="post"
                                             action="{{ route('admin.products.update', $product) }}"
                                             enctype="multipart/form-data"
+                                            data-turbo="false"
                                             x-data="{ itemType: @js($editItemType), pricingRule: @js($editPricingRule) }"
                                             class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-2"
                                         >
