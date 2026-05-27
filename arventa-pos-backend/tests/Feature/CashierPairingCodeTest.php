@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\CashierPairingCode;
 use App\Models\CashierDevice;
+use App\Models\PosInstance;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -159,6 +160,32 @@ class CashierPairingCodeTest extends TestCase
         $response->assertSee('base_url', false);
         $response->assertSee('https://tropizz.arventa.my.id', false);
         $response->assertSee('api\\/pairing\\/connect', false);
+    }
+
+    public function test_pairing_api_returns_tenant_base_url_for_manual_code_flow(): void
+    {
+        $this->seed();
+
+        PosInstance::query()
+            ->whereKey($this->defaultPosInstanceId())
+            ->update(['domain' => 'tropizz.arventa.my.id']);
+
+        CashierPairingCode::query()->create([
+            'pos_instance_id' => $this->defaultPosInstanceId(),
+            'code' => '121212',
+            'cashier_name' => 'Kasir Manual',
+            'expires_at' => now()->addMinutes(5),
+        ]);
+
+        $response = $this->postJson('/api/pairing/connect', [
+            'code' => '121212',
+            'device_name' => 'Infinix X1102',
+            'device_uid' => 'manual-code-device',
+        ]);
+
+        $response->assertCreated();
+        $response->assertJsonPath('base_url', 'https://tropizz.arventa.my.id');
+        $response->assertJsonPath('cashier.name', 'Kasir Manual');
     }
 
     public function test_devices_page_hides_revoked_devices(): void

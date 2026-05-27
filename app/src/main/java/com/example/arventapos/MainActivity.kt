@@ -414,7 +414,7 @@ private fun PairingScreen(onConnected: (PairingSession) -> Unit) {
                 Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(22.dp), elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)) {
                     Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        "Scan QR dari menu Perangkat Kasir di Web Admin tenant. URL toko akan tersimpan otomatis.",
+                        "Scan QR dari menu Perangkat Kasir, atau masukkan 6 digit kode pairing. URL toko akan tersimpan otomatis.",
                         color = Color(0xFF475569),
                         style = MaterialTheme.typography.bodyMedium,
                     )
@@ -431,8 +431,8 @@ private fun PairingScreen(onConnected: (PairingSession) -> Unit) {
                     OutlinedTextField(
                         value = pairingInput,
                         onValueChange = { pairingInput = it },
-                        label = { Text("Isi QR pairing") },
-                        minLines = 2,
+                        label = { Text("QR pairing atau kode 6 digit") },
+                        minLines = 1,
                         colors = fieldColors,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -480,7 +480,7 @@ private fun PairingScreen(onConnected: (PairingSession) -> Unit) {
                     }
                     Surface(color = Color(0xFFF8FAFC), shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, Color(0xFFE2E8F0))) {
                         Text(
-                            "Buka Web Admin tenant > Perangkat Kasir > Generate QR Pairing. App akan membaca URL tenant dari QR.",
+                            "Buka Web Admin tenant > Perangkat Kasir > Generate QR Pairing. Jika hanya memasukkan kode, app akan mengecek ke server Arventa lalu menyimpan URL tenant otomatis.",
                             color = Color(0xFF64748B),
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(12.dp),
@@ -1892,8 +1892,10 @@ private object PosRepository {
         val response = request("${parsed.second}/api/pairing/connect", "POST", body.toString(), null)
         val json = JSONObject(response)
         val cashier = json.optJSONObject("cashier")
+        val connectedBaseUrl = json.optString("base_url")
+            .ifBlank { parsed.second }
         PairingSession(
-            baseUrl = parsed.second,
+            baseUrl = normalizeBaseUrl(connectedBaseUrl),
             token = json.getString("token"),
             cashierName = cashier?.optString("name")?.takeIf { it.isNotBlank() } ?: "Kasir",
         )
@@ -2002,7 +2004,9 @@ private object PosRepository {
             throw IllegalStateException("Kode pairing tidak valid.")
         }
 
-        return code to normalizeBaseUrl(baseUrlInput)
+        val baseUrl = baseUrlInput.ifBlank { BuildConfig.ARVENTA_PAIRING_BASE_URL }
+
+        return code to normalizeBaseUrl(baseUrl)
     }
 
     private fun normalizeBaseUrl(value: String): String {

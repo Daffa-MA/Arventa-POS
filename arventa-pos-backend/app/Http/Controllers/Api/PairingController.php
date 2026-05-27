@@ -91,14 +91,31 @@ class PairingController extends Controller
                 'user' => $user,
                 'device' => $device,
                 'token' => $user->createToken('cashier-device-'.$device->id)->plainTextToken,
+                'base_url' => $this->posBaseUrl($device->posInstance),
             ];
         });
 
         return response()->json([
             'token_type' => 'Bearer',
             'token' => $result['token'],
+            'base_url' => $result['base_url'],
             'cashier' => $result['user']->only(['id', 'name', 'username', 'role']),
             'device' => $result['device']->only(['id', 'device_name', 'paired_at']),
         ], 201);
+    }
+
+    private function posBaseUrl(?PosInstance $posInstance): string
+    {
+        $domain = trim((string) $posInstance?->domain);
+
+        if ($domain === '') {
+            return rtrim((string) config('app.url'), '/');
+        }
+
+        if (Str::startsWith($domain, ['http://', 'https://'])) {
+            return rtrim($domain, '/');
+        }
+
+        return 'https://'.trim($domain, '/');
     }
 }
