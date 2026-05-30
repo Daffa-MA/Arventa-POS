@@ -221,6 +221,18 @@ php artisan route:list --path=developer
 php artisan route:list --path=admin
 ```
 
+## Menghapus POS Tenant
+
+Dari Developer Console (`/developer/pos`), klik **Hapus**. Ini akan:
+
+- Menghapus semua data tenant (store_settings, products, sales, devices, users)
+- Menghapus POS instance
+- Token Sanctum perangkat kasir ikut terhapus
+
+Setelah dihapus, akses ke `https://{tenant}.domain.com/admin/login` akan menampilkan halaman **"POS ini sudah tidak aktif atau tidak ditemukan"** — bukan redirect ke tenant lain.
+
+> **Catatan**: DNS wildcard tetap mengarah ke server. Halaman error muncul dari logika aplikasi, bukan dari infra.
+
 ## Checklist Serah Terima Tenant
 
 - POS instance berhasil dibuat dari Developer Console
