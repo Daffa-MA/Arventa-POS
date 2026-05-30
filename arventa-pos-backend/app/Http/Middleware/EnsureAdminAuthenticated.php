@@ -2,7 +2,6 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\PosInstance;
 use App\Models\StoreSetting;
 use App\Models\User;
 use Closure;
@@ -26,17 +25,12 @@ class EnsureAdminAuthenticated
             return redirect()->route('admin.login');
         }
 
-        $posInstance = $user->posInstance ?: PosInstance::query()->orderBy('id')->first();
+        $posInstance = $user->posInstance;
 
         if (! $posInstance) {
             $request->session()->forget('arventa_admin_id');
 
-            return redirect()->route('admin.login')->withErrors('POS belum tersedia untuk akun admin ini.');
-        }
-
-        if (! $user->pos_instance_id) {
-            $user->forceFill(['pos_instance_id' => $posInstance->id])->save();
-            $user->setRelation('posInstance', $posInstance);
+            return redirect()->route('admin.login')->withErrors(['login' => 'POS sudah tidak aktif.']);
         }
 
         StoreSetting::query()->firstOrCreate([

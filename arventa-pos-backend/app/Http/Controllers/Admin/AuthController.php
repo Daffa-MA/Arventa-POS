@@ -24,15 +24,25 @@ class AuthController extends Controller
 
         $posInstance = $this->posInstanceFromHost($request);
 
+        if (! $posInstance) {
+            return view('admin.pos-unavailable', ['message' => 'POS ini sudah tidak aktif atau tidak ditemukan.']);
+        }
+
         return view('admin.auth.login', [
             'setting' => StoreSetting::query()
-                ->when($posInstance, fn ($query) => $query->where('pos_instance_id', $posInstance->id))
+                ->where('pos_instance_id', $posInstance->id)
                 ->firstOrFail(),
         ]);
     }
 
     public function login(Request $request): RedirectResponse
     {
+        $posInstance = $this->posInstanceFromHost($request);
+
+        if (! $posInstance) {
+            return redirect()->route('admin.login')->withErrors(['login' => 'POS ini sudah tidak aktif.']);
+        }
+
         $credentials = $request->validate([
             'login' => ['required', 'string', 'max:120'],
             'password' => ['required', 'string', 'max:120'],
@@ -49,7 +59,7 @@ class AuthController extends Controller
         $user = User::query()
             ->where('role', 'admin')
             ->where('is_active', true)
-            ->when($this->posInstanceFromHost($request), fn ($query, PosInstance $posInstance) => $query->where('pos_instance_id', $posInstance->id))
+            ->where('pos_instance_id', $posInstance->id)
             ->where(function ($query) use ($credentials): void {
                 $query->where('username', $credentials['login'])
                     ->orWhere('email', $credentials['login']);
