@@ -50,8 +50,16 @@ class PosDeploymentService
 
         $notes[] = $this->prepareDns($domain);
 
-        $domainResult = $this->capRover->attachDomain($domain);
-        $notes[] = 'CapRover domain attached: '.$domainResult['description'];
+        try {
+            $domainResult = $this->capRover->attachDomain($domain);
+            $notes[] = 'CapRover domain attached: '.$domainResult['description'];
+        } catch (\Throwable $error) {
+            if ($this->isVerificationFailure($error) && $this->tenantWebReachable($domain)) {
+                $notes[] = 'CapRover domain verification returned "Verification Failed", but tenant domain is already reachable. Existing CapRover mapping is reused.';
+            } else {
+                throw $error;
+            }
+        }
 
         if (config('services.arventa_deployment.caprover.enable_ssl')) {
             try {
@@ -120,6 +128,27 @@ class PosDeploymentService
 
             return false;
         }
+    }
+
+    private function tenantWebReachable(string $domain): bool
+    {
+        foreach (['https://', 'http://'] as $scheme) {
+            try {
+                $response = Http::timeout(12)->get($scheme.$domain.'/admin/login');
+
+                if ($response->status() >= 200 && $response->status() < 500) {
+                    return true;
+                }
+            } catch (\Throwable $error) {
+                Log::warning('Tenant web probe failed after CapRover domain verification failure.', [
+                    'domain' => $domain,
+                    'scheme' => $scheme,
+                    'message' => $error->getMessage(),
+                ]);
+            }
+        }
+
+        return false;
     }
 
     private function normalizeDomain(?string $domain): string
