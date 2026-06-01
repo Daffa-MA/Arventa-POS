@@ -49,7 +49,7 @@ class CapRoverClient
             }
         }
 
-        throw new \RuntimeException('CapRover API gagal: '.$description);
+        throw new \RuntimeException('CapRover API gagal di '.$path.': '.$description);
     }
 
     private function request(): PendingRequest

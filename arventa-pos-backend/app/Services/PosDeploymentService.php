@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\PosInstance;
 use App\Services\Deployment\CapRoverClient;
 use App\Services\Deployment\CloudflareDnsService;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -53,8 +54,16 @@ class PosDeploymentService
         $notes[] = 'CapRover domain attached: '.$domainResult['description'];
 
         if (config('services.arventa_deployment.caprover.enable_ssl')) {
-            $sslResult = $this->capRover->enableSsl($domain);
-            $notes[] = 'CapRover SSL enabled: '.$sslResult['description'];
+            try {
+                $sslResult = $this->capRover->enableSsl($domain);
+                $notes[] = 'CapRover SSL enabled: '.$sslResult['description'];
+            } catch (\Throwable $error) {
+                if ($this->isVerificationFailure($error) && $this->tenantHttpsReachable($domain)) {
+                    $notes[] = 'CapRover SSL verification returned "Verification Failed", but tenant HTTPS is already reachable.';
+                } else {
+                    throw $error;
+                }
+            }
         }
 
         $notes[] = 'Tenant memakai satu database Laravel bersama; tidak membuat database fisik baru.';
@@ -90,6 +99,27 @@ class PosDeploymentService
         }
 
         throw new \RuntimeException('ARVENTA_DNS_PROVIDER wajib cloudflare atau wildcard untuk deploy otomatis.');
+    }
+
+    private function isVerificationFailure(\Throwable $error): bool
+    {
+        return Str::contains(Str::lower($error->getMessage()), 'verification failed');
+    }
+
+    private function tenantHttpsReachable(string $domain): bool
+    {
+        try {
+            $response = Http::timeout(12)->get('https://'.$domain.'/admin/login');
+
+            return $response->status() >= 200 && $response->status() < 500;
+        } catch (\Throwable $error) {
+            Log::warning('Tenant HTTPS probe failed after CapRover verification failure.', [
+                'domain' => $domain,
+                'message' => $error->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 
     private function normalizeDomain(?string $domain): string

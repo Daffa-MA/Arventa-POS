@@ -197,7 +197,7 @@ class DeveloperPosController extends Controller
             return response()->json(['message' => $message, 'instance' => $this->instancePayload($posInstance->fresh())]);
         }
 
-        return back()->with('status', $message);
+        return back()->with($posInstance->fresh()->deployment_status === 'failed' ? 'error' : 'status', $message);
     }
 
     public function destroy(Request $request, PosInstance $posInstance): RedirectResponse|JsonResponse

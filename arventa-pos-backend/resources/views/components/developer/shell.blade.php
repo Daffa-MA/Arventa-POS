@@ -7,15 +7,16 @@
 
 @php
     $firstError = $errors->first();
+    $flashMessage = $firstError ?: session('error') ?: session('status');
     $currentDeveloper = $currentDeveloper ?? null;
 @endphp
 
 <x-layouts.admin title="Arventa POS Developer">
     <div
         x-data="{
-            toastOpen: {{ session('status') || $errors->any() ? 'true' : 'false' }},
-            toastType: {{ $errors->any() ? "'error'" : "'success'" }},
-            toastMessage: @js($firstError ?: session('status')),
+            toastOpen: {{ $flashMessage ? 'true' : 'false' }},
+            toastType: {{ $errors->any() || session('error') ? "'error'" : "'success'" }},
+            toastMessage: @js($flashMessage),
             init() {
                 if (this.toastOpen) setTimeout(() => this.toastOpen = false, 4200)
             }
