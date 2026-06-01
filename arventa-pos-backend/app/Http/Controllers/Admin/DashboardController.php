@@ -9,6 +9,7 @@ use App\Models\Sale;
 use App\Models\StoreSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -57,29 +58,49 @@ class DashboardController extends Controller
     {
         $posInstanceId = $this->posInstanceId($request);
         $selectedDevice = $request->query('device', 'all');
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
         $devices = CashierDevice::query()
             ->with('user')
             ->where('pos_instance_id', $posInstanceId)
             ->orderBy('device_name')
             ->get();
 
-        $sales = Sale::query()
-            ->with(['items', 'cashier', 'cashierDevice'])
-            ->where('pos_instance_id', $posInstanceId)
-            ->latest();
-
-        if ($selectedDevice === 'unknown') {
-            $sales->whereNull('cashier_device_id');
-        } elseif ($selectedDevice !== 'all' && ctype_digit((string) $selectedDevice)) {
-            $sales->where('cashier_device_id', (int) $selectedDevice);
-        }
+        $sales = $this->transactionQuery($request, $posInstanceId);
 
         return view('admin.transactions', [
             'setting' => $this->setting($request),
             'sales' => $sales->paginate(15)->withQueryString(),
             'devices' => $devices,
             'selectedDevice' => $selectedDevice,
+            'dateFrom' => is_string($dateFrom) ? $dateFrom : null,
+            'dateTo' => is_string($dateTo) ? $dateTo : null,
         ]);
+    }
+
+    public function exportTransactions(Request $request): Response
+    {
+        $posInstanceId = $this->posInstanceId($request);
+        $setting = $this->setting($request);
+        $sales = $this->transactionQuery($request, $posInstanceId)->get();
+        $timestamp = now()->format('Ymd-His');
+        $filename = 'arventa-transaksi-'.$timestamp.'.xls';
+
+        return response()
+            ->view('admin.transactions-export', [
+                'setting' => $setting,
+                'sales' => $sales,
+                'filters' => [
+                    'device' => $request->query('device', 'all'),
+                    'date_from' => $request->query('date_from'),
+                    'date_to' => $request->query('date_to'),
+                ],
+                'exportedAt' => now(),
+            ], 200, [
+                'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+                'Cache-Control' => 'max-age=0, no-cache, no-store, must-revalidate',
+            ]);
     }
 
     public function updateSetting(Request $request): RedirectResponse
@@ -225,6 +246,34 @@ class DashboardController extends Controller
         return StoreSetting::query()
             ->where('pos_instance_id', $this->posInstanceId($request))
             ->firstOrFail();
+    }
+
+    private function transactionQuery(Request $request, int $posInstanceId)
+    {
+        $selectedDevice = $request->query('device', 'all');
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
+
+        $sales = Sale::query()
+            ->with(['items', 'cashier', 'cashierDevice'])
+            ->where('pos_instance_id', $posInstanceId)
+            ->latest();
+
+        if ($selectedDevice === 'unknown') {
+            $sales->whereNull('cashier_device_id');
+        } elseif ($selectedDevice !== 'all' && ctype_digit((string) $selectedDevice)) {
+            $sales->where('cashier_device_id', (int) $selectedDevice);
+        }
+
+        if (is_string($dateFrom) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom)) {
+            $sales->whereDate('created_at', '>=', $dateFrom);
+        }
+
+        if (is_string($dateTo) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)) {
+            $sales->whereDate('created_at', '<=', $dateTo);
+        }
+
+        return $sales;
     }
 
     private function posInstanceId(Request $request): int

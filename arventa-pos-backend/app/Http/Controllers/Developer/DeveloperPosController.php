@@ -26,7 +26,7 @@ class DeveloperPosController extends Controller
         $baseDomain = $this->posBaseDomain();
 
         return view('developer.pos-instances.index', [
-            'setting' => StoreSetting::query()->firstOrFail(),
+            'setting' => $this->developerSetting(),
             'instances' => $instances,
             'baseDomain' => $baseDomain,
             'stats' => [
@@ -318,6 +318,21 @@ class DeveloperPosController extends Controller
         }
 
         return $domain;
+    }
+
+    private function developerSetting(): StoreSetting
+    {
+        return StoreSetting::query()->first() ?? new StoreSetting([
+            'store_name' => 'Arventa POS',
+            'business_type' => 'Developer Console',
+            'admin_brand_name' => 'Arventa Developer',
+            'admin_console_label' => 'Vendor Console',
+            'admin_theme_color' => '#0F172A',
+            'admin_sidebar_style' => 'light',
+            'admin_density' => 'comfortable',
+            'theme_color' => '#2563EB',
+            'currency' => 'IDR',
+        ]);
     }
 
     private function domainForSubdomain(string $subdomain): string

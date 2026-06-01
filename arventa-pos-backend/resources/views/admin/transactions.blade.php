@@ -11,22 +11,54 @@
                 <p class="mt-1 text-sm text-slate-500">Pisahkan transaksi berdasarkan perangkat kasir yang sudah pairing.</p>
             </div>
 
-            <form method="GET" action="{{ route('admin.transactions') }}" class="flex w-full flex-col gap-2 sm:w-auto sm:min-w-72">
-                <label for="device-filter" class="text-xs font-semibold uppercase tracking-wide text-slate-500">Perangkat Kasir</label>
-                <select
-                    id="device-filter"
-                    name="device"
-                    class="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 shadow-sm outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
-                    onchange="this.form.submit()"
+            <form method="GET" action="{{ route('admin.transactions') }}" class="grid w-full gap-3 sm:w-auto sm:min-w-[36rem] sm:grid-cols-[1.2fr_1fr_1fr_auto_auto] sm:items-end">
+                <div class="flex flex-col gap-2">
+                    <label for="device-filter" class="text-xs font-semibold uppercase tracking-wide text-slate-500">Perangkat Kasir</label>
+                    <select
+                        id="device-filter"
+                        name="device"
+                        class="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 shadow-sm outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                        onchange="this.form.submit()"
+                    >
+                        <option value="all" @selected($selectedDevice === 'all')>Semua perangkat</option>
+                        @foreach ($devices as $device)
+                            <option value="{{ $device->id }}" @selected((string) $selectedDevice === (string) $device->id)>
+                                {{ $device->device_name }}{{ $device->user?->name ? ' - '.$device->user->name : '' }}
+                            </option>
+                        @endforeach
+                        <option value="unknown" @selected($selectedDevice === 'unknown')>Tanpa data perangkat</option>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label for="date-from" class="text-xs font-semibold uppercase tracking-wide text-slate-500">Dari</label>
+                    <input
+                        id="date-from"
+                        type="date"
+                        name="date_from"
+                        value="{{ $dateFrom }}"
+                        class="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 shadow-sm outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                    >
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label for="date-to" class="text-xs font-semibold uppercase tracking-wide text-slate-500">Sampai</label>
+                    <input
+                        id="date-to"
+                        type="date"
+                        name="date_to"
+                        value="{{ $dateTo }}"
+                        class="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 shadow-sm outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                    >
+                </div>
+                <button type="submit" class="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+                    Filter
+                </button>
+                <button
+                    type="submit"
+                    formaction="{{ route('admin.transactions.export') }}"
+                    class="h-11 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
                 >
-                    <option value="all" @selected($selectedDevice === 'all')>Semua perangkat</option>
-                    @foreach ($devices as $device)
-                        <option value="{{ $device->id }}" @selected((string) $selectedDevice === (string) $device->id)>
-                            {{ $device->device_name }}{{ $device->user?->name ? ' - '.$device->user->name : '' }}
-                        </option>
-                    @endforeach
-                    <option value="unknown" @selected($selectedDevice === 'unknown')>Tanpa data perangkat</option>
-                </select>
+                    Export Excel
+                </button>
             </form>
         </div>
         <div class="divide-y divide-slate-100">

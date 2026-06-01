@@ -27,6 +27,7 @@ Route::middleware('arventa.admin')->group(function (): void {
     Route::delete('/admin/devices/pairing-codes/{pairingCode}', [CashierDeviceController::class, 'destroyPairingCode'])->name('admin.devices.pairing-codes.destroy');
     Route::put('/admin/devices/{device}/revoke', [CashierDeviceController::class, 'revoke'])->name('admin.devices.revoke');
     Route::get('/admin/transactions', [DashboardController::class, 'transactions'])->name('admin.transactions');
+    Route::get('/admin/transactions/export', [DashboardController::class, 'exportTransactions'])->name('admin.transactions.export');
     Route::put('/admin/settings', [DashboardController::class, 'updateSetting'])->name('admin.settings.update');
     Route::put('/admin/password', [DashboardController::class, 'updatePassword'])->name('admin.password.update');
     Route::put('/admin/app-preview', [DashboardController::class, 'updateAppPreview'])->name('admin.app-preview.update');

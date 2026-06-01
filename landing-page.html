@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Arventa POS - Point of Sale Multi-Tenant untuk UMKM Indonesia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config={
+        theme:{
+            extend:{
+                colors:{
+                    grey:{50:"#FAFAFA",100:"#F4F4F5",200:"#E4E4E7",300:"#D4D4D8",400:"#A1A1AA",500:"#71717A",600:"#52525B",700:"#3F3F46",800:"#27272A",900:"#18181B"},
+                    dark:"#0E0E0E",
+                    darker:"#0A0A0A",
+                    card:"#181818",
+                    surface:"#1E1E1E"
+                },
+                fontFamily:{sans:["Inter","system-ui","sans-serif"]},
+            }
+        }
+    }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/lenis@1.1.18/dist/lenis.min.js"></script>
+    <style>
+    html{scroll-behavior:auto}
+    ::-webkit-scrollbar{width:5px}
+    ::-webkit-scrollbar-track{background:#0A0A0A}
+    ::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
+    ::-webkit-scrollbar-thumb:hover{background:#555}
+    *{box-sizing:border-box}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes scaleIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+    @keyframes floatRotate{0%,100%{transform:translateY(0) rotate(0deg)}33%{transform:translateY(-8px) rotate(1deg)}66%{transform:translateY(-4px) rotate(-1deg)}}
+    @keyframes glowPulse{0%,100%{box-shadow:0 0 20px rgba(255,255,255,0.05)}50%{box-shadow:0 0 40px rgba(255,255,255,0.1)}}
+    @keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    @keyframes borderGlow{0%,100%{border-color:rgba(255,255,255,0.08)}50%{border-color:rgba(255,255,255,0.2)}}
+    @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+    @keyframes ripple{to{transform:scale(4);opacity:0}}
+    @keyframes cursor{50%{border-color:transparent}}
+    @keyframes typewriter{from{width:0}to{width:100%}}
+    @keyframes particle{0%{transform:translateY(0) translateX(0) scale(0);opacity:0}10%{opacity:0.4}90%{opacity:0.4}100%{transform:translateY(-120px) translateX(30px) scale(1);opacity:0}}
+    @keyframes cardGlow{0%,100%{opacity:0.3}50%{opacity:0.6}}
+    @keyframes slideClip{0%{clip-path:inset(0 100% 0 0)}100%{clip-path:inset(0 0 0 0)}}
+    @keyframes countUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes splashBg{0%{opacity:1}100%{opacity:1}}
+    @keyframes splashLogo{0%{opacity:0;transform:scale(0.6) rotate(-8deg);filter:blur(10px)}40%{opacity:1;transform:scale(1.05) rotate(1deg);filter:blur(0)}60%{transform:scale(0.98) rotate(0deg)}80%{transform:scale(1.01)}100%{opacity:1;transform:scale(1) rotate(0deg);filter:blur(0)}}
+    @keyframes splashRing{0%{opacity:0;transform:scale(0.5)}30%{opacity:0.3;transform:scale(1.2)}60%{opacity:0.15;transform:scale(1.5)}100%{opacity:0;transform:scale(2)}}
+    @keyframes splashText{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
+    @keyframes splashGlow{0%,100%{opacity:0.4;transform:scale(1)}50%{opacity:0.8;transform:scale(1.3)}}
+    @keyframes splashDots{0%,100%{opacity:0}50%{opacity:0.6}}
+    @keyframes splashOut{0%{opacity:1;transform:scale(1);filter:blur(0)}100%{opacity:0;transform:scale(1.08);filter:blur(6px)}}
+    @keyframes letterReveal{0%{opacity:0;transform:translateY(1.2em) rotateX(-60deg);filter:blur(8px)}100%{opacity:1;transform:translateY(0) rotateX(0);filter:blur(0)}}
+    @keyframes cursorGlow{0%,100%{opacity:0.4;transform:scale(1)}50%{opacity:0.8;transform:scale(1.5)}}
+    @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+    @keyframes beamSweep{0%{transform:translateX(-120%);opacity:0}15%{opacity:1}85%{opacity:1}100%{transform:translateX(120%);opacity:0}}
+    @keyframes scanY{0%{transform:translateY(-100%)}100%{transform:translateY(100%)}}
+    @keyframes pulseNode{0%,100%{box-shadow:0 0 0 0 rgba(228,228,231,0.12)}50%{box-shadow:0 0 0 8px rgba(228,228,231,0)}}
+    @keyframes tickerUp{0%,18%{transform:translateY(0)}25%,43%{transform:translateY(-1.75rem)}50%,68%{transform:translateY(-3.5rem)}75%,93%{transform:translateY(-5.25rem)}100%{transform:translateY(0)}}
+    @keyframes orbitDash{to{stroke-dashoffset:-120}}
+    .anim-fade-up{animation:fadeUp 0.8s ease-out forwards;opacity:0}
+    .anim-fade-in{animation:fadeIn 1s ease-out forwards;opacity:0}
+    .anim-scale-in{animation:scaleIn 0.6s ease-out forwards;opacity:0}
+    .anim-float{animation:float 4s ease-in-out infinite}
+    .anim-float-rotate{animation:floatRotate 6s ease-in-out infinite}
+    .anim-glow-pulse{animation:glowPulse 3s ease-in-out infinite}
+    .anim-gradient{background-size:200% 200%;animation:gradientShift 4s ease infinite}
+    .anim-border-glow{animation:borderGlow 3s ease-in-out infinite}
+    .stagger-1{animation-delay:0.1s}
+    .stagger-2{animation-delay:0.2s}
+    .stagger-3{animation-delay:0.3s}
+    .stagger-4{animation-delay:0.4s}
+    .stagger-5{animation-delay:0.5s}
+    .stagger-6{animation-delay:0.6s}
+    .reveal{opacity:0;transform:translateY(30px);transition:all 0.8s cubic-bezier(0.16,1,0.3,1)}
+    .reveal.visible{opacity:1;transform:translateY(0)}
+    .reveal-clip{clip-path:inset(0 100% 0 0);transition:clip-path 1.2s cubic-bezier(0.16,1,0.3,1)}
+    .reveal-clip.visible{clip-path:inset(0 0 0 0)}
+    .card-hover{transition:all 0.5s cubic-bezier(0.16,1,0.3,1)}
+    .card-hover:hover{transform:translateY(-6px);box-shadow:0 25px 60px rgba(0,0,0,0.3)}
+    .card-tilt{transition:all 0.3s ease-out;transform-style:preserve-3d;perspective:800px}
+    .nav-blur{background:rgba(14,14,14,0.85);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+    .text-gradient{background:linear-gradient(135deg,#D4D4D8,#A1A1AA,#D4D4D8);background-size:200% 200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:gradientShift 4s ease infinite}
+    .text-gradient-strong{background:linear-gradient(135deg,#E4E4E7,#A1A1AA,#E4E4E7);background-size:200% 200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:gradientShift 3s ease infinite}
+    .noise-overlay{position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:0.012;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");background-repeat:repeat;background-size:256px 256px}
+    .scroll-bar{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,#A1A1AA,#D4D4D8);z-index:9998;transition:width 0.1s ease-out;border-radius:0 2px 2px 0}
+    .btn-primary{position:relative;overflow:hidden;border-radius:12px;background:#A1A1AA;padding:14px 28px;font-size:14px;font-weight:600;color:#0A0A0A;transition:all 0.3s cubic-bezier(0.16,1,0.3,1);border:none;cursor:pointer}
+    .btn-primary:hover{background:#D4D4D8;transform:translateY(-2px);box-shadow:0 8px 30px rgba(255,255,255,0.08)}
+    .btn-primary:active{transform:scale(0.96)}
+    .btn-primary .ripple{position:absolute;border-radius:50%;background:rgba(0,0,0,0.15);transform:scale(0);animation:ripple 0.6s linear;pointer-events:none}
+    .btn-secondary{position:relative;overflow:hidden;border-radius:12px;border:1px solid rgba(255,255,255,0.12);background:transparent;padding:14px 28px;font-size:14px;font-weight:600;color:#D4D4D8;transition:all 0.3s cubic-bezier(0.16,1,0.3,1);cursor:pointer}
+    .btn-secondary:hover{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.2);transform:translateY(-2px)}
+    .btn-secondary:active{transform:scale(0.96)}
+    .glow-card{position:relative;transition:all 0.5s cubic-bezier(0.16,1,0.3,1);transform-style:preserve-3d;perspective:800px}
+    .glow-card::before{content:"";position:absolute;inset:-1px;border-radius:inherit;background:linear-gradient(135deg,rgba(255,255,255,0.12),transparent 50%,rgba(255,255,255,0.05));opacity:0;transition:opacity 0.5s;z-index:-1;filter:blur(6px)}
+    .glow-card:hover::before{opacity:1}
+    .glow-card:hover{transform:translateY(-6px)}
+    .back-to-top{position:fixed;bottom:28px;right:28px;z-index:50;width:44px;height:44px;border-radius:12px;background:rgba(24,24,24,0.9);border:1px solid rgba(255,255,255,0.08);color:#A1A1AA;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.4s cubic-bezier(0.16,1,0.3,1);opacity:0;transform:translateY(20px) scale(0.9);pointer-events:none;backdrop-filter:blur(12px)}
+    .back-to-top.visible{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+    .back-to-top:hover{background:#D4D4D8;color:#0A0A0A;border-color:#D4D4D8;transform:translateY(-3px) scale(1.05)}
+    .nav-link{position:relative;transition:color 0.3s}
+    .nav-link::after{content:"";position:absolute;bottom:-2px;left:0;width:0;height:1.5px;background:#A1A1AA;transition:width 0.3s cubic-bezier(0.16,1,0.3,1);border-radius:1px}
+    .nav-link:hover::after{width:100%}
+    .nav-link:hover{color:#D4D4D8}
+    .hamburger{display:flex;flex-direction:column;cursor:pointer;gap:5px;padding:4px;border-radius:8px;transition:background 0.3s}
+    .hamburger:hover{background:rgba(255,255,255,0.05)}
+    .hamburger span{display:block;width:22px;height:2px;background:#D4D4D8;border-radius:2px;transition:all 0.3s cubic-bezier(0.16,1,0.3,1)}
+    .hamburger.active span:nth-child(1){transform:rotate(45deg) translate(5px,5px)}
+    .hamburger.active span:nth-child(2){opacity:0;transform:translateX(-10px)}
+    .hamburger.active span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px)}
+    .mobile-menu{position:fixed;inset:0;top:60px;background:rgba(14,14,14,0.98);backdrop-filter:blur(20px);z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;opacity:0;transform:translateY(-10px);pointer-events:none;transition:all 0.4s cubic-bezier(0.16,1,0.3,1)}
+    .mobile-menu.open{opacity:1;transform:translateY(0);pointer-events:auto}
+    .mobile-menu a{padding:16px 32px;font-size:18px;font-weight:500;color:#94A3B8;transition:all 0.3s;border-radius:12px;width:80%;text-align:center}
+    .mobile-menu a:hover{color:#FFFFFF;background:rgba(255,255,255,0.06)}
+    .pricing-card{position:relative;transition:all 0.4s cubic-bezier(0.16,1,0.3,1)}
+    .pricing-card.popular{border-color:rgba(255,255,255,0.2);box-shadow:0 0 50px rgba(255,255,255,0.03)}
+    .pricing-card.popular::before{content:"Terpopuler";position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#A1A1AA;color:#0A0A0A;padding:4px 16px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase}
+    .faq-details summary::-webkit-details-marker{display:none}
+    .faq-details summary{list-style:none}
+    .faq-details[open] summary svg{transform:rotate(180deg)}
+    .faq-details[open]{border-color:rgba(255,255,255,0.15)!important}
+    .grid-pattern{background-image:linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);background-size:60px 60px}
+    .floating-shape{position:absolute;border-radius:50%;pointer-events:none}
+    .hero-glow{position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.04),transparent 70%);pointer-events:none}
+    .particle{position:absolute;width:4px;height:4px;background:#A1A1AA;border-radius:50%;pointer-events:none;animation:particle 8s ease-in-out infinite}
+    .shimmer-text{background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.06) 50%,transparent 100%);background-size:200% 100%;animation:shimmer 3s ease-in-out infinite}
+    .spotlight{position:fixed;pointer-events:none;z-index:9997;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.015),transparent 70%);transform:translate(-50%,-50%);transition:opacity 0.3s}
+    .typewriter-cursor{border-right:2px solid #A1A1AA;animation:cursor 0.8s step-end infinite}
+    .clip-reveal{clip-path:inset(0 100% 0 0);animation:slideClip 1.2s cubic-bezier(0.16,1,0.3,1) forwards}
+    .img-zoom{overflow:hidden}
+    .img-zoom img{transition:transform 0.6s cubic-bezier(0.16,1,0.3,1)}
+    .img-zoom:hover img{transform:scale(1.05)}
+    .split-line{overflow:hidden;display:block}
+    .split-line span{display:inline-block;opacity:0;transform:translateY(1.2em) rotateX(-60deg);filter:blur(8px)}
+    .split-line.visible span{animation:letterReveal 0.8s cubic-bezier(0.16,1,0.3,1) forwards}
+    .counter-num{display:inline-block;animation:countUp 0.6s cubic-bezier(0.16,1,0.3,1) forwards;opacity:0}
+    .counter-num.visible{opacity:1;animation:none}
+    .counter{font-size:2.5rem;font-weight:800;letter-spacing:-0.03em;line-height:1;background:linear-gradient(135deg,#E4E4E7,#A1A1AA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;background-size:200% 200%;animation:gradientShift 4s ease infinite}@media(min-width:640px){.counter{font-size:3.5rem}}
+    .parallax-layer{will-change:transform}
+    .cursor-glow{position:fixed;pointer-events:none;z-index:9998;width:12px;height:12px;border-radius:50%;background:#A1A1AA;mix-blend-mode:screen;transform:translate(-50%,-50%);transition:width 0.2s,height 0.2s,opacity 0.2s;opacity:0}
+    .cursor-glow.active{opacity:0.6}
+    .cursor-glow.hover{width:40px;height:40px;opacity:0.3;background:#D4D4D8}
+    .cursor-ring{position:fixed;pointer-events:none;z-index:9997;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);transform:translate(-50%,-50%);transition:width 0.4s cubic-bezier(0.16,1,0.3,1),height 0.4s cubic-bezier(0.16,1,0.3,1),border-color 0.3s,opacity 0.3s;opacity:0}
+    .cursor-ring.active{opacity:0.5}
+    .cursor-ring.hover{width:64px;height:64px;border-color:rgba(255,255,255,0.3);opacity:0.4}
+    .marquee-track{display:flex;gap:2rem;animation:marquee 30s linear infinite;width:max-content}
+    .marquee-track:hover{animation-play-state:paused}
+    .marquee-wrap{overflow:hidden;mask-image:linear-gradient(to right,transparent,black 5%,black 95%,transparent);-webkit-mask-image:linear-gradient(to right,transparent,black 5%,black 95%,transparent)}
+    .lens-flare{position:absolute;pointer-events:none;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.06) 0%,transparent 70%);transform:translate(-50%,-50%);transition:left 0.1s ease-out,top 0.1s ease-out}
+    .hero-image-reveal{clip-path:inset(0 100% 0 0);transition:clip-path 1.4s cubic-bezier(0.16,1,0.3,1)}
+    .hero-image-reveal.revealed{clip-path:inset(0 0 0 0)}
+    .hero-copy{max-width:740px}
+    .system-chip{position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.09);background:rgba(255,255,255,0.045);backdrop-filter:blur(12px)}
+    .system-chip::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent);transform:translateX(-130%);animation:beamSweep 4.8s ease-in-out infinite}
+    .ticker-window{height:1.75rem;overflow:hidden}
+    .ticker-track{animation:tickerUp 8s cubic-bezier(0.16,1,0.3,1) infinite}
+    .nerve-card{position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.08);background:linear-gradient(180deg,rgba(30,30,30,0.92),rgba(12,12,12,0.96));box-shadow:0 24px 80px rgba(0,0,0,0.35)}
+    .nerve-card::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 18% 0%,rgba(255,255,255,0.08),transparent 32%),radial-gradient(circle at 85% 20%,rgba(255,255,255,0.04),transparent 35%);pointer-events:none}
+    .nerve-card::after{content:"";position:absolute;left:0;right:0;top:0;height:45%;background:linear-gradient(to bottom,rgba(255,255,255,0.04),transparent);transform:translateY(-100%);animation:scanY 6s linear infinite;pointer-events:none}
+    .data-grid{background-image:linear-gradient(rgba(255,255,255,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.035) 1px,transparent 1px);background-size:42px 42px}
+    .flow-node{position:relative;border:1px solid rgba(255,255,255,0.09);background:rgba(255,255,255,0.045);backdrop-filter:blur(10px);animation:pulseNode 4s ease-in-out infinite}
+    .flow-node:nth-child(2){animation-delay:0.6s}
+    .flow-node:nth-child(3){animation-delay:1.2s}
+    .flow-line{position:relative;overflow:hidden;background:linear-gradient(90deg,transparent,rgba(212,212,216,0.18),transparent)}
+    .flow-line::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.95),transparent);transform:translateX(-100%);animation:beamSweep 3.8s ease-in-out infinite}
+    .orbit-path{stroke-dasharray:6 10;animation:orbitDash 16s linear infinite}
+    .step-card{position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.08);background:linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018));backdrop-filter:blur(14px);transition:transform 0.45s cubic-bezier(0.16,1,0.3,1),border-color 0.35s,background 0.35s}
+    .step-card::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,rgba(255,255,255,0.12),transparent 42%);opacity:0;transition:opacity 0.45s;pointer-events:none}
+    .step-card:hover{transform:translateY(-8px);border-color:rgba(255,255,255,0.18);background:linear-gradient(180deg,rgba(255,255,255,0.085),rgba(255,255,255,0.025))}
+    .step-card:hover::before{opacity:1}
+    .step-number{background:linear-gradient(135deg,#F4F4F5,#71717A);box-shadow:0 18px 48px rgba(0,0,0,0.36),inset 0 1px 0 rgba(255,255,255,0.4)}
+    .step-connector{position:absolute;left:calc(100% + 0.55rem);top:4.25rem;width:3.2rem;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.08),rgba(255,255,255,0.42),rgba(255,255,255,0.08));overflow:hidden}
+    .step-connector::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,#fff,transparent);transform:translateX(-100%);animation:beamSweep 3.2s ease-in-out infinite}
+    .stagger-children>*{opacity:0;transform:translateY(20px);transition:all 0.7s cubic-bezier(0.16,1,0.3,1)}
+    .stagger-children.visible>*{opacity:1;transform:translateY(0)}
+    .stagger-children.visible>*:nth-child(1){transition-delay:0s}
+    .stagger-children.visible>*:nth-child(2){transition-delay:0.1s}
+    .stagger-children.visible>*:nth-child(3){transition-delay:0.2s}
+    .stagger-children.visible>*:nth-child(4){transition-delay:0.3s}
+    .stagger-children.visible>*:nth-child(5){transition-delay:0.4s}
+    .stagger-children.visible>*:nth-child(6){transition-delay:0.5s}
+    .stagger-children.visible>*:nth-child(7){transition-delay:0.6s}
+    .stagger-children.visible>*:nth-child(8){transition-delay:0.7s}
+    .stagger-children.visible>*:nth-child(9){transition-delay:0.8s}
+    .faq-answer{display:grid;grid-template-rows:0fr;transition:grid-template-rows 0.5s cubic-bezier(0.16,1,0.3,1)}
+    .faq-details[open] .faq-answer{grid-template-rows:1fr}
+    .faq-answer>div{overflow:hidden}
+    .splash{z-index:10000;position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0A0A0A;pointer-events:auto}
+    .splash.out{animation:splashOut 0.8s cubic-bezier(0.16,1,0.3,1) forwards;pointer-events:none}
+    .splash.hidden{display:none}
+    .splash-logo{position:relative;width:100px;height:100px;animation:splashLogo 1.2s cubic-bezier(0.16,1,0.3,1) forwards}
+    .splash-logo img{width:100%;height:100%;border-radius:20px;object-fit:contain;padding:10px;background:rgba(255,255,255,0.04)}
+    .splash-ring{position:absolute;inset:-20px;border-radius:50%;border:1px solid rgba(255,255,255,0.1);animation:splashRing 2s ease-out forwards}
+    .splash-ring-2{position:absolute;inset:-40px;border-radius:50%;border:1px solid rgba(255,255,255,0.05);animation:splashRing 2.5s ease-out 0.3s forwards}
+    .splash-glow{position:absolute;inset:-15px;border-radius:50%;background:radial-gradient(circle,rgba(161,161,170,0.15),transparent 70%);animation:splashGlow 2s ease-in-out infinite}
+    .splash-title{margin-top:28px;text-align:center;opacity:0;animation:splashText 0.8s cubic-bezier(0.16,1,0.3,1) 0.6s forwards}
+    .splash-title h1{font-size:32px;font-weight:800;letter-spacing:-0.5px;color:#FFFFFF;line-height:1}
+    .splash-title span{display:block;font-size:14px;font-weight:500;color:#A1A1AA;margin-top:6px;letter-spacing:2px;text-transform:uppercase}
+    .splash-dots{position:absolute;bottom:48px;left:50%;transform:translateX(-50%);display:flex;gap:6px;animation:splashDots 1s ease-in-out 0.5s forwards;opacity:0}
+    .splash-dots span{width:6px;height:6px;border-radius:50%;background:#A1A1AA;animation:splashDots 1.2s ease-in-out infinite}
+    .splash-dots span:nth-child(2){animation-delay:0.2s}
+    .splash-dots span:nth-child(3){animation-delay:0.4s}
+    @media(max-width:768px){
+        .splash-logo{width:80px;height:80px}
+        .splash-title h1{font-size:26px}
+    }
+    @media(prefers-reduced-motion:reduce){
+        .splash{animation:none}
+        .splash-logo,.splash-title{animation:none;opacity:1}
+        .splash.out{animation:none;opacity:0}
+        .splash-ring,.splash-ring-2,.splash-glow{display:none}
+        .splash-dots{display:none}
+    }
+    @media(max-width:768px){
+        .hero-glow{width:300px;height:300px}
+        .spotlight{display:none}
+    }
+    </style>
+</head>
+<body class="bg-dark text-slate-200 font-sans antialiased selection:bg-white/20 selection:text-white">
+
+<div class="splash" id="splash">
+    <div class="splash-logo" id="splashLogo">
+        <div class="splash-glow"></div>
+        <div class="splash-ring"></div>
+        <div class="splash-ring-2"></div>
+        <img src="logo.png" alt="Arventa POS" />
+    </div>
+    <div class="splash-title">
+        <h1>Arventa <span style="background:linear-gradient(135deg,#E4E4E7,#A1A1AA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">POS</span></h1>
+        <span>Point of Sale Multi-Tenant</span>
+    </div>
+    <div class="splash-dots"><span></span><span></span><span></span></div>
+</div>
+
+<div class="spotlight" id="spotlight"></div>
+<div class="noise-overlay"></div>
+<div class="scroll-bar" id="scrollBar"></div>
+
+<nav class="fixed inset-x-0 top-0 z-50 border-b border-white/5 nav-blur">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+        <a href="#" class="flex items-center gap-3 transition-all duration-300 hover:opacity-80 hover:scale-[0.98]">
+            <img src="logo.png" alt="Arventa POS" class="h-10 w-10 rounded-lg object-contain p-1" />
+            <span class="text-lg font-bold tracking-tight text-white">Arventa <span class="text-grey-400">POS</span></span>
+        </a>
+        <div class="hidden items-center gap-8 md:flex">
+            <a href="#fitur" class="nav-link text-sm font-medium text-slate-400">Fitur</a>
+            <a href="#cara-kerja" class="nav-link text-sm font-medium text-slate-400">Cara Kerja</a>
+            <a href="#harga" class="nav-link text-sm font-medium text-slate-400">Harga</a>
+            <a href="#faq" class="nav-link text-sm font-medium text-slate-400">FAQ</a>
+            <a href="#contact" class="btn-primary !py-2.5 !px-5 text-sm">Coba Demo</a>
+        </div>
+        <div class="flex items-center md:hidden">
+            <div class="hamburger" id="hamburger" onclick="toggleMobileMenu()">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+    <a href="#fitur" onclick="toggleMobileMenu()">Fitur</a>
+    <a href="#cara-kerja" onclick="toggleMobileMenu()">Cara Kerja</a>
+    <a href="#harga" onclick="toggleMobileMenu()">Harga</a>
+    <a href="#faq" onclick="toggleMobileMenu()">FAQ</a>
+    <a href="#contact" onclick="toggleMobileMenu()" class="!text-grey-300 !font-semibold">Coba Demo</a>
+</div>
+
+<section class="relative overflow-hidden pt-28 pb-16 sm:pt-36 sm:pb-20">
+    <div class="hero-glow parallax-layer" data-speed="-0.3" style="top:-200px;left:-100px;animation:float 8s ease-in-out infinite"></div>
+    <div class="hero-glow parallax-layer" data-speed="-0.2" style="bottom:-200px;right:-100px;animation:float 6s ease-in-out infinite 2s"></div>
+
+    <div class="floating-shape parallax-layer" data-speed="-0.4" style="width:300px;height:300px;top:10%;right:5%;background:radial-gradient(circle,rgba(255,255,255,0.03),transparent);animation:float 8s ease-in-out infinite"></div>
+    <div class="floating-shape parallax-layer" data-speed="-0.25" style="width:200px;height:200px;bottom:20%;left:10%;background:radial-gradient(circle,rgba(255,255,255,0.02),transparent);animation:float 6s ease-in-out infinite 1s"></div>
+
+    <div class="particle" style="top:20%;left:15%;animation-delay:0s"></div>
+    <div class="particle" style="top:40%;left:80%;animation-delay:2s"></div>
+    <div class="particle" style="top:60%;left:25%;animation-delay:4s"></div>
+    <div class="particle" style="top:80%;left:70%;animation-delay:6s"></div>
+    <div class="particle" style="top:30%;left:50%;animation-delay:1s;width:3px;height:3px"></div>
+    <div class="particle" style="top:70%;left:40%;animation-delay:3s;width:5px;height:5px"></div>
+
+    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.06)_0%,transparent_60%)]"></div>
+    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(255,255,255,0.03)_0%,transparent_50%)]"></div>
+
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
+            <div class="anim-fade-up hero-copy">
+                <p class="inline-flex items-center gap-2 rounded-full bg-white/8 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-grey-300 backdrop-blur-sm border border-white/10 anim-border-glow">
+                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.75)]"></span>
+                    Operating system untuk kasir UMKM
+                </p>
+                <h1 class="mt-5 text-4xl font-extrabold leading-[0.95] tracking-tight sm:text-6xl lg:text-7xl split-text">
+                    <span class="split-line"><span class="text-white">Taklukkan</span></span>
+                    <span class="split-line"><span class="text-gradient-strong">Operasional.</span></span>
+                    <span class="split-line"><span class="text-white">Upgrade Cara</span></span>
+                    <span class="split-line"><span class="text-gradient-strong">Jualanmu.</span></span>
+                </h1>
+                <div class="mt-5 flex flex-wrap items-center gap-2.5 text-sm text-slate-400">
+                    <span class="system-chip rounded-full px-4 py-2">Web Admin</span>
+                    <span class="system-chip rounded-full px-4 py-2">Android POS</span>
+                    <span class="system-chip rounded-full px-4 py-2">QR Pairing</span>
+                    <span class="system-chip rounded-full px-4 py-2">Multi Tenant</span>
+                </div>
+                <p class="mt-5 max-w-2xl text-base leading-relaxed text-slate-400 sm:text-lg">Arventa POS menyatukan katalog, transaksi, device kasir, printer struk, QRIS, dan tenant pembeli dalam satu alur yang terasa ringan untuk pemilik usaha, kasir, dan developer.</p>
+                <div class="mt-8 flex flex-wrap gap-4">
+                    <a href="#contact" class="btn-primary" onclick="createRipple(event)">Coba Demo</a>
+                    <a href="#cara-kerja" class="btn-secondary" onclick="createRipple(event)">Lihat Alur</a>
+                </div>
+                <div class="mt-7 grid max-w-xl gap-3 sm:grid-cols-3">
+                    <div class="rounded-2xl border border-white/8 bg-white/[0.035] p-4 backdrop-blur-sm">
+                        <p class="text-2xl font-extrabold text-white">1 klik</p>
+                        <p class="mt-1 text-xs text-slate-500">Generate tenant pembeli</p>
+                    </div>
+                    <div class="rounded-2xl border border-white/8 bg-white/[0.035] p-4 backdrop-blur-sm">
+                        <p class="text-2xl font-extrabold text-white">QR</p>
+                        <p class="mt-1 text-xs text-slate-500">Pairing Android tanpa ribet URL</p>
+                    </div>
+                    <div class="rounded-2xl border border-white/8 bg-white/[0.035] p-4 backdrop-blur-sm">
+                        <p class="text-2xl font-extrabold text-white">58/80</p>
+                        <p class="mt-1 text-xs text-slate-500">Struk thermal printer</p>
+                    </div>
+                </div>
+                <div class="mt-8 flex flex-wrap items-center gap-5 reveal stagger-2">
+                    <div class="flex -space-x-2">
+                        <div class="h-8 w-8 rounded-full border-2 border-dark bg-gradient-to-br from-grey-400 to-grey-500 flex items-center justify-center text-[10px] font-bold text-dark">A</div>
+                        <div class="h-8 w-8 rounded-full border-2 border-dark bg-gradient-to-br from-grey-500 to-grey-600 flex items-center justify-center text-[10px] font-bold text-white">B</div>
+                        <div class="h-8 w-8 rounded-full border-2 border-dark bg-gradient-to-br from-grey-400 to-grey-500 flex items-center justify-center text-[10px] font-bold text-dark">C</div>
+                        <div class="h-8 w-8 rounded-full border-2 border-dark bg-gradient-to-br from-grey-500 to-grey-600 flex items-center justify-center text-[10px] font-bold text-white">D</div>
+                        <div class="h-8 w-8 rounded-full border-2 border-dark bg-grey-700 flex items-center justify-center text-[10px] font-bold text-grey-300">+</div>
+                    </div>
+                    <div class="text-xs text-slate-400"><span class="font-semibold text-grey-300">50+ UMKM</span> siap naik kelas dengan sistem yang sama.</div>
+                </div>
+            </div>
+            <div class="relative hidden lg:block parallax-layer" data-speed="-0.15">
+                <div class="hero-image-reveal" id="heroImageReveal">
+                <div class="anim-float-rotate" style="transform-style:preserve-3d">
+                    <div class="nerve-card data-grid rounded-[28px] p-5 card-tilt" id="heroCard">
+                        <div class="relative flex items-center justify-between border-b border-white/8 pb-4">
+                            <div class="flex items-center gap-3">
+                                <img src="logo.png" alt="" class="h-9 w-9 rounded-xl object-contain p-1 ring-1 ring-white/10" />
+                                <div>
+                                    <p class="text-sm font-semibold text-white">Arventa Control</p>
+                                    <p class="text-xs text-slate-500">Live tenant: tropizz.arventa.my.id</p>
+                                </div>
+                            </div>
+                            <span class="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-300">Online</span>
+                        </div>
+
+                        <div class="relative mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                            <div class="space-y-3">
+                                <div class="flow-node rounded-2xl p-4">
+                                    <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Input</p>
+                                    <p class="mt-1 text-sm font-semibold text-white">Checkout Android</p>
+                                    <p class="mt-1 text-xs text-slate-500">150 ml alkohol + QRIS</p>
+                                </div>
+                                <div class="flow-node rounded-2xl p-4">
+                                    <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Device</p>
+                                    <p class="mt-1 text-sm font-semibold text-white">Infinix X1102</p>
+                                    <p class="mt-1 text-xs text-slate-500">paired 08:45</p>
+                                </div>
+                            </div>
+                            <div class="h-48 w-px flow-line"></div>
+                            <div class="space-y-3">
+                                <div class="flow-node rounded-2xl p-4">
+                                    <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Output</p>
+                                    <p class="mt-1 text-sm font-semibold text-white">Dashboard Admin</p>
+                                    <p class="mt-1 text-xs text-slate-500">stok, pajak, laporan</p>
+                                </div>
+                                <div class="flow-node rounded-2xl p-4">
+                                    <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Receipt</p>
+                                    <p class="mt-1 text-sm font-semibold text-white">Struk Custom</p>
+                                    <p class="mt-1 text-xs text-slate-500">logo, QR, footer</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="relative mt-5 rounded-2xl border border-white/8 bg-black/35 p-4">
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Live transaction</p>
+                                <div class="ticker-window text-right text-sm font-bold text-white">
+                                    <div class="ticker-track">
+                                        <p>Rp45.000</p>
+                                        <p>Rp111.000</p>
+                                        <p>Rp39.405</p>
+                                        <p>Rp150.000</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-3 h-2 overflow-hidden rounded-full bg-white/8">
+                                <div class="h-full w-3/4 rounded-full bg-gradient-to-r from-slate-500 via-white to-slate-400 opacity-80"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="relative overflow-hidden border-y border-white/5 bg-darker py-16 sm:py-20">
+    <div class="pointer-events-none absolute inset-0 grid-pattern opacity-25"></div>
+    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_35%_0%,rgba(255,255,255,0.06)_0%,transparent_48%)]"></div>
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative">
+        <div class="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+            <div class="reveal">
+                <p class="text-xs font-semibold uppercase tracking-widest text-grey-400">Workflow Architecture</p>
+                <h2 class="mt-3 text-3xl font-extrabold tracking-tight text-white sm:text-5xl">Sistem saraf digital untuk toko kecil.</h2>
+                <p class="mt-4 max-w-xl text-base leading-relaxed text-slate-400">Dari pembeli checkout di Android sampai pemilik toko membaca laporan, semua bergerak lewat satu pipeline yang sama.</p>
+                <div class="mt-6 grid gap-3 sm:grid-cols-2">
+                    <div class="rounded-2xl border border-white/8 bg-white/[0.035] p-4">
+                        <p class="text-xs uppercase tracking-[0.22em] text-slate-500">Tenant URL</p>
+                        <p class="mt-2 font-semibold text-white">tropizz.arventa.my.id</p>
+                    </div>
+                    <div class="rounded-2xl border border-white/8 bg-white/[0.035] p-4">
+                        <p class="text-xs uppercase tracking-[0.22em] text-slate-500">Pairing</p>
+                        <p class="mt-2 font-semibold text-white">QR membawa base URL</p>
+                    </div>
+                </div>
+            </div>
+            <div class="nerve-card rounded-[28px] p-5 sm:p-6 reveal stagger-children">
+                <div class="grid gap-4 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-center">
+                    <div class="flow-node rounded-2xl p-5">
+                        <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Kasir</p>
+                        <h3 class="mt-2 text-lg font-bold text-white">Android App</h3>
+                        <p class="mt-2 text-sm leading-6 text-slate-400">Cart, diskon, QRIS, tunai, dan cetak struk.</p>
+                    </div>
+                    <div class="hidden h-px w-12 flow-line md:block"></div>
+                    <div class="flow-node rounded-2xl p-5">
+                        <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Core</p>
+                        <h3 class="mt-2 text-lg font-bold text-white">Tenant Engine</h3>
+                        <p class="mt-2 text-sm leading-6 text-slate-400">Data dipisah otomatis dengan pos_instance_id.</p>
+                    </div>
+                    <div class="hidden h-px w-12 flow-line md:block"></div>
+                    <div class="flow-node rounded-2xl p-5">
+                        <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Owner</p>
+                        <h3 class="mt-2 text-lg font-bold text-white">Web Admin</h3>
+                        <p class="mt-2 text-sm leading-6 text-slate-400">Pantau transaksi per perangkat dan atur katalog.</p>
+                    </div>
+                </div>
+                <div class="mt-5 rounded-2xl border border-white/8 bg-black/30 p-4 font-mono text-xs text-slate-400">
+                    <div class="flex items-center gap-2 text-emerald-300">
+                        <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+                        ALL SYSTEMS OPERATIONAL
+                    </div>
+                    <p class="mt-3">POST /api/transactions -> sync stock -> save receipt -> notify admin</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="relative bg-darker py-16 sm:py-20 overflow-hidden">
+    <div class="pointer-events-none absolute inset-0 grid-pattern opacity-30"></div>
+    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_left,rgba(255,255,255,0.03)_0%,transparent_50%)]"></div>
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative">
+        <div class="mx-auto max-w-2xl text-center reveal">
+            <p class="text-xs font-semibold uppercase tracking-widest text-grey-400">Masalah UMKM</p>
+            <h2 class="mt-3 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">Tanpa POS Digital, <span class="text-gradient">Ribet Banget</span></h2>
+        </div>
+        <div class="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="rounded-2xl border border-white/5 bg-card p-6 text-center shadow-sm glow-card reveal stagger-1 card-tilt relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-red-500/5 to-transparent rounded-bl-full"></div>
+                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/10 ring-1 ring-red-500/20 transition-all duration-500 hover:ring-red-500/30">
+                    <svg class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-white">Catatan Manual</h3>
+                <p class="mt-2 text-sm text-slate-400">Transaksi masih dicatat di buku, rawan salah dan susah dilacak.</p>
+            </div>
+            <div class="rounded-2xl border border-white/5 bg-card p-6 text-center shadow-sm glow-card reveal stagger-2 card-tilt relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-red-500/5 to-transparent rounded-bl-full"></div>
+                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/10 ring-1 ring-red-500/20 transition-all duration-500 hover:ring-red-500/30">
+                    <svg class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5m10 6.75h-3.5"/></svg>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-white">Stok Sulit Dipantau</h3>
+                <p class="mt-2 text-sm text-slate-400">Tidak tahu barang mana yang habis, kehabisan stok di saat ramai.</p>
+            </div>
+            <div class="rounded-2xl border border-white/5 bg-card p-6 text-center shadow-sm glow-card reveal stagger-3 card-tilt relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-red-500/5 to-transparent rounded-bl-full"></div>
+                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/10 ring-1 ring-red-500/20 transition-all duration-500 hover:ring-red-500/30">
+                    <svg class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 19V9m5 10V5m5 14v-7m5 7V3M3 21h18"/></svg>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-white">Laporan Tidak Rapi</h3>
+                <p class="mt-2 text-sm text-slate-400">Susah tahu omset harian, bulanan, dan produk terlaris.</p>
+            </div>
+            <div class="rounded-2xl border border-white/5 bg-card p-6 text-center shadow-sm glow-card reveal stagger-4 card-tilt relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-red-500/5 to-transparent rounded-bl-full"></div>
+                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/10 ring-1 ring-red-500/20 transition-all duration-500 hover:ring-red-500/30">
+                    <svg class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V6.5A2.5 2.5 0 0 1 7.5 4h5A2.5 2.5 0 0 1 15 6.5V21M15 10h2.5A2.5 2.5 0 0 1 20 12.5V21M8 8h1M11 8h1M8 12h1M11 12h1M8 16h1M11 16h1"/></svg>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-white">Banyak Toko Sulit</h3>
+                <p class="mt-2 text-sm text-slate-400">Mengelola beberapa cabang atau toko terpisah jadi rumit.</p>
+            </div>
+        </div>
+        <div class="relative mt-14">
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div class="w-px h-12 bg-gradient-to-b from-transparent via-grey-500/30 to-transparent"></div>
+            </div>
+            <div class="relative mx-auto max-w-2xl rounded-2xl bg-gradient-to-r from-grey-700 to-grey-800 p-8 text-center text-white shadow-lg reveal overflow-hidden ring-1 ring-white/10">
+                <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.06),transparent_60%)] pointer-events-none"></div>
+                <div class="relative flex items-center justify-center gap-3">
+                    <svg class="h-6 w-6 text-grey-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z"/></svg>
+                    <p class="font-semibold">Arventa POS solusinya.<br/><span class="mt-1 text-sm text-grey-300">Satu platform untuk mengelola semua toko Anda — dari web admin sampai aplikasi kasir Android.</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="relative py-16 sm:py-20 overflow-hidden" style="background:#0C0C0C">
+    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.03)_0%,transparent_60%)]"></div>
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative">
+        <div class="grid grid-cols-2 gap-6 sm:grid-cols-4 reveal stagger-children" id="statsGrid">
+            <div class="rounded-2xl border border-white/5 bg-card/60 p-6 sm:p-8 text-center backdrop-blur-sm">
+                <p class="counter" data-target="50" data-suffix="+">0</p>
+                <p class="mt-1.5 text-xs font-medium uppercase tracking-wider text-slate-500">Tenant Aktif</p>
+            </div>
+            <div class="rounded-2xl border border-white/5 bg-card/60 p-6 sm:p-8 text-center backdrop-blur-sm">
+                <p class="counter" data-target="10000" data-suffix="+">0</p>
+                <p class="mt-1.5 text-xs font-medium uppercase tracking-wider text-slate-500">Transaksi</p>
+            </div>
+            <div class="rounded-2xl border border-white/5 bg-card/60 p-6 sm:p-8 text-center backdrop-blur-sm">
+                <p class="counter" data-target="15" data-suffix="+">0</p>
+                <p class="mt-1.5 text-xs font-medium uppercase tracking-wider text-slate-500">Kota Tersebar</p>
+            </div>
+            <div class="rounded-2xl border border-white/5 bg-card/60 p-6 sm:p-8 text-center backdrop-blur-sm">
+                <p class="counter" data-target="5" data-suffix="/5">0</p>
+                <p class="mt-1.5 text-xs font-medium uppercase tracking-wider text-slate-500">Rating Pengguna</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="fitur" class="bg-dark py-16 sm:py-20">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center reveal">
+            <p class="text-xs font-semibold uppercase tracking-widest text-grey-400">Fitur</p>
+            <h2 class="mt-3 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">Fitur Unggulan Arventa POS</h2>
+            <p class="mt-3 text-base text-slate-400">Lengkap dari hulu ke hilir, dari web sampai ke kasir Android.</p>
+        </div>
+        <div class="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-6">
+            <div class="rounded-2xl border border-white/5 bg-card p-6 shadow-sm glow-card reveal stagger-1 card-tilt lg:col-span-2 lg:row-span-2 flex flex-col justify-center">
+                <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-grey-500 to-grey-600 ring-1 ring-white/20 transition-all duration-500 hover:scale-110">
+                    <svg class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v13a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 18.5v-13Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M8 13h3M8 17h8"/></svg>
+                </div>
+                <h3 class="mt-4 text-xl font-bold text-white">Web Admin Panel</h3>
+                <p class="mt-2 text-sm text-slate-400 leading-relaxed">Atur produk, setting toko, lihat transaksi, dan kelola perangkat kasir dari mana saja melalui dashboard web yang intuitif.</p>
+                <div class="mt-4 flex gap-2 text-xs text-grey-400">
+                    <span class="rounded-full bg-white/5 px-3 py-1 border border-white/5">Manajemen Produk</span>
+                    <span class="rounded-full bg-white/5 px-3 py-1 border border-white/5">Laporan</span>
+                </div>
+            </div>
+            <div class="rounded-2xl border border-white/5 bg-card p-6 shadow-sm glow-card reveal stagger-2 card-tilt">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/8 ring-1 ring-white/10 transition-all duration-500 hover:ring-white/30 hover:bg-white/12">
+                    <svg class="h-6 w-6 text-grey-400" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><rect x="7" y="2.75" width="10" height="18.5" rx="2.5"/><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 5.5h3M12 18h.01"/></svg>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-white">Android Kasir</h3>
+                <p class="mt-2 text-sm text-slate-400">Scan barcode, cart, checkout cash/QRIS dari HP Android.</p>
+            </div>
+            <div class="rounded-2xl border border-white/5 bg-card p-6 shadow-sm glow-card reveal stagger-3 card-tilt">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/8 ring-1 ring-white/10 transition-all duration-500 hover:ring-white/30 hover:bg-white/12">
+                    <svg class="h-6 w-6 text-grey-400" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h2.5v2.5H14V14Zm4 0h2v6h-6v-2h4v-4Z"/></svg>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-white">QR Pairing</h3>
+                <p class="mt-2 text-sm text-slate-400">Hubungkan Android ke toko cukup scan QR Code.</p>
+            </div>
+            <div class="rounded-2xl border border-white/5 bg-card p-6 shadow-sm glow-card reveal stagger-1 card-tilt">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/8 ring-1 ring-white/10 transition-all duration-500 hover:ring-white/30 hover:bg-white/12">
+                    <svg class="h-6 w-6 text-grey-400" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V5.5A2.5 2.5 0 0 1 7.5 3h5A2.5 2.5 0 0 1 15 5.5V21M15 9h2.5A2.5 2.5 0 0 1 20 11.5V21M8 7h1M11 7h1M8 11h1M11 11h1M8 15h1M11 15h1"/></svg>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-white">Multi-tenant</h3>
+                <p class="mt-2 text-sm text-slate-400">Satu backend banyak toko. Data aman terpisah per toko.</p>
+            </div>
+            <div class="rounded-2xl border border-white/5 bg-card p-6 shadow-sm glow-card reveal stagger-2 card-tilt">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/8 ring-1 ring-white/10 transition-all duration-500 hover:ring-white/30 hover:bg-white/12">
+                    <svg class="h-6 w-6 text-grey-400" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9V4h12v5M6 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-1M7 14h10v7H7v-7Zm3 3h4M17 12h.01"/></svg>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-white">Cetak Struk Bluetooth</h3>
+                <p class="mt-2 text-sm text-slate-400">Thermal printer 58mm/80mm, 3 template struk pilihan.</p>
+            </div>
+            <div class="rounded-2xl border border-white/5 bg-card p-6 shadow-sm glow-card reveal stagger-3 card-tilt">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/8 ring-1 ring-white/10 transition-all duration-500 hover:ring-white/30 hover:bg-white/12">
+                    <svg class="h-6 w-6 text-grey-400" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v3M12 18v3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M3 12h3M18 12h3M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/><circle cx="12" cy="12" r="4"/></svg>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-white">Kustomisasi</h3>
+                <p class="mt-2 text-sm text-slate-400">Sesuaikan warna tema, layout, dan logo toko Anda.</p>
+            </div>
+            <div class="rounded-2xl border border-white/5 bg-card p-6 shadow-sm glow-card reveal stagger-4 card-tilt">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/8 ring-1 ring-white/10 transition-all duration-500 hover:ring-white/30 hover:bg-white/12">
+                    <svg class="h-6 w-6 text-grey-400" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5h14M5 12h14M5 19h9"/><path stroke-linecap="round" stroke-linejoin="round" d="M16.8 17.5l1.8 1.8 3.2-4.2"/></svg>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-white">Offline-ready</h3>
+                <p class="mt-2 text-sm text-slate-400">Setting & katalog tetap bisa diakses setelah sync.</p>
+            </div>
+            <div class="rounded-2xl border border-white/5 bg-card p-6 shadow-sm glow-card reveal stagger-4 card-tilt">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/8 ring-1 ring-white/10 transition-all duration-500 hover:ring-white/30 hover:bg-white/12">
+                    <svg class="h-6 w-6 text-grey-400" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9 5 12l3 3M16 9l3 3-3 3M14 5l-4 14"/></svg>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-white">Developer Console</h3>
+                <p class="mt-2 text-sm text-slate-400">Buat dan deploy tenant baru dengan satu klik.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="cara-kerja" class="relative overflow-hidden bg-darker py-20 sm:py-28">
+    <div class="pointer-events-none absolute inset-0 grid-pattern opacity-25"></div>
+    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.07)_0%,transparent_52%)]"></div>
+    <div class="pointer-events-none absolute left-1/2 top-20 h-56 w-56 -translate-x-1/2 rounded-full border border-white/10 opacity-40"></div>
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative">
+        <div class="mx-auto max-w-3xl text-center reveal">
+            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-grey-400">Cara Kerja</p>
+            <h2 class="mt-3 text-4xl font-extrabold tracking-tight text-white sm:text-6xl">Dari tenant baru ke kasir aktif dalam satu alur.</h2>
+            <p class="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-400">Setiap langkah tersambung: developer generate POS, owner mengatur toko, Android pairing otomatis, transaksi masuk, laporan langsung terbaca.</p>
+        </div>
+
+        <div class="relative mt-14 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <div class="step-card reveal stagger-1 rounded-[24px] p-5">
+                <div class="hidden lg:block step-connector"></div>
+                <div class="step-number flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-extrabold text-dark">1</div>
+                <p class="mt-5 text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Provision</p>
+                <h3 class="mt-2 text-lg font-bold text-white">Daftarkan Toko</h3>
+                <p class="mt-2 text-sm leading-6 text-slate-400">Developer membuat tenant dan URL toko pembeli dari console.</p>
+                <div class="mt-5 rounded-2xl border border-white/8 bg-black/25 p-3 font-mono text-[11px] text-slate-500">tenant.create()</div>
+            </div>
+
+            <div class="step-card reveal stagger-2 rounded-[24px] p-5">
+                <div class="hidden lg:block step-connector"></div>
+                <div class="step-number flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-extrabold text-dark">2</div>
+                <p class="mt-5 text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Configure</p>
+                <h3 class="mt-2 text-lg font-bold text-white">Atur Produk</h3>
+                <p class="mt-2 text-sm leading-6 text-slate-400">Owner mengisi katalog, diskon, pajak, QRIS, dan tampilan struk.</p>
+                <div class="mt-5 flex gap-2">
+                    <span class="rounded-full bg-white/8 px-3 py-1 text-[11px] text-slate-400">Katalog</span>
+                    <span class="rounded-full bg-white/8 px-3 py-1 text-[11px] text-slate-400">Tema</span>
+                </div>
+            </div>
+
+            <div class="step-card reveal stagger-3 rounded-[24px] p-5">
+                <div class="hidden lg:block step-connector"></div>
+                <div class="step-number flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-extrabold text-dark">3</div>
+                <p class="mt-5 text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Pair</p>
+                <h3 class="mt-2 text-lg font-bold text-white">Pairing Android</h3>
+                <p class="mt-2 text-sm leading-6 text-slate-400">Kasir scan QR. Base URL tenant dan token tersimpan otomatis.</p>
+                <div class="mt-5 grid h-12 w-12 grid-cols-3 gap-1 rounded-xl border border-white/10 bg-white/5 p-2">
+                    <span class="bg-white/70"></span><span class="bg-white/25"></span><span class="bg-white/70"></span>
+                    <span class="bg-white/25"></span><span class="bg-white/70"></span><span class="bg-white/25"></span>
+                    <span class="bg-white/70"></span><span class="bg-white/25"></span><span class="bg-white/70"></span>
+                </div>
+            </div>
+
+            <div class="step-card reveal stagger-4 rounded-[24px] p-5">
+                <div class="hidden lg:block step-connector"></div>
+                <div class="step-number flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-extrabold text-dark">4</div>
+                <p class="mt-5 text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Sell</p>
+                <h3 class="mt-2 text-lg font-bold text-white">Mulai Transaksi</h3>
+                <p class="mt-2 text-sm leading-6 text-slate-400">Kasir checkout tunai/QRIS dan cetak struk Bluetooth.</p>
+                <div class="mt-5 h-2 overflow-hidden rounded-full bg-white/8">
+                    <div class="h-full w-4/5 rounded-full bg-gradient-to-r from-slate-500 via-white to-slate-400"></div>
+                </div>
+            </div>
+
+            <div class="step-card reveal stagger-5 rounded-[24px] p-5 md:col-span-2 lg:col-span-1">
+                <div class="step-number flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-extrabold text-dark">5</div>
+                <p class="mt-5 text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Monitor</p>
+                <h3 class="mt-2 text-lg font-bold text-white">Pantau Laporan</h3>
+                <p class="mt-2 text-sm leading-6 text-slate-400">Transaksi tersimpan per perangkat, laporan siap dipantau dari admin.</p>
+                <div class="mt-5 rounded-2xl border border-emerald-400/15 bg-emerald-400/8 px-3 py-2 text-xs font-semibold text-emerald-300">LIVE DASHBOARD</div>
+            </div>
+        </div>
+
+        <div class="mx-auto mt-10 max-w-4xl rounded-[24px] border border-white/8 bg-black/25 p-4 font-mono text-xs text-slate-400 reveal">
+            <div class="flex flex-wrap items-center gap-3">
+                <span class="text-emerald-300">pipeline.ready</span>
+                <span class="text-slate-600">/</span>
+                <span>tenant -> settings -> pairing -> checkout -> report</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="border-t border-white/5 bg-darker py-16 sm:py-20">
+    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.03)_0%,transparent_60%)]"></div>
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative">
+        <div class="mx-auto max-w-2xl text-center reveal">
+            <p class="text-xs font-semibold uppercase tracking-widest text-grey-400">Testimoni</p>
+            <h2 class="mt-3 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">Apa Kata Pengguna</h2>
+        </div>
+        <div class="mt-12 grid gap-6 md:grid-cols-3">
+            <div class="rounded-2xl border border-white/5 bg-card p-6 shadow-sm glow-card reveal stagger-1">
+                <div class="flex gap-1 text-grey-400">
+                    <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                </div>
+                <p class="mt-3 text-sm text-slate-300 leading-relaxed">"Aplikasi ini sangat membantu. Sekarang saya bisa pantau omset harian dari HP. Karyawan juga gampang belajar pakainya."</p>
+                <div class="mt-4 flex items-center gap-3 border-t border-white/5 pt-4">
+                    <div class="h-10 w-10 rounded-full bg-gradient-to-br from-grey-500 to-grey-600 flex items-center justify-center text-sm font-bold text-white">S</div>
+                    <div>
+                        <p class="text-sm font-semibold text-white">Siti</p>
+                        <p class="text-xs text-slate-500">Pemilik Warung Bako</p>
+                    </div>
+                </div>
+            </div>
+            <div class="rounded-2xl border border-white/5 bg-card p-6 shadow-sm glow-card reveal stagger-2">
+                <div class="flex gap-1 text-grey-400">
+                    <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                </div>
+                <p class="mt-3 text-sm text-slate-300 leading-relaxed">"Multi-tenant bener-bener berguna buat saya yang punya 3 cabang. Data tiap toko terpisah, gak campur aduk."</p>
+                <div class="mt-4 flex items-center gap-3 border-t border-white/5 pt-4">
+                    <div class="h-10 w-10 rounded-full bg-gradient-to-br from-grey-500 to-grey-600 flex items-center justify-center text-sm font-bold text-white">R</div>
+                    <div>
+                        <p class="text-sm font-semibold text-white">Rudi</p>
+                        <p class="text-xs text-slate-500">Pemilik 3 Cabang Bakso</p>
+                    </div>
+                </div>
+            </div>
+            <div class="rounded-2xl border border-white/5 bg-card p-6 shadow-sm glow-card reveal stagger-3">
+                <div class="flex gap-1 text-grey-400">
+                    <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                </div>
+                <p class="mt-3 text-sm text-slate-300 leading-relaxed">"Cetak struk Bluetooth-nya works great! 3 template yang disediakan cukup varied, tinggal pilih sesuai kebutuhan."</p>
+                <div class="mt-4 flex items-center gap-3 border-t border-white/5 pt-4">
+                    <div class="h-10 w-10 rounded-full bg-gradient-to-br from-grey-500 to-grey-600 flex items-center justify-center text-sm font-bold text-white">A</div>
+                    <div>
+                        <p class="text-sm font-semibold text-white">Agus</p>
+                        <p class="text-xs text-slate-500">Barber Shop Owner</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="harga" class="bg-dark py-16 sm:py-20">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center reveal">
+            <p class="text-xs font-semibold uppercase tracking-widest text-grey-400">Harga</p>
+            <h2 class="mt-3 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">Pilihan Paket</h2>
+        </div>
+        <div class="mt-12 grid gap-8 lg:grid-cols-3">
+            <div class="rounded-2xl border border-white/5 bg-card p-8 shadow-sm glow-card pricing-card reveal stagger-1 card-tilt">
+                <h3 class="text-lg font-bold text-white">Starter</h3>
+                <p class="mt-1 text-sm text-slate-400">Untuk 1 toko / UMKM</p>
+                <p class="mt-6"><span class="text-4xl font-extrabold text-white">Rp 99k</span><span class="text-sm text-slate-500">/bln</span></p>
+                <p class="mt-1 text-xs text-slate-500">+ Rp 150k setup awal</p>
+                <ul class="mt-6 space-y-3">
+                    <li class="flex items-start gap-2.5 text-sm text-slate-300 transition-all duration-300 hover:translate-x-1"><svg class="mt-0.5 h-4 w-4 shrink-0 text-grey-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>Web Admin Panel</li>
+                    <li class="flex items-start gap-2.5 text-sm text-slate-300 transition-all duration-300 hover:translate-x-1"><svg class="mt-0.5 h-4 w-4 shrink-0 text-grey-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>1 Android App Kasir</li>
+                    <li class="flex items-start gap-2.5 text-sm text-slate-300 transition-all duration-300 hover:translate-x-1"><svg class="mt-0.5 h-4 w-4 shrink-0 text-grey-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>Cetak Struk Bluetooth</li>
+                    <li class="flex items-start gap-2.5 text-sm text-slate-300 transition-all duration-300 hover:translate-x-1"><svg class="mt-0.5 h-4 w-4 shrink-0 text-grey-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>Support via WhatsApp</li>
+                </ul>
+                <a href="#contact" class="btn-secondary mt-8 block text-center">Hubungi Kami</a>
+            </div>
+            <div class="rounded-2xl border bg-card p-8 shadow-lg pricing-card popular reveal stagger-2 card-tilt" style="border-color:rgba(255,255,255,0.2);box-shadow:0 0 50px rgba(255,255,255,0.03)">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-white">Business</h3>
+                    <span class="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-grey-300 ring-1 ring-white/20">Terpopuler</span>
+                </div>
+                <p class="mt-1 text-sm text-slate-400">Untuk 3-5 toko / cabang</p>
+                <p class="mt-6"><span class="text-4xl font-extrabold text-white">Rp 249k</span><span class="text-sm text-slate-500">/bln</span></p>
+                <p class="mt-1 text-xs text-slate-500">+ Rp 350k setup awal</p>
+                <ul class="mt-6 space-y-3">
+                    <li class="flex items-start gap-2.5 text-sm text-slate-300 transition-all duration-300 hover:translate-x-1"><svg class="mt-0.5 h-4 w-4 shrink-0 text-grey-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>Semua fitur Starter</li>
+                    <li class="flex items-start gap-2.5 text-sm text-slate-300 transition-all duration-300 hover:translate-x-1"><svg class="mt-0.5 h-4 w-4 shrink-0 text-grey-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>Multi-tenant (3-5 toko)</li>
+                    <li class="flex items-start gap-2.5 text-sm text-slate-300 transition-all duration-300 hover:translate-x-1"><svg class="mt-0.5 h-4 w-4 shrink-0 text-grey-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>Multiple Android devices</li>
+                    <li class="flex items-start gap-2.5 text-sm text-slate-300 transition-all duration-300 hover:translate-x-1"><svg class="mt-0.5 h-4 w-4 shrink-0 text-grey-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>Prioritas support</li>
+                </ul>
+                <a href="#contact" class="btn-primary mt-8 block text-center" onclick="createRipple(event)">Hubungi Kami</a>
+            </div>
+            <div class="rounded-2xl border border-white/5 bg-card p-8 shadow-sm glow-card pricing-card reveal stagger-3 card-tilt">
+                <h3 class="text-lg font-bold text-white">Agency / Developer</h3>
+                <p class="mt-1 text-sm text-slate-400">Untuk dijual ke banyak klien</p>
+                <p class="mt-6"><span class="text-4xl font-extrabold text-white">Custom</span></p>
+                <p class="mt-1 text-xs text-slate-500">Hubungi kami untuk harga spesial</p>
+                <ul class="mt-6 space-y-3">
+                    <li class="flex items-start gap-2.5 text-sm text-slate-300 transition-all duration-300 hover:translate-x-1"><svg class="mt-0.5 h-4 w-4 shrink-0 text-grey-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>Semua fitur Business</li>
+                    <li class="flex items-start gap-2.5 text-sm text-slate-300 transition-all duration-300 hover:translate-x-1"><svg class="mt-0.5 h-4 w-4 shrink-0 text-grey-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>Unlimited tenant</li>
+                    <li class="flex items-start gap-2.5 text-sm text-slate-300 transition-all duration-300 hover:translate-x-1"><svg class="mt-0.5 h-4 w-4 shrink-0 text-grey-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>Developer Console</li>
+                    <li class="flex items-start gap-2.5 text-sm text-slate-300 transition-all duration-300 hover:translate-x-1"><svg class="mt-0.5 h-4 w-4 shrink-0 text-grey-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>Technical support</li>
+                </ul>
+                <a href="#contact" class="btn-secondary mt-8 block text-center">Hubungi Kami</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="border-t border-white/5 bg-darker py-12">
+    <div class="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
+        <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">Built With</p>
+        <div class="marquee-wrap mt-6">
+            <div class="marquee-track">
+                <span class="text-slate-300 hover:text-white transition-all duration-300 cursor-default inline-block text-sm font-medium">Laravel</span><span class="text-slate-600 text-sm font-medium">•</span>
+                <span class="text-slate-300 hover:text-white transition-all duration-300 cursor-default inline-block text-sm font-medium">MySQL</span><span class="text-slate-600 text-sm font-medium">•</span>
+                <span class="text-slate-300 hover:text-white transition-all duration-300 cursor-default inline-block text-sm font-medium">Tailwind CSS</span><span class="text-slate-600 text-sm font-medium">•</span>
+                <span class="text-slate-300 hover:text-white transition-all duration-300 cursor-default inline-block text-sm font-medium">Alpine.js</span><span class="text-slate-600 text-sm font-medium">•</span>
+                <span class="text-slate-300 hover:text-white transition-all duration-300 cursor-default inline-block text-sm font-medium">Kotlin</span><span class="text-slate-600 text-sm font-medium">•</span>
+                <span class="text-slate-300 hover:text-white transition-all duration-300 cursor-default inline-block text-sm font-medium">Jetpack Compose</span><span class="text-slate-600 text-sm font-medium">•</span>
+                <span class="text-slate-300 hover:text-white transition-all duration-300 cursor-default inline-block text-sm font-medium">Docker</span><span class="text-slate-600 text-sm font-medium">•</span>
+                <span class="text-slate-300 hover:text-white transition-all duration-300 cursor-default inline-block text-sm font-medium">CapRover</span><span class="text-slate-600 text-sm font-medium">•</span>
+                <span class="text-slate-300 hover:text-white transition-all duration-300 cursor-default inline-block text-sm font-medium">Laravel</span><span class="text-slate-600 text-sm font-medium">•</span>
+                <span class="text-slate-300 hover:text-white transition-all duration-300 cursor-default inline-block text-sm font-medium">MySQL</span><span class="text-slate-600 text-sm font-medium">•</span>
+                <span class="text-slate-300 hover:text-white transition-all duration-300 cursor-default inline-block text-sm font-medium">Tailwind CSS</span><span class="text-slate-600 text-sm font-medium">•</span>
+                <span class="text-slate-300 hover:text-white transition-all duration-300 cursor-default inline-block text-sm font-medium">Alpine.js</span><span class="text-slate-600 text-sm font-medium">•</span>
+                <span class="text-slate-300 hover:text-white transition-all duration-300 cursor-default inline-block text-sm font-medium">Kotlin</span><span class="text-slate-600 text-sm font-medium">•</span>
+                <span class="text-slate-300 hover:text-white transition-all duration-300 cursor-default inline-block text-sm font-medium">Jetpack Compose</span><span class="text-slate-600 text-sm font-medium">•</span>
+                <span class="text-slate-300 hover:text-white transition-all duration-300 cursor-default inline-block text-sm font-medium">Docker</span><span class="text-slate-600 text-sm font-medium">•</span>
+                <span class="text-slate-300 hover:text-white transition-all duration-300 cursor-default inline-block text-sm font-medium">CapRover</span><span class="text-slate-600 text-sm font-medium">•</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="bg-darker border-t border-white/5 py-14">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center reveal">
+            <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">Cocok untuk berbagai usaha</p>
+        </div>
+        <div class="mt-8 flex flex-wrap items-center justify-center gap-3 reveal stagger-children">
+            <span class="rounded-xl border border-white/8 bg-card/60 px-4 py-2.5 text-sm font-medium text-slate-300 backdrop-blur-sm hover:border-white/20 hover:text-white transition-all duration-300">Parfume</span>
+            <span class="rounded-xl border border-white/8 bg-card/60 px-4 py-2.5 text-sm font-medium text-slate-300 backdrop-blur-sm hover:border-white/20 hover:text-white transition-all duration-300">Bakso</span>
+            <span class="rounded-xl border border-white/8 bg-card/60 px-4 py-2.5 text-sm font-medium text-slate-300 backdrop-blur-sm hover:border-white/20 hover:text-white transition-all duration-300">Barber</span>
+            <span class="rounded-xl border border-white/8 bg-card/60 px-4 py-2.5 text-sm font-medium text-slate-300 backdrop-blur-sm hover:border-white/20 hover:text-white transition-all duration-300">Retail</span>
+            <span class="rounded-xl border border-white/8 bg-card/60 px-4 py-2.5 text-sm font-medium text-slate-300 backdrop-blur-sm hover:border-white/20 hover:text-white transition-all duration-300">F&B</span>
+            <span class="rounded-xl border border-white/8 bg-card/60 px-4 py-2.5 text-sm font-medium text-slate-300 backdrop-blur-sm hover:border-white/20 hover:text-white transition-all duration-300">Jasa</span>
+            <span class="rounded-xl border border-white/8 bg-card/60 px-4 py-2.5 text-sm font-medium text-slate-300 backdrop-blur-sm hover:border-white/20 hover:text-white transition-all duration-300">Minimarket</span>
+            <span class="rounded-xl border border-white/8 bg-card/60 px-4 py-2.5 text-sm font-medium text-slate-300 backdrop-blur-sm hover:border-white/20 hover:text-white transition-all duration-300">Kafe</span>
+            <span class="rounded-xl border border-white/8 bg-card/60 px-4 py-2.5 text-sm font-medium text-slate-300 backdrop-blur-sm hover:border-white/20 hover:text-white transition-all duration-300">Laundry</span>
+        </div>
+    </div>
+</section>
+
+<section id="faq" class="bg-dark py-16 sm:py-20">
+    <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center reveal">
+            <p class="text-xs font-semibold uppercase tracking-widest text-grey-400">FAQ</p>
+            <h2 class="mt-3 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">Pertanyaan Umum</h2>
+        </div>
+        <div class="mt-12 space-y-3">
+            <details class="faq-details group rounded-2xl border border-white/5 bg-card p-5 shadow-sm transition-all duration-500 open:shadow-lg reveal stagger-1">
+                <summary class="flex cursor-pointer items-center justify-between text-sm font-semibold text-white">
+                    <span>Apakah bisa dipakai untuk banyak toko?</span>
+                    <svg class="h-5 w-5 shrink-0 text-slate-500 transition-all duration-500 group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+                </summary>
+                <div class="faq-answer"><div><p class="mt-3 text-sm leading-relaxed text-slate-400">Ya. Arventa POS menggunakan arsitektur multi-tenant. Satu backend bisa melayani banyak toko sekaligus.</p></div></div>
+            </details>
+            <details class="faq-details group rounded-2xl border border-white/5 bg-card p-5 shadow-sm transition-all duration-500 open:shadow-lg reveal stagger-2">
+                <summary class="flex cursor-pointer items-center justify-between text-sm font-semibold text-white">
+                    <span>Apakah data tiap toko terpisah?</span>
+                    <svg class="h-5 w-5 shrink-0 text-slate-500 transition-all duration-500 group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+                </summary>
+                <div class="faq-answer"><div><p class="mt-3 text-sm leading-relaxed text-slate-400">Ya. Setiap toko memiliki data yang terisolasi. Admin toko hanya bisa mengakses data tokonya sendiri.</p></div></div>
+            </details>
+            <details class="faq-details group rounded-2xl border border-white/5 bg-card p-5 shadow-sm transition-all duration-500 open:shadow-lg reveal stagger-3">
+                <summary class="flex cursor-pointer items-center justify-between text-sm font-semibold text-white">
+                    <span>Apakah bisa pakai printer Bluetooth?</span>
+                    <svg class="h-5 w-5 shrink-0 text-slate-500 transition-all duration-500 group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+                </summary>
+                <div class="faq-answer"><div><p class="mt-3 text-sm leading-relaxed text-slate-400">Bisa. Mendukung thermal printer Bluetooth 58mm dan 80mm dengan 3 template struk.</p></div></div>
+            </details>
+            <details class="faq-details group rounded-2xl border border-white/5 bg-card p-5 shadow-sm transition-all duration-500 open:shadow-lg reveal stagger-4">
+                <summary class="flex cursor-pointer items-center justify-between text-sm font-semibold text-white">
+                    <span>Apakah aplikasi Android bisa offline?</span>
+                    <svg class="h-5 w-5 shrink-0 text-slate-500 transition-all duration-500 group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+                </summary>
+                <div class="faq-answer"><div><p class="mt-3 text-sm leading-relaxed text-slate-400">Aplikasi sync data secara periodik. Setting dan katalog bisa diakses setelah sync pertama.</p></div></div>
+            </details>
+            <details class="faq-details group rounded-2xl border border-white/5 bg-card p-5 shadow-sm transition-all duration-500 open:shadow-lg reveal stagger-4">
+                <summary class="flex cursor-pointer items-center justify-between text-sm font-semibold text-white">
+                    <span>Apakah cocok untuk developer / agency?</span>
+                    <svg class="h-5 w-5 shrink-0 text-slate-500 transition-all duration-500 group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+                </summary>
+                <div class="faq-answer"><div><p class="mt-3 text-sm leading-relaxed text-slate-400">Sangat cocok. Ada Developer Console untuk membuat dan deploy tenant baru dengan satu klik.</p></div></div>
+            </details>
+        </div>
+    </div>
+</section>
+
+<section id="contact" class="relative overflow-hidden bg-darker py-20 sm:py-28">
+    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.05)_0%,transparent_60%)]"></div>
+    <div class="pointer-events-none absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-gradient-radial from-grey-500/3 to-transparent"></div>
+    <div class="mx-auto max-w-2xl px-4 text-center sm:px-6 lg:px-8 relative">
+        <div class="reveal scale-in">
+            <div class="img-zoom inline-block rounded-2xl">
+                <img src="logo.png" alt="Arventa POS" class="mx-auto h-16 w-16 rounded-2xl shadow-lg shadow-black/20 object-contain p-2 ring-1 ring-white/10" />
+            </div>
+        </div>
+        <h2 class="mt-6 text-3xl font-extrabold text-white sm:text-4xl reveal">Siap Memulai?</h2>
+        <p class="mt-4 text-base text-slate-400 reveal stagger-1 max-w-md mx-auto">Hubungi kami untuk demo, konsultasi, atau informasi harga. Tim kami siap membantu.</p>
+        <div class="mt-8 flex flex-wrap justify-center gap-4 reveal stagger-2">
+            <a href="mailto:hello@arventa.my.id" class="btn-primary inline-flex items-center gap-2" onclick="createRipple(event)">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"/></svg>
+                hello@arventa.my.id
+            </a>
+            <a href="https://wa.me/6281234567890" class="btn-secondary inline-flex items-center gap-2" onclick="createRipple(event)">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242"/></svg>
+                WhatsApp
+            </a>
+        </div>
+        <p class="mt-6 text-xs text-slate-500 reveal stagger-3">Atau kirim email ke <span class="text-grey-400">hello@arventa.my.id</span> — kami balas dalam 1x24 jam</p>
+    </div>
+</section>
+
+<footer class="bg-darker border-t border-white/5 py-12">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+                <div class="flex items-center gap-2.5">
+                    <img src="logo.png" alt="Arventa POS" class="h-9 w-9 rounded-lg object-contain p-1" />
+                    <span class="text-base font-bold text-white">Arventa POS</span>
+                </div>
+                <p class="mt-3 text-sm text-slate-400">Point of Sale multi-tenant untuk UMKM Indonesia.</p>
+            </div>
+            <div>
+                <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Produk</h4>
+                <ul class="mt-4 space-y-2.5">
+                    <li><a href="#fitur" class="text-sm text-slate-400 transition-all duration-300 hover:text-white hover:translate-x-1.5 inline-block">Fitur</a></li>
+                    <li><a href="#harga" class="text-sm text-slate-400 transition-all duration-300 hover:text-white hover:translate-x-1.5 inline-block">Harga</a></li>
+                    <li><a href="#contact" class="text-sm text-slate-400 transition-all duration-300 hover:text-white hover:translate-x-1.5 inline-block">Demo</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Kontak</h4>
+                <ul class="mt-4 space-y-2.5">
+                    <li><span class="text-sm text-slate-400">hello@arventa.my.id</span></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Tech Stack</h4>
+                <ul class="mt-4 space-y-2.5">
+                    <li><span class="text-sm text-slate-400">Laravel + MySQL</span></li>
+                    <li><span class="text-sm text-slate-400">Kotlin + Jetpack Compose</span></li>
+                    <li><span class="text-sm text-slate-400">Docker + CapRover</span></li>
+                </ul>
+            </div>
+        </div>
+        <div class="mt-10 border-t border-white/5 pt-6 text-center text-xs text-slate-500">&copy; 2026 Arventa POS. All rights reserved.</div>
+    </div>
+</footer>
+
+<div class="fixed bottom-0 inset-x-0 z-40 border-t border-white/10 bg-dark/95 backdrop-blur-xl py-3 px-4 md:hidden flex items-center justify-between">
+    <div>
+        <p class="text-xs text-slate-400">Mulai dari</p>
+        <p class="text-sm font-bold text-white">Rp 99k/bln</p>
+    </div>
+    <a href="#contact" class="btn-primary !py-2.5 !px-6 text-sm" onclick="createRipple(event)">Coba Demo Gratis</a>
+</div>
+
+<button class="back-to-top" id="backToTop" onclick="lenis.scrollTo(0)" aria-label="Kembali ke atas">
+    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5"/></svg>
+</button>
+
+<script>
+const splash=document.getElementById('splash');
+function startApp(){
+    splash.classList.add('out');
+    setTimeout(()=>{
+        splash.classList.add('hidden');
+        initApp();
+    },800);
+}
+function initApp(){
+
+const lenis=new Lenis({duration:1.8,easing:(t)=>Math.min(1,1.001-Math.pow(2,-10*t)),orientation:'vertical',smoothWheel:true});
+window.lenis=lenis;
+function raf(time){lenis.raf(time);requestAnimationFrame(raf)}
+requestAnimationFrame(raf);
+
+const scrollBar=document.getElementById('scrollBar');
+lenis.on('scroll',({scroll,limit})=>{
+    scrollBar.style.width=limit>0?(scroll/limit)*100+'%':'0%';
+    document.getElementById('backToTop').classList.toggle('visible',scroll>400);
+});
+
+function toggleMobileMenu(){
+    const menu=document.getElementById('mobileMenu');
+    const hamburger=document.getElementById('hamburger');
+    menu.classList.toggle('open');
+    hamburger.classList.toggle('active');
+    document.body.style.overflow=document.body.style.overflow==='hidden'?'':'hidden';
+}
+
+function createRipple(e){
+    const btn=e.currentTarget;
+    const rect=btn.getBoundingClientRect();
+    const ripple=document.createElement('span');
+    ripple.className='ripple';
+    const size=Math.max(rect.width,rect.height);
+    ripple.style.width=ripple.style.height=size+'px';
+    ripple.style.left=(e.clientX-rect.left-size/2)+'px';
+    ripple.style.top=(e.clientY-rect.top-size/2)+'px';
+    btn.appendChild(ripple);
+    ripple.addEventListener('animationend',()=>ripple.remove());
+}
+window.toggleMobileMenu=toggleMobileMenu;
+window.createRipple=createRipple;
+
+const revealObserver=new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+        if(entry.isIntersecting){
+            entry.target.classList.add('visible');
+            if(entry.target.classList.contains('split-text')){
+                entry.target.querySelectorAll('.split-line').forEach((line,i)=>{
+                    line.querySelector('span').style.animationDelay=(i*0.15+0.3)+'s';
+                    line.classList.add('visible');
+                });
+            }
+        }
+    });
+},{threshold:0.12});
+document.querySelectorAll('.reveal,.split-text,.stagger-children').forEach(el=>revealObserver.observe(el));
+
+const counterObserver=new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+        if(entry.isIntersecting&&!entry.target.dataset.counted){
+            entry.target.dataset.counted='true';
+            const target=parseInt(entry.target.dataset.target);
+            const suffix=entry.target.dataset.suffix||'';
+            const duration=2000;
+            const start=performance.now();
+            function update(now){
+                const elapsed=now-start;
+                const progress=Math.min(elapsed/duration,1);
+                const eased=1-Math.pow(1-progress,3);
+                const current=Math.round(eased*target);
+                entry.target.textContent=current.toLocaleString()+suffix;
+                if(progress<1)requestAnimationFrame(update);
+                else entry.target.textContent=target.toLocaleString()+suffix;
+            }
+            requestAnimationFrame(update);
+        }
+    });
+},{threshold:0.3});
+document.querySelectorAll('.counter').forEach(el=>counterObserver.observe(el));
+
+lenis.on('scroll',({scroll,limit})=>{
+    document.querySelectorAll('.parallax-layer').forEach(el=>{
+        const speed=parseFloat(el.dataset.speed)||-0.1;
+        const rect=el.getBoundingClientRect();
+        const center=rect.top+rect.height/2;
+        const viewportCenter=window.innerHeight/2;
+        const offset=(center-viewportCenter)*speed;
+        el.style.transform=`translateY(${offset}px)`;
+    });
+});
+
+const heroRevealObserver=new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+        if(entry.isIntersecting){
+            setTimeout(()=>entry.target.classList.add('revealed'),300);
+            heroRevealObserver.unobserve(entry.target);
+        }
+    });
+},{threshold:0.2});
+const heroReveal=document.getElementById('heroImageReveal');
+if(heroReveal)heroRevealObserver.observe(heroReveal);
+
+let cursorX=-100,cursorY=-100,ringX=-100,ringY=-100;
+const cursorDot=document.createElement('div');
+cursorDot.className='cursor-glow';
+const cursorRing=document.createElement('div');
+cursorRing.className='cursor-ring';
+document.body.appendChild(cursorDot);
+document.body.appendChild(cursorRing);
+document.addEventListener('mousemove',e=>{
+    cursorX=e.clientX;
+    cursorY=e.clientY;
+    cursorDot.style.left=cursorX+'px';
+    cursorDot.style.top=cursorY+'px';
+    cursorDot.classList.add('active');
+    cursorRing.classList.add('active');
+});
+document.addEventListener('mouseleave',()=>{
+    cursorDot.classList.remove('active');
+    cursorRing.classList.remove('active');
+});
+function animateRing(){
+    ringX+=(cursorX-ringX)*0.12;
+    ringY+=(cursorY-ringY)*0.12;
+    cursorRing.style.left=ringX+'px';
+    cursorRing.style.top=ringY+'px';
+    requestAnimationFrame(animateRing);
+}
+animateRing();
+document.querySelectorAll('a,button,.card-tilt,.glow-card,.pricing-card,.nav-link').forEach(el=>{
+    el.addEventListener('mouseenter',()=>{cursorDot.classList.add('hover');cursorRing.classList.add('hover')});
+    el.addEventListener('mouseleave',()=>{cursorDot.classList.remove('hover');cursorRing.classList.remove('hover')});
+});
+
+document.querySelectorAll('a[href^="#"]').forEach(anchor=>{
+    anchor.addEventListener('click',e=>{
+        const id=anchor.getAttribute('href');
+        if(id==='#')return;
+        const target=document.querySelector(id);
+        if(target){e.preventDefault();lenis.scrollTo(target)}
+    });
+});
+
+document.querySelectorAll('.card-tilt').forEach(card=>{
+    card.addEventListener('mousemove',e=>{
+        const rect=card.getBoundingClientRect();
+        const x=(e.clientX-rect.left)/rect.width-0.5;
+        const y=(e.clientY-rect.top)/rect.height-0.5;
+        card.style.transform=`perspective(800px) rotateY(${x*6}deg) rotateX(${-y*6}deg) translateY(${card.classList.contains('glow-card')&&card.matches(':hover')?-6:0}px)`;
+    });
+    card.addEventListener('mouseleave',()=>{
+        card.style.transform='';
+    });
+});
+
+const spotlight=document.getElementById('spotlight');
+if(spotlight){
+    document.addEventListener('mousemove',e=>{
+        spotlight.style.left=e.clientX+'px';
+        spotlight.style.top=e.clientY+'px';
+    });
+}
+
+}
+
+const prefersReduced=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+const splashDelay=prefersReduced?100:3200;
+if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',()=>setTimeout(startApp,splashDelay));
+}else{
+    setTimeout(startApp,splashDelay);
+}
+</script>
+</body>
+</html>
