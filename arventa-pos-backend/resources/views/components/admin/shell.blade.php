@@ -11,6 +11,7 @@
     $adminBrandName = $setting->admin_brand_name ?: 'Arventa POS';
     $adminConsoleLabel = $setting->admin_console_label ?: 'Admin Console';
     $logoUrl = $setting->logo_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($setting->logo_path) : null;
+    $appLogoUrl = asset('arventa-logo.png');
     $firstError = $errors->first();
     $currentAdmin = $currentAdmin ?? null;
     $navItems = [
@@ -54,14 +55,10 @@
             :style="admin.sidebarStyle === 'accent' ? `background-color: ${admin.themeColor}` : ''"
         >
             <div class="flex h-16 items-center gap-3 border-b border-slate-200/70 px-5">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg text-sm font-bold text-white shadow-sm" style="background-color: var(--accent)">
-                    @if ($logoUrl)
-                        <img src="{{ $logoUrl }}" alt="{{ $adminBrandName }} logo" class="h-full w-full object-cover">
-                    @else
-                        {{ strtoupper(mb_substr($adminBrandName, 0, 1)) }}
-                    @endif
+                <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-slate-950 shadow-sm shadow-slate-950/20">
+                    <img src="{{ $appLogoUrl }}" alt="Arventa POS logo" class="h-full w-full object-contain p-1.5">
                 </div>
-                <div>
+                <div class="min-w-0">
                     <p class="text-sm font-semibold" :class="admin.sidebarStyle === 'light' ? 'text-slate-950' : 'text-white'">{{ $adminBrandName }}</p>
                     <p class="text-xs" :class="admin.sidebarStyle === 'light' ? 'text-slate-500' : 'text-white/65'">{{ $adminConsoleLabel }}</p>
                 </div>
@@ -110,20 +107,32 @@
         </aside>
 
         <div class="lg:pl-72">
-            <header class="sticky top-0 z-30 border-b border-slate-200/80 bg-white/75 backdrop-blur-xl">
-                <div class="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+            <header class="sticky top-0 z-30 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl">
+                <div class="mx-auto flex h-16 max-w-[1500px] items-center justify-between px-4 sm:px-6 lg:px-8">
                     <div class="flex items-center gap-3">
                         <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-[0.97] lg:hidden" @click="sidebarOpen = true">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
                         </button>
-                        <div>
-                            <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ $adminBrandName }}</p>
+                        <div class="hidden h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-950 shadow-sm shadow-slate-950/10 sm:flex">
+                            <img src="{{ $appLogoUrl }}" alt="Arventa POS logo" class="h-full w-full object-contain p-1.5">
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                                <p class="truncate text-xs font-medium uppercase tracking-wide text-slate-500">{{ $adminBrandName }}</p>
+                                <span class="hidden rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500 sm:inline-flex">Tenant</span>
+                            </div>
                             <h1 class="text-lg font-semibold text-slate-950 sm:text-xl">{{ $title }}</h1>
                         </div>
                     </div>
                     <div class="hidden items-center gap-2 sm:flex">
                         <div class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 shadow-sm">
-                            <span class="h-2.5 w-2.5 rounded-full" style="background-color: var(--app-accent)"></span>
+                            @if ($logoUrl)
+                                <span class="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100">
+                                    <img src="{{ $logoUrl }}" alt="{{ $setting->store_name }} logo" class="h-full w-full object-contain p-0.5">
+                                </span>
+                            @else
+                                <span class="h-2.5 w-2.5 rounded-full" style="background-color: var(--app-accent)"></span>
+                            @endif
                             {{ $currentAdmin?->name ?? $setting->store_name }}
                         </div>
                         <form method="post" action="{{ route('admin.logout') }}">
@@ -134,7 +143,7 @@
                 </div>
             </header>
 
-            <div class="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+            <div class="mx-auto flex max-w-[1500px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
                 @if ($subtitle)
                     <div class="animate-[fade-up_300ms_ease-out_both] rounded-2xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-950/[0.03]">
                         <p class="text-sm font-medium" style="color: var(--accent)">{{ $title }}</p>
