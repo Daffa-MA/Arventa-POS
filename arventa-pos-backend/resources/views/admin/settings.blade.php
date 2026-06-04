@@ -96,9 +96,9 @@
                 </div>
                 <div class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4">
                     <div class="flex items-center gap-3">
-                        <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-950 text-sm font-bold text-white">
+                        <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl text-sm font-bold text-white shadow-sm" style="background-color: var(--accent)">
                             @if ($logoUrl)
-                                <img src="{{ $logoUrl }}" alt="Logo {{ $setting->store_name }}" class="h-full w-full object-cover">
+                                <img src="{{ $logoUrl }}" alt="Logo {{ $setting->store_name }}" class="h-full w-full object-contain p-0.5">
                             @else
                                 {{ strtoupper(mb_substr($setting->admin_brand_name ?? $setting->store_name, 0, 1)) }}
                             @endif
