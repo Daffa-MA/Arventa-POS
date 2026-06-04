@@ -87,12 +87,13 @@ class AuthController extends Controller
 
         return User::query()->updateOrCreate([
             'username' => $envUsername,
+            'role' => 'developer',
         ], [
             'name' => config('services.arventa_developer.name', 'Arventa Developer'),
             'email' => $envEmail ?: 'developer@arventa.local',
             'password' => $envPassword,
-            'role' => 'developer',
             'is_active' => true,
+            'pos_instance_id' => null,
         ]);
     }
 }

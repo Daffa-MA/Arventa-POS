@@ -47,7 +47,7 @@ class DeveloperPosController extends Controller
             'subdomain' => ['nullable', 'string', 'max:60', 'regex:/^(?!-)[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('pos_instances', 'subdomain')],
             'database_name' => ['nullable', 'alpha_dash:ascii', 'max:80', Rule::unique('pos_instances', 'database_name')],
             'package_name' => ['nullable', 'regex:/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/', 'max:160', Rule::unique('pos_instances', 'package_name')],
-            'admin_username' => ['nullable', 'alpha_dash:ascii', 'max:60', Rule::unique('users', 'username')],
+            'admin_username' => ['nullable', 'alpha_dash:ascii', 'max:60'],
             'admin_password' => ['nullable', 'string', 'min:8', 'max:120'],
         ]);
 
@@ -270,7 +270,7 @@ class DeveloperPosController extends Controller
         $username = $base;
         $suffix = 2;
 
-        while (User::query()->where('username', $username)->exists()) {
+        while (User::query()->where('role', 'admin')->where('username', $username)->whereNull('pos_instance_id')->exists()) {
             $username = $base.'_'.$suffix;
             $suffix++;
         }
