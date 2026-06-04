@@ -10,6 +10,14 @@
         $receiptQrUrl = $setting->receipt_qr_image_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($setting->receipt_qr_image_path) : null;
     @endphp
 
+    <nav class="grid gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm shadow-slate-950/[0.03] sm:grid-cols-2 xl:grid-cols-5">
+        <a href="#store-identity" class="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-950">Identitas</a>
+        <a href="#receipt-settings" class="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-950">Struk</a>
+        <a href="#admin-theme" class="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-950">Web Admin</a>
+        <a href="#payment-settings" class="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-950">Pembayaran</a>
+        <a href="#admin-account" class="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-950">Akun</a>
+    </nav>
+
     <form
         method="post"
         action="{{ route('admin.settings.update') }}"
@@ -82,7 +90,7 @@
         @method('put')
 
         <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px] xl:items-start">
-            <fieldset class="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 xl:col-start-1 xl:row-start-1">
+            <fieldset id="store-identity" class="scroll-mt-24 grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 xl:col-start-1 xl:row-start-1">
                 <legend class="px-1 text-lg font-semibold text-slate-950">Identitas Toko</legend>
                 <div>
                     <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Nama toko</label>
@@ -119,6 +127,10 @@
                     <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Footer struk</label>
                     <input name="receipt_footer" x-model="preview.receiptFooter" value="{{ old('receipt_footer', $setting->receipt_footer) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-blue-500/10">
                 </div>
+            </fieldset>
+
+            <fieldset id="receipt-settings" class="scroll-mt-24 grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 xl:col-start-1 xl:row-start-2">
+                <legend class="px-1 text-lg font-semibold text-slate-950">Pengaturan Struk</legend>
                 <div class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4">
                     <div>
                         <p class="text-sm font-semibold text-slate-950">Template Struk</p>
@@ -234,7 +246,7 @@
                 </div>
             </fieldset>
 
-            <fieldset class="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 xl:col-start-1 xl:row-start-3">
+            <fieldset id="payment-settings" class="scroll-mt-24 grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 xl:col-start-1 xl:row-start-4">
                 <legend class="px-1 text-lg font-semibold text-slate-950">Biaya dan Pembayaran</legend>
                 <div class="grid gap-4 sm:grid-cols-3">
                     <div>
@@ -277,7 +289,7 @@
                 </div>
             </fieldset>
 
-            <fieldset class="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 xl:col-start-1 xl:row-start-2">
+            <fieldset id="admin-theme" class="scroll-mt-24 grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 xl:col-start-1 xl:row-start-3">
                 <legend class="px-1 text-lg font-semibold text-slate-950">Tampilan Web Admin</legend>
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
@@ -315,7 +327,7 @@
                 </div>
             </fieldset>
 
-            <fieldset class="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 xl:sticky xl:top-24 xl:col-start-2 xl:row-span-4 xl:row-start-1 xl:self-start">
+            <fieldset class="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 xl:sticky xl:top-24 xl:col-start-2 xl:row-span-5 xl:row-start-1 xl:self-start">
                 <legend class="px-1 text-lg font-semibold text-slate-950">Preview Struk</legend>
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
@@ -465,7 +477,8 @@
     <form
         method="post"
         action="{{ route('admin.password.update') }}"
-        class="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/[0.03] sm:p-6"
+        id="admin-account"
+        class="scroll-mt-24 mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/[0.03] sm:p-6"
     >
         @csrf
         @method('put')

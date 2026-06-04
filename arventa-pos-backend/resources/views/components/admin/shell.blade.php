@@ -148,9 +148,9 @@
 
             <div class="mx-auto flex max-w-[1500px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
                 @if ($subtitle)
-                    <div class="animate-[fade-up_300ms_ease-out_both] rounded-2xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-950/[0.03]">
-                        <p class="text-sm font-medium" style="color: var(--accent)">{{ $title }}</p>
-                        <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{{ $subtitle }}</p>
+                    <div class="animate-[fade-up_300ms_ease-out_both] flex items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm shadow-slate-950/[0.03] sm:px-5">
+                        <span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: var(--accent)"></span>
+                        <p class="max-w-4xl text-sm leading-6 text-slate-600">{{ $subtitle }}</p>
                     </div>
                 @endif
 
