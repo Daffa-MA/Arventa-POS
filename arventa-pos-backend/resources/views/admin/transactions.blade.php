@@ -88,6 +88,11 @@
                                 <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                                     {{ $sale->cashier?->name ?? 'Kasir' }}
                                 </span>
+                                @if (($sale->sync_source ?? 'online') === 'offline')
+                                    <span class="inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">
+                                        Offline sync
+                                    </span>
+                                @endif
                             </div>
                         </div>
                         <div class="text-left lg:text-right">

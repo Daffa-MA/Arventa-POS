@@ -216,6 +216,7 @@ data class SaleReceipt(
     val changeAmount: Double,
     val paymentMethod: String,
     val items: List<SaleReceiptItem>,
+    val syncStatus: String = "synced",
 )
 
 data class SaleReceiptItem(
@@ -229,6 +230,23 @@ data class PrinterDevice(
     val name: String,
     val address: String,
     val bonded: Boolean = false,
+)
+
+data class PendingSale(
+    val clientSaleId: String,
+    val clientCreatedAt: String,
+    val lines: List<CheckoutLine>,
+    val subtotal: Double,
+    val taxTotal: Double,
+    val serviceTotal: Double,
+    val grandTotal: Double,
+    val paidAmount: Double,
+    val paymentMethod: String,
+)
+
+data class CheckoutResult(
+    val receipt: SaleReceipt,
+    val queued: Boolean,
 )
 
 private object PrinterStore {
@@ -251,6 +269,109 @@ private object PrinterStore {
 
     fun clear(context: Context) {
         context.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit().clear().apply()
+    }
+}
+
+private object OfflineSaleQueue {
+    private const val PREF = "arventa_offline_sales"
+    private const val KEY_ITEMS = "items"
+
+    fun count(context: Context): Int = all(context).size
+
+    fun all(context: Context): List<PendingSale> {
+        val raw = context.getSharedPreferences(PREF, Context.MODE_PRIVATE).getString(KEY_ITEMS, "[]") ?: "[]"
+        return runCatching {
+            val array = org.json.JSONArray(raw)
+            buildList {
+                for (index in 0 until array.length()) {
+                    add(array.getJSONObject(index).toPendingSale())
+                }
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    fun enqueue(context: Context, sale: PendingSale) {
+        val next = all(context)
+            .filterNot { it.clientSaleId == sale.clientSaleId }
+            .plus(sale)
+        save(context, next)
+    }
+
+    fun remove(context: Context, clientSaleId: String) {
+        save(context, all(context).filterNot { it.clientSaleId == clientSaleId })
+    }
+
+    fun clear(context: Context) {
+        context.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit().clear().apply()
+    }
+
+    private fun save(context: Context, sales: List<PendingSale>) {
+        val array = org.json.JSONArray()
+        sales.forEach { sale -> array.put(sale.toJson()) }
+        context.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()
+            .putString(KEY_ITEMS, array.toString())
+            .apply()
+    }
+
+    private fun PendingSale.toJson(): JSONObject {
+        val itemArray = org.json.JSONArray()
+        lines.forEach { line ->
+            itemArray.put(
+                JSONObject()
+                    .put("product_id", line.productId)
+                    .put("name", line.name)
+                    .put("unit", line.unit)
+                    .put("unit_price", line.unitPrice)
+                    .put("quantity", line.quantity)
+                    .put("line_total", line.lineTotal)
+                    .put("free_quantity", line.freeQuantity)
+                    .put("charged_quantity", line.chargedQuantity),
+            )
+        }
+
+        return JSONObject()
+            .put("client_sale_id", clientSaleId)
+            .put("client_created_at", clientCreatedAt)
+            .put("items", itemArray)
+            .put("subtotal", subtotal)
+            .put("tax_total", taxTotal)
+            .put("service_charge_total", serviceTotal)
+            .put("grand_total", grandTotal)
+            .put("paid_amount", paidAmount)
+            .put("payment_method", paymentMethod)
+    }
+
+    private fun JSONObject.toPendingSale(): PendingSale {
+        val itemArray = getJSONArray("items")
+        val lines = buildList {
+            for (index in 0 until itemArray.length()) {
+                val item = itemArray.getJSONObject(index)
+                add(
+                    CheckoutLine(
+                        productId = if (item.isNull("product_id")) null else item.optInt("product_id"),
+                        name = item.optString("name"),
+                        unit = item.optString("unit", "pcs"),
+                        unitPrice = item.optDouble("unit_price", 0.0).roundToInt(),
+                        quantity = item.optDouble("quantity", 0.0),
+                        lineTotal = item.optDouble("line_total", 0.0),
+                        freeQuantity = if (item.isNull("free_quantity")) null else item.optDouble("free_quantity"),
+                        chargedQuantity = item.optDouble("charged_quantity", item.optDouble("quantity", 0.0)),
+                    )
+                )
+            }
+        }
+
+        return PendingSale(
+            clientSaleId = getString("client_sale_id"),
+            clientCreatedAt = optString("client_created_at").ifBlank { isoNow() },
+            lines = lines,
+            subtotal = optDouble("subtotal", 0.0),
+            taxTotal = optDouble("tax_total", 0.0),
+            serviceTotal = optDouble("service_charge_total", 0.0),
+            grandTotal = optDouble("grand_total", 0.0),
+            paidAmount = optDouble("paid_amount", 0.0),
+            paymentMethod = optString("payment_method", "cash"),
+        )
     }
 }
 
@@ -301,11 +422,14 @@ fun ArventaApp() {
     val scope = rememberCoroutineScope()
     var session by remember { mutableStateOf(SessionStore.load(context)) }
     var posState by remember { mutableStateOf(PosState(loading = session != null)) }
+    var pendingSyncCount by remember { mutableStateOf(OfflineSaleQueue.count(context)) }
 
     LaunchedEffect(session) {
         val active = session ?: return@LaunchedEffect
         posState = posState.copy(loading = true, error = null)
         posState = try {
+            PosRepository.flushPending(context, active)
+            pendingSyncCount = OfflineSaleQueue.count(context)
             PosRepository.sync(active)
         } catch (error: Exception) {
             PosState(loading = false, error = error.message ?: "Gagal sync data toko.")
@@ -324,16 +448,22 @@ fun ArventaApp() {
             state = posState,
             session = session,
             cashierName = session?.cashierName.orEmpty(),
+            pendingSyncCount = pendingSyncCount,
             onRefresh = {
                 val active = session ?: return@PosScreen
                 scope.launch {
                     posState = posState.copy(loading = true, error = null)
                     posState = try {
+                        PosRepository.flushPending(context, active)
+                        pendingSyncCount = OfflineSaleQueue.count(context)
                         PosRepository.sync(active)
                     } catch (error: Exception) {
                         posState.copy(loading = false, error = error.message ?: "Gagal refresh.")
                     }
                 }
+            },
+            onPendingSyncChanged = {
+                pendingSyncCount = OfflineSaleQueue.count(context)
             },
             onDisconnect = {
                 val active = session
@@ -609,9 +739,12 @@ fun PosScreen(
     state: PosState,
     session: PairingSession?,
     cashierName: String,
+    pendingSyncCount: Int,
     onRefresh: () -> Unit,
+    onPendingSyncChanged: () -> Unit,
     onDisconnect: () -> Unit,
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val setting = state.setting
     val items = state.items
@@ -661,11 +794,24 @@ fun PosScreen(
             checkoutError = null
             scope.launch {
                 try {
-                    val sale = PosRepository.checkout(active, checkoutLines, paidAmount, method)
-                    receipt = sale
+                    val result = PosRepository.checkout(
+                        context = context,
+                        session = active,
+                        lines = checkoutLines,
+                        subtotal = subtotal,
+                        taxTotal = tax,
+                        serviceTotal = service,
+                        grandTotal = total,
+                        paidAmount = paidAmount,
+                        paymentMethod = method,
+                    )
+                    receipt = result.receipt
                     checkoutOpen = false
                     cart.clear()
-                    onRefresh()
+                    onPendingSyncChanged()
+                    if (!result.queued) {
+                        onRefresh()
+                    }
                 } catch (error: Exception) {
                     checkoutError = error.message ?: "Checkout gagal."
                 } finally {
@@ -711,11 +857,15 @@ fun PosScreen(
 
                     if (contentUseSideCart) {
                         Row(Modifier.fillMaxSize().padding(contentPadding), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                            ProductCatalog(setting, saleItems, cart, Modifier.weight(1f).fillMaxSize(), tileMinWidth)
+                            Column(Modifier.weight(1f).fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                PendingSyncBanner(setting, pendingSyncCount)
+                                ProductCatalog(setting, saleItems, cart, Modifier.weight(1f), tileMinWidth)
+                            }
                             CartPanel(setting, items, discountItems, cart, subtotal, tax, service, total, checkoutLines.isNotEmpty(), openCheckout, Modifier.width(cartWidth).fillMaxHeight())
                         }
                     } else {
                         Column(Modifier.fillMaxSize().padding(contentPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            PendingSyncBanner(setting, pendingSyncCount)
                             ProductCatalog(setting, saleItems, cart, Modifier.weight(1f), tileMinWidth)
                             if (setting.showCart) {
                                 CartPanel(setting, items, discountItems, cart, subtotal, tax, service, total, checkoutLines.isNotEmpty(), openCheckout, Modifier.fillMaxWidth())
@@ -771,6 +921,43 @@ fun PosScreen(
             setting = setting,
             onDismiss = { printerSetupOpen = false },
         )
+    }
+}
+
+@Composable
+private fun PendingSyncBanner(setting: StoreSetting, pendingSyncCount: Int) {
+    if (pendingSyncCount <= 0) return
+
+    Surface(
+        color = Color(0xFFFFFBEB),
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, Color(0xFFFDE68A)),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "$pendingSyncCount transaksi menunggu sync",
+                    color = Color(0xFF92400E),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Text(
+                    "Transaksi aman di perangkat. Tekan Sync saat internet aktif.",
+                    color = Color(0xFFB45309),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .padding(start = 10.dp)
+                    .size(10.dp)
+                    .background(setting.themeColor, RoundedCornerShape(999.dp)),
+            )
+        }
     }
 }
 
@@ -1554,6 +1741,21 @@ private fun ReceiptDialog(setting: StoreSetting, sale: SaleReceipt, onDone: () -
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(sale.invoiceNumber, color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
+                if (sale.syncStatus == "pending") {
+                    Surface(
+                        color = Color(0xFFFFFBEB),
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, Color(0xFFFDE68A)),
+                    ) {
+                        Text(
+                            "Tersimpan offline. Tekan Sync saat internet aktif.",
+                            color = Color(0xFF92400E),
+                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                        )
+                    }
+                }
                 sale.items.forEach { item ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("${formatQuantity(item.quantity)} ${item.unit} x ${item.name}", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
@@ -1940,30 +2142,81 @@ private object PosRepository {
         PosState(setting = store.toSetting(session.baseUrl), items = items, loading = false)
     }
 
-    suspend fun checkout(session: PairingSession, lines: List<CheckoutLine>, paidAmount: Double, paymentMethod: String): SaleReceipt = withContext(Dispatchers.IO) {
+    suspend fun checkout(
+        context: Context,
+        session: PairingSession,
+        lines: List<CheckoutLine>,
+        subtotal: Double,
+        taxTotal: Double,
+        serviceTotal: Double,
+        grandTotal: Double,
+        paidAmount: Double,
+        paymentMethod: String,
+    ): CheckoutResult = withContext(Dispatchers.IO) {
+        val pendingSale = PendingSale(
+            clientSaleId = UUID.randomUUID().toString(),
+            clientCreatedAt = isoNow(),
+            lines = lines,
+            subtotal = subtotal,
+            taxTotal = taxTotal,
+            serviceTotal = serviceTotal,
+            grandTotal = grandTotal,
+            paidAmount = paidAmount,
+            paymentMethod = paymentMethod,
+        )
+
+        try {
+            CheckoutResult(submitPendingSale(session, pendingSale, "online"), queued = false)
+        } catch (error: java.io.IOException) {
+            OfflineSaleQueue.enqueue(context, pendingSale)
+            CheckoutResult(localReceipt(pendingSale), queued = true)
+        }
+    }
+
+    suspend fun flushPending(context: Context, session: PairingSession) = withContext(Dispatchers.IO) {
+        OfflineSaleQueue.all(context).forEach { pendingSale ->
+            submitPendingSale(session, pendingSale, "offline")
+            OfflineSaleQueue.remove(context, pendingSale.clientSaleId)
+        }
+    }
+
+    private fun submitPendingSale(session: PairingSession, sale: PendingSale, syncSource: String): SaleReceipt {
+        val response = request("${session.baseUrl}/api/transactions", "POST", sale.toRequestBody(syncSource).toString(), session.token)
+        return parseSaleReceipt(JSONObject(response).getJSONObject("sale"), sale.paymentMethod)
+    }
+
+    private fun PendingSale.toRequestBody(syncSource: String): JSONObject {
         val items = org.json.JSONArray()
         lines.forEach { line ->
             val item = JSONObject()
                 .put("quantity", line.quantity)
+                .put("name", line.name)
+                .put("unit", line.unit)
+                .put("unit_price", line.unitPrice)
+                .put("line_total", line.lineTotal)
+                .put("charged_quantity", line.chargedQuantity)
 
             if (line.productId != null) {
                 item.put("product_id", line.productId)
-            } else {
-                item
-                    .put("name", line.name)
-                    .put("unit", line.unit)
-                    .put("unit_price", line.unitPrice)
             }
 
             items.put(item)
         }
-        val body = JSONObject()
+
+        return JSONObject()
+            .put("client_sale_id", clientSaleId)
+            .put("client_created_at", clientCreatedAt)
             .put("items", items)
+            .put("subtotal", subtotal)
+            .put("tax_total", taxTotal)
+            .put("service_charge_total", serviceTotal)
+            .put("grand_total", grandTotal)
             .put("paid_amount", paidAmount)
             .put("payment_method", paymentMethod)
+            .put("sync_source", syncSource)
+    }
 
-        val response = request("${session.baseUrl}/api/transactions", "POST", body.toString(), session.token)
-        val sale = JSONObject(response).getJSONObject("sale")
+    private fun parseSaleReceipt(sale: JSONObject, fallbackPaymentMethod: String): SaleReceipt {
         val saleItems = sale.getJSONArray("items")
         val receiptItems = buildList {
             for (index in 0 until saleItems.length()) {
@@ -1979,7 +2232,7 @@ private object PosRepository {
             }
         }
 
-        SaleReceipt(
+        return SaleReceipt(
             invoiceNumber = sale.getString("invoice_number"),
             subtotal = sale.optDouble("subtotal", 0.0),
             taxTotal = sale.optDouble("tax_total", 0.0),
@@ -1987,8 +2240,31 @@ private object PosRepository {
             grandTotal = sale.optDouble("grand_total", 0.0),
             paidAmount = sale.optDouble("paid_amount", 0.0),
             changeAmount = sale.optDouble("change_amount", 0.0),
-            paymentMethod = sale.optString("payment_method", paymentMethod),
+            paymentMethod = sale.optString("payment_method", fallbackPaymentMethod),
             items = receiptItems,
+            syncStatus = sale.optString("sync_source", "synced"),
+        )
+    }
+
+    private fun localReceipt(sale: PendingSale): SaleReceipt {
+        return SaleReceipt(
+            invoiceNumber = "OFF-${sale.clientSaleId.take(8).uppercase(Locale.US)}",
+            subtotal = sale.subtotal,
+            taxTotal = sale.taxTotal,
+            serviceTotal = sale.serviceTotal,
+            grandTotal = sale.grandTotal,
+            paidAmount = sale.paidAmount,
+            changeAmount = sale.paidAmount - sale.grandTotal,
+            paymentMethod = sale.paymentMethod,
+            items = sale.lines.map {
+                SaleReceiptItem(
+                    name = it.name,
+                    unit = it.unit,
+                    quantity = it.quantity,
+                    lineTotal = it.lineTotal,
+                )
+            },
+            syncStatus = "pending",
         )
     }
 
@@ -2465,6 +2741,10 @@ private object BluetoothReceiptPrinter {
 
 private fun normalizeBaseUrl(value: String): String = value.trim().trimEnd('/')
 
+private fun isoNow(): String {
+    return SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.US).format(Date())
+}
+
 private fun bluetoothRuntimePermissions(): List<String> {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         listOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN)
@@ -2564,6 +2844,14 @@ private fun normalizeQuantity(value: Double): Double = String.format(Locale.US, 
 @Composable
 fun PosScreenPreview() {
     ArventaPOSTheme {
-        PosScreen(PosState(setting = demoSetting, items = listOf(PosItem(1, "Kopi Susu", "SKU-1", "product", "pcs", 18000, 10.0, null, null))), PairingSession("http://10.0.2.2:8000", "preview", "Kasir"), "Kasir", {}, {})
+        PosScreen(
+            PosState(setting = demoSetting, items = listOf(PosItem(1, "Kopi Susu", "SKU-1", "product", "pcs", 18000, 10.0, null, null))),
+            PairingSession("http://10.0.2.2:8000", "preview", "Kasir"),
+            "Kasir",
+            0,
+            {},
+            {},
+            {},
+        )
     }
 }

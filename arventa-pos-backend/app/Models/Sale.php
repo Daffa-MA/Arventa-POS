@@ -11,9 +11,12 @@ class Sale extends Model
     protected $fillable = [
         'pos_instance_id',
         'invoice_number',
+        'client_sale_id',
         'cashier_id',
         'cashier_device_id',
         'cashier_device_name',
+        'client_created_at',
+        'catalog_synced_at',
         'subtotal',
         'tax_total',
         'service_charge_total',
@@ -21,6 +24,7 @@ class Sale extends Model
         'paid_amount',
         'change_amount',
         'payment_method',
+        'sync_source',
     ];
 
     protected function casts(): array
@@ -32,6 +36,8 @@ class Sale extends Model
             'grand_total' => 'decimal:2',
             'paid_amount' => 'decimal:2',
             'change_amount' => 'decimal:2',
+            'client_created_at' => 'datetime',
+            'catalog_synced_at' => 'datetime',
         ];
     }
 
