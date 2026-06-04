@@ -152,6 +152,7 @@ data class StoreSetting(
     val showOrderSummary: Boolean,
     val taxRate: Double,
     val serviceChargeRate: Double,
+    val currency: String,
     val receiptFooter: String,
     val receiptHeaderTitle: String,
     val receiptHeaderSubtitle: String,
@@ -276,6 +277,7 @@ private val demoSetting = StoreSetting(
     showOrderSummary = true,
     taxRate = 11.0,
     serviceChargeRate = 0.0,
+    currency = "IDR",
     receiptFooter = "Terima kasih.",
     receiptHeaderTitle = "",
     receiptHeaderSubtitle = "",
@@ -1020,7 +1022,7 @@ private fun ProductRow(item: PosItem, quantity: Double, setting: StoreSetting, c
             Column(Modifier.weight(1f)) {
                 Text(item.name, color = setting.textColor, fontWeight = FontWeight.SemiBold)
                 Text(productMeta(item, setting), color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
-                Text("${formatRupiah(item.price)} / ${item.unit}", color = setting.priceTextColor, fontWeight = FontWeight.Bold)
+                Text("${formatMoney(item.price, setting.currency)} / ${item.unit}", color = setting.priceTextColor, fontWeight = FontWeight.Bold)
             }
             QuantityStepper(quantity, item.unit, item.stock, setting, onAdd, onRemove, onSetQuantity)
         }
@@ -1036,7 +1038,7 @@ private fun ProductTile(item: PosItem, quantity: Double, setting: StoreSetting, 
             }
             Text(item.name, color = setting.textColor, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(productMeta(item, setting), color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text("${formatRupiah(item.price)} / ${item.unit}", color = setting.priceTextColor, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text("${formatMoney(item.price, setting.currency)} / ${item.unit}", color = setting.priceTextColor, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             QuantityStepper(quantity, item.unit, item.stock, setting, onAdd, onRemove, onSetQuantity)
         }
     }
@@ -1237,7 +1239,7 @@ private fun CartPanel(
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                             Text("${formatQuantity(qty)} ${item.unit} x ${item.name}", color = setting.secondaryTextColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                            Text(formatRupiah(catalogLineTotal(item, qty)), color = setting.priceTextColor, fontWeight = FontWeight.SemiBold)
+                            Text(formatMoney(catalogLineTotal(item, qty), setting.currency), color = setting.priceTextColor, fontWeight = FontWeight.SemiBold)
                         }
                         if (item.type == "discount") {
                             TextButton(
@@ -1253,10 +1255,10 @@ private fun CartPanel(
                 }
             }
             if (setting.showOrderSummary) {
-                SummaryLine("Subtotal", subtotal, setting.secondaryTextColor, setting.priceTextColor)
-                SummaryLine("Pajak", tax, setting.secondaryTextColor, setting.priceTextColor)
-                SummaryLine("Service", service, setting.secondaryTextColor, setting.priceTextColor)
-                SummaryLine("Total", total, setting.textColor, setting.priceTextColor, true)
+                SummaryLine("Subtotal", subtotal, setting, setting.secondaryTextColor, setting.priceTextColor)
+                SummaryLine("Pajak", tax, setting, setting.secondaryTextColor, setting.priceTextColor)
+                SummaryLine("Service", service, setting, setting.secondaryTextColor, setting.priceTextColor)
+                SummaryLine("Total", total, setting, setting.textColor, setting.priceTextColor, true)
             }
             if (setting.checkoutPosition == "cart") {
                 CheckoutActionButton(setting, canCheckout, onCheckout, Modifier.fillMaxWidth(), "Checkout")
@@ -1292,7 +1294,7 @@ private fun CartPanel(
                                     Text(discount.name, color = setting.textColor, fontWeight = FontWeight.SemiBold)
                                     Text(if (applied) "Sudah masuk cart" else "Tap untuk pakai diskon", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
                                 }
-                                Text(formatRupiah(discount.price), color = setting.priceTextColor, fontWeight = FontWeight.Bold)
+                                Text(formatMoney(discount.price, setting.currency), color = setting.priceTextColor, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -1315,12 +1317,12 @@ private fun CheckoutBar(setting: StoreSetting, subtotal: Double, tax: Double, se
     Surface(color = Color.White, shadowElevation = 8.dp) {
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
             if (setting.showOrderSummary) {
-                SummaryLine("Subtotal", subtotal, setting.secondaryTextColor, setting.priceTextColor)
-                SummaryLine("Pajak", tax, setting.secondaryTextColor, setting.priceTextColor)
-                SummaryLine("Service", service, setting.secondaryTextColor, setting.priceTextColor)
+                SummaryLine("Subtotal", subtotal, setting, setting.secondaryTextColor, setting.priceTextColor)
+                SummaryLine("Pajak", tax, setting, setting.secondaryTextColor, setting.priceTextColor)
+                SummaryLine("Service", service, setting, setting.secondaryTextColor, setting.priceTextColor)
                 Spacer(Modifier.height(8.dp))
             }
-            SummaryLine("Total", total, setting.textColor, setting.priceTextColor, true)
+            SummaryLine("Total", total, setting, setting.textColor, setting.priceTextColor, true)
             Spacer(Modifier.height(10.dp))
             CheckoutActionButton(setting, canCheckout, onCheckout, Modifier.fillMaxWidth(), if (setting.showCart) "Checkout" else "Bayar")
             Text(setting.receiptFooter, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
@@ -1395,13 +1397,13 @@ private fun CheckoutDialog(
                                         Text(it, color = setting.themeColor, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
                                     }
                                 }
-                                Text(formatRupiah(line.lineTotal), color = setting.priceTextColor, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
+                                Text(formatMoney(line.lineTotal, setting.currency), color = setting.priceTextColor, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
                             }
                         }
-                        SummaryLine("Subtotal", subtotal, setting.secondaryTextColor, setting.priceTextColor)
-                        SummaryLine("Pajak", tax, setting.secondaryTextColor, setting.priceTextColor)
-                        SummaryLine("Service", service, setting.secondaryTextColor, setting.priceTextColor)
-                        SummaryLine("Total", total, setting.textColor, setting.priceTextColor, true)
+                        SummaryLine("Subtotal", subtotal, setting, setting.secondaryTextColor, setting.priceTextColor)
+                        SummaryLine("Pajak", tax, setting, setting.secondaryTextColor, setting.priceTextColor)
+                        SummaryLine("Service", service, setting, setting.secondaryTextColor, setting.priceTextColor)
+                        SummaryLine("Total", total, setting, setting.textColor, setting.priceTextColor, true)
                     }
                 }
                 item {
@@ -1421,7 +1423,7 @@ private fun CheckoutDialog(
                             colors = inputColors,
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        Text("Kembalian ${formatRupiah(change.coerceAtLeast(0.0))}", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 6.dp))
+                        Text("Kembalian ${formatMoney(change.coerceAtLeast(0.0), setting.currency)}", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 6.dp))
                     }
                 } else {
                     item {
@@ -1555,12 +1557,12 @@ private fun ReceiptDialog(setting: StoreSetting, sale: SaleReceipt, onDone: () -
                 sale.items.forEach { item ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("${formatQuantity(item.quantity)} ${item.unit} x ${item.name}", color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                        Text(formatRupiah(item.lineTotal), color = setting.priceTextColor, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
+                        Text(formatMoney(item.lineTotal, setting.currency), color = setting.priceTextColor, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
                     }
                 }
-                SummaryLine("Total", sale.grandTotal, setting.textColor, setting.priceTextColor, true)
-                SummaryLine("Dibayar (${sale.paymentMethod.uppercase(Locale.US)})", sale.paidAmount, setting.secondaryTextColor, setting.priceTextColor)
-                SummaryLine("Kembalian", sale.changeAmount, setting.secondaryTextColor, setting.priceTextColor)
+                SummaryLine("Total", sale.grandTotal, setting, setting.textColor, setting.priceTextColor, true)
+                SummaryLine("Dibayar (${sale.paymentMethod.uppercase(Locale.US)})", sale.paidAmount, setting, setting.secondaryTextColor, setting.priceTextColor)
+                SummaryLine("Kembalian", sale.changeAmount, setting, setting.secondaryTextColor, setting.priceTextColor)
                 Text(setting.receiptFooter, color = setting.secondaryTextColor, style = MaterialTheme.typography.bodySmall)
                 printMessage?.let {
                     Text(it, color = setting.themeColor, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
@@ -1833,10 +1835,10 @@ private fun PrinterSetupDialog(setting: StoreSetting, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun SummaryLine(label: String, value: Number, labelColor: Color, valueColor: Color, bold: Boolean = false) {
+private fun SummaryLine(label: String, value: Number, setting: StoreSetting, labelColor: Color, valueColor: Color, bold: Boolean = false) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, color = labelColor, style = MaterialTheme.typography.bodySmall)
-        Text(formatRupiah(value), color = valueColor, fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal)
+        Text(formatMoney(value, setting.currency), color = valueColor, fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal)
     }
 }
 
@@ -2059,6 +2061,7 @@ private object PosRepository {
             showOrderSummary = optBoolean("show_order_summary_on_app", true),
             taxRate = optDouble("tax_rate", 0.0),
             serviceChargeRate = optDouble("service_charge_rate", 0.0),
+            currency = cleanString("currency", "IDR").uppercase(Locale.US),
             receiptFooter = cleanString("receipt_footer", "Terima kasih."),
             receiptHeaderTitle = cleanString("receipt_header_title"),
             receiptHeaderSubtitle = cleanString("receipt_header_subtitle"),
@@ -2342,19 +2345,19 @@ private object BluetoothReceiptPrinter {
             wrapReceiptLine("${formatQuantity(item.quantity)} ${item.unit} x ${item.name}", width).forEach(::text)
             if (setting.receiptShowItemPrice) {
                 val label = if (detailed) "  Subtotal" else ""
-                text(twoColumn(label, formatRupiah(item.lineTotal), width))
+                text(twoColumn(label, formatMoney(item.lineTotal, setting.currency), width))
             }
         }
 
         text(line(width))
         if (!compact) {
-            text(twoColumn("Subtotal", formatRupiah(sale.subtotal), width))
-            if (sale.taxTotal > 0.0) text(twoColumn("Pajak", formatRupiah(sale.taxTotal), width))
-            if (sale.serviceTotal > 0.0) text(twoColumn("Service", formatRupiah(sale.serviceTotal), width))
+            text(twoColumn("Subtotal", formatMoney(sale.subtotal, setting.currency), width))
+            if (sale.taxTotal > 0.0) text(twoColumn("Pajak", formatMoney(sale.taxTotal, setting.currency), width))
+            if (sale.serviceTotal > 0.0) text(twoColumn("Service", formatMoney(sale.serviceTotal, setting.currency), width))
         }
-        text(twoColumn("Total", formatRupiah(sale.grandTotal), width))
-        text(twoColumn("Dibayar", formatRupiah(sale.paidAmount), width))
-        text(twoColumn("Kembali", formatRupiah(sale.changeAmount), width))
+        text(twoColumn("Total", formatMoney(sale.grandTotal, setting.currency), width))
+        text(twoColumn("Dibayar", formatMoney(sale.paidAmount, setting.currency), width))
+        text(twoColumn("Kembali", formatMoney(sale.changeAmount, setting.currency), width))
         if (setting.receiptShowQris && !setting.receiptQrImageUrl.isNullOrBlank()) {
             text(line(width))
             command(0x1B, 0x61, 0x01)
@@ -2487,8 +2490,14 @@ private fun bestContentColor(background: Color): Color {
     return if (brightness > 0.62f) Color(0xFF0F172A) else Color.White
 }
 
-private fun formatRupiah(value: Number): String {
-    return NumberFormat.getCurrencyInstance(Locale.forLanguageTag("id-ID")).format(value.toDouble()).replace(",00", "")
+private fun formatMoney(value: Number, currency: String): String {
+    val normalizedCurrency = currency.ifBlank { "IDR" }.uppercase(Locale.US)
+    val number = NumberFormat.getNumberInstance(Locale("id", "ID")).apply {
+        maximumFractionDigits = 0
+        minimumFractionDigits = 0
+    }.format(value.toDouble())
+
+    return if (normalizedCurrency == "IDR") "Rp$number" else "$normalizedCurrency $number"
 }
 
 private fun productMeta(item: PosItem, setting: StoreSetting): String {

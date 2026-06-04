@@ -4,6 +4,10 @@
     title="Transaksi"
     subtitle="Pantau checkout terbaru dari aplikasi kasir Android."
 >
+    @php
+        $money = fn ($value) => ($setting->currency === 'IDR' ? 'Rp' : $setting->currency.' ').number_format((float) $value, 0, ',', '.');
+    @endphp
+
     <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div class="flex flex-col gap-4 border-b border-slate-200 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
@@ -87,8 +91,8 @@
                             </div>
                         </div>
                         <div class="text-left lg:text-right">
-                            <p class="text-sm font-bold" style="color: var(--accent)">Rp {{ number_format((float) $sale->grand_total, 0, ',', '.') }}</p>
-                            <p class="mt-1 text-xs text-slate-500">Subtotal Rp {{ number_format((float) $sale->subtotal, 0, ',', '.') }}</p>
+                            <p class="text-sm font-bold" style="color: var(--accent)">{{ $money($sale->grand_total) }}</p>
+                            <p class="mt-1 text-xs text-slate-500">Subtotal {{ $money($sale->subtotal) }}</p>
                         </div>
                     </div>
                 </div>

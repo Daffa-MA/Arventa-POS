@@ -46,6 +46,7 @@
         $createOldType = old('type', 'product');
         $createItemType = in_array($createOldType, array_keys($typeOptions), true) ? $createOldType : 'product';
         $createPricingRule = old('pricing_rule', in_array($createOldType, ['discount', 'fee'], true) ? $createOldType : ((old('free_quantity') !== null && old('free_quantity') !== '') ? 'free_threshold' : 'normal'));
+        $money = fn ($value) => ($setting->currency === 'IDR' ? 'Rp' : $setting->currency.' ').number_format((float) $value, 0, ',', '.');
     @endphp
 
     <section class="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
@@ -145,8 +146,8 @@
                         <div class="mt-4" x-show="pricingRule === 'free_threshold'">
                             <label class="text-xs font-semibold uppercase tracking-wide" style="color: var(--accent)">Batas gratis</label>
                             <input name="free_quantity" type="number" step="0.001" value="{{ old('free_quantity') }}" placeholder="Contoh: 100 untuk gratis sampai 100ml" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium" :disabled="pricingRule !== 'free_threshold'">
-                            <p class="mt-2 text-xs leading-5 text-slate-600">Jika jumlah transaksi masih di bawah atau sama dengan batas ini, item menjadi Rp0. Jika melewati batas, seluruh jumlah ditagih.</p>
-                            <p class="mt-1 text-xs leading-5 text-slate-500">Contoh: harga Rp1.000/ml, batas gratis 100ml. Input 100ml = Rp0, input 150ml = Rp150.000.</p>
+                            <p class="mt-2 text-xs leading-5 text-slate-600">Jika jumlah transaksi masih di bawah atau sama dengan batas ini, item menjadi 0. Jika melewati batas, seluruh jumlah ditagih.</p>
+                            <p class="mt-1 text-xs leading-5 text-slate-500">Contoh: harga 1.000/ml, batas gratis 100ml. Input 100ml = 0, input 150ml = 150.000.</p>
                         </div>
                         @error('free_quantity')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                     </div>
@@ -213,7 +214,7 @@
                                     <td class="px-4 py-4">
                                         <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{{ $unitOptions[$product->unit] ?? $product->unit }}</span>
                                     </td>
-                                    <td class="px-4 py-4 font-semibold">{{ (float) $product->price < 0 ? '-Rp '.number_format(abs((float) $product->price), 0, ',', '.') : 'Rp '.number_format((float) $product->price, 0, ',', '.') }}</td>
+                                    <td class="px-4 py-4 font-semibold">{{ (float) $product->price < 0 ? '-'.$money(abs((float) $product->price)) : $money($product->price) }}</td>
                                     <td class="px-4 py-4">{{ $product->stock !== null ? rtrim(rtrim(number_format((float) $product->stock, 3, ',', '.'), '0'), ',').' '.$product->unit : '-' }}</td>
                                     <td class="px-4 py-4"><span class="rounded-full {{ $product->is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600' }} px-2.5 py-1 text-xs font-semibold">{{ $product->is_active ? 'Aktif' : 'Nonaktif' }}</span></td>
                                     <td class="px-6 py-4 text-right">
@@ -301,7 +302,7 @@
                                                 <div class="mt-4" x-show="pricingRule === 'free_threshold'">
                                                     <label class="text-xs font-semibold uppercase tracking-wide" style="color: var(--accent)">Batas gratis</label>
                                                     <input name="free_quantity" type="number" step="0.001" value="{{ old('free_quantity', $product->free_quantity) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium" :disabled="pricingRule !== 'free_threshold'">
-                                                    <p class="mt-1 text-xs text-slate-500">Rule tetap per transaksi. Jika jumlah melewati batas, seluruh jumlah ditagih. Contoh batas 100ml: 100ml = Rp0, 150ml = 150ml x harga/ml.</p>
+                                                    <p class="mt-1 text-xs text-slate-500">Rule tetap per transaksi. Jika jumlah melewati batas, seluruh jumlah ditagih. Contoh batas 100ml: 100ml = 0, 150ml = 150ml x harga/ml.</p>
                                                 </div>
                                             </div>
                                             <div class="sm:col-span-2">

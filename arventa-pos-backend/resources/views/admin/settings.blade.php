@@ -259,7 +259,12 @@
                     </div>
                     <div>
                         <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Mata uang</label>
-                        <input name="currency" x-model="preview.currency" value="{{ old('currency', $setting->currency) }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
+                        <select name="currency" x-model="preview.currency" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium">
+                            @foreach (['IDR' => 'IDR - Rupiah', 'USD' => 'USD - Dollar AS', 'SGD' => 'SGD - Dollar Singapura', 'MYR' => 'MYR - Ringgit Malaysia', 'EUR' => 'EUR - Euro'] as $value => $label)
+                                <option value="{{ $value }}" @selected(old('currency', $setting->currency) === $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        @error('currency')<p class="mt-1 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                     </div>
                 </div>
                 <div class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 lg:grid-cols-[160px_1fr]">

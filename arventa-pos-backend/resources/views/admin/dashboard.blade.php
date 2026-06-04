@@ -3,6 +3,7 @@
     $totalSku = $products->filter(fn ($product) => filled($product->sku))->count();
     $recentSales = $sales ?? collect();
     $recentRevenue = $recentSales->sum(fn ($sale) => (float) $sale->grand_total);
+    $money = fn ($value) => ($setting->currency === 'IDR' ? 'Rp' : $setting->currency.' ').number_format((float) $value, 0, ',', '.');
 @endphp
 
 <x-admin.shell
@@ -46,7 +47,7 @@
                     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 6H3"/><path d="M21 12H3"/><path d="M16 18H3"/></svg>
                 </span>
             </div>
-            <p class="mt-4 text-2xl font-semibold text-slate-950">{{ $setting->currency }} {{ number_format($recentRevenue, 0, ',', '.') }}</p>
+            <p class="mt-4 text-2xl font-semibold text-slate-950">{{ $money($recentRevenue) }}</p>
         </div>
     </section>
 
@@ -66,7 +67,7 @@
                             <p class="truncate text-sm font-semibold text-slate-950">{{ $sale->invoice_number }}</p>
                             <p class="mt-1 text-xs text-slate-500">{{ $sale->created_at?->format('d M Y H:i') }} / {{ strtoupper($sale->payment_method) }}</p>
                         </div>
-                        <p class="shrink-0 text-sm font-semibold text-slate-950">{{ $setting->currency }} {{ number_format((float) $sale->grand_total, 0, ',', '.') }}</p>
+                        <p class="shrink-0 text-sm font-semibold text-slate-950">{{ $money($sale->grand_total) }}</p>
                     </div>
                 @empty
                     <div class="px-6 py-10 text-center">

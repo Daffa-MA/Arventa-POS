@@ -1,10 +1,11 @@
 @php
+    $money = fn ($value) => ($setting->currency === 'IDR' ? 'Rp' : $setting->currency.' ').number_format((float) $value, 0, ',', '.');
     $previewProducts = $products->map(fn ($product) => [
         'name' => $product->name,
         'sku' => $product->sku,
         'type' => $product->type,
         'unit' => $product->unit,
-        'price' => 'Rp '.number_format((float) $product->price, 0, ',', '.'),
+        'price' => $money($product->price),
         'priceValue' => (float) $product->price,
         'stock' => $product->stock !== null ? rtrim(rtrim(number_format((float) $product->stock, 3, ',', '.'), '0'), ',').' '.$product->unit : null,
         'imageUrl' => $product->image_path ? Storage::disk('public')->url($product->image_path) : null,
@@ -35,6 +36,7 @@
                 showCart: {{ old('show_cart_on_app', $setting->show_cart_on_app ?? true) ? 'true' : 'false' }},
                 cartPosition: @js(old('cart_position', $setting->cart_position ?? 'bottom')),
                 checkoutPosition: @js(old('checkout_position', $setting->checkout_position ?? 'bottom')),
+                currency: @js($setting->currency ?? 'IDR'),
                 showOrderSummary: {{ old('show_order_summary_on_app', $setting->show_order_summary_on_app ?? true) ? 'true' : 'false' }},
                 showSku: {{ old('show_sku_on_app', $setting->show_sku_on_app) ? 'true' : 'false' }},
                 showStock: {{ old('show_stock_on_app', $setting->show_stock_on_app) ? 'true' : 'false' }},
@@ -76,7 +78,9 @@
                 return product ? Math.max(this.qty(product), this.step(product)) : 0
             },
             formatCurrency(value) {
-                return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value || 0).replace(/\s/g, ' ')
+                const currency = this.preview.currency || 'IDR'
+                const number = Number(value || 0).toLocaleString('id-ID')
+                return currency === 'IDR' ? `Rp${number}` : `${currency} ${number}`
             },
             cartTotal() {
                 return this.previewProducts.reduce((total, product) => total + (this.qty(product) * product.priceValue), 0)
@@ -348,7 +352,7 @@
                             </div>
                             <div x-show="preview.showOrderSummary" class="mt-3 space-y-1 text-[10px]" :style="`color: ${preview.secondaryTextColor}`">
                                 <div class="flex justify-between"><span>Subtotal</span><span x-text="formatCurrency(cartTotal() || (selectedProduct()?.priceValue || 0) * selectedQuantity())"></span></div>
-                                <div class="flex justify-between"><span>Pajak</span><span>Rp 0</span></div>
+                                <div class="flex justify-between"><span>Pajak</span><span x-text="formatCurrency(0)"></span></div>
                                 <div class="flex justify-between font-bold" :style="`color: ${preview.priceTextColor}`"><span>Total</span><span x-text="formatCurrency(cartTotal() || (selectedProduct()?.priceValue || 0) * selectedQuantity())"></span></div>
                             </div>
                             <button x-show="preview.checkoutPosition === 'cart'" class="mt-3 w-full rounded-xl py-2 text-xs font-semibold text-white" :style="`background-color: ${preview.themeColor}`">Checkout</button>

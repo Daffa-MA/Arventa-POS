@@ -10,6 +10,7 @@ use App\Models\StoreSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -134,7 +135,7 @@ class DashboardController extends Controller
             'receipt_show_item_price' => ['sometimes', 'boolean'],
             'tax_rate' => ['required', 'numeric', 'min:0', 'max:100'],
             'service_charge_rate' => ['required', 'numeric', 'min:0', 'max:100'],
-            'currency' => ['required', 'string', 'max:8'],
+            'currency' => ['required', 'string', Rule::in(['IDR', 'USD', 'SGD', 'MYR', 'EUR'])],
         ]) + [
             'receipt_show_logo' => $request->boolean('receipt_show_logo'),
             'receipt_show_store_name' => $request->boolean('receipt_show_store_name'),
