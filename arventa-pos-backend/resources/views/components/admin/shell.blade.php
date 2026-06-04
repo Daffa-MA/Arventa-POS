@@ -11,7 +11,6 @@
     $adminBrandName = $setting->admin_brand_name ?: 'Arventa POS';
     $adminConsoleLabel = $setting->admin_console_label ?: 'Admin Console';
     $logoUrl = $setting->logo_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($setting->logo_path) : null;
-    $appLogoUrl = asset('arventa-logo.png');
     $firstError = $errors->first();
     $currentAdmin = $currentAdmin ?? null;
     $navItems = [
@@ -55,8 +54,12 @@
             :style="admin.sidebarStyle === 'accent' ? `background-color: ${admin.themeColor}` : ''"
         >
             <div class="flex h-16 items-center gap-3 border-b border-slate-200/70 px-5">
-                <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 shadow-sm shadow-slate-950/20" style="background-color: var(--accent)">
-                    <img src="{{ $appLogoUrl }}" alt="Arventa POS logo" class="h-full w-full object-contain p-1.5">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg text-sm font-bold text-white shadow-sm" style="background-color: var(--accent)">
+                    @if ($logoUrl)
+                        <img src="{{ $logoUrl }}" alt="{{ $adminBrandName }} logo" class="h-full w-full object-contain p-0.5">
+                    @else
+                        {{ strtoupper(mb_substr($adminBrandName, 0, 1)) }}
+                    @endif
                 </div>
                 <div class="min-w-0">
                     <p class="text-sm font-semibold" :class="admin.sidebarStyle === 'light' ? 'text-slate-950' : 'text-white'">{{ $adminBrandName }}</p>
@@ -116,9 +119,6 @@
                         <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-[0.97] lg:hidden" @click="sidebarOpen = true">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
                         </button>
-                        <div class="hidden h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 shadow-sm shadow-slate-950/10 sm:flex" style="background-color: var(--accent)">
-                            <img src="{{ $appLogoUrl }}" alt="Arventa POS logo" class="h-full w-full object-contain p-1.5">
-                        </div>
                         <div class="min-w-0">
                             <div class="flex items-center gap-2">
                                 <p class="truncate text-xs font-medium uppercase tracking-wide text-slate-500">{{ $adminBrandName }}</p>

@@ -11,13 +11,13 @@
                 <p class="mt-1 text-sm text-slate-500">Pisahkan transaksi berdasarkan perangkat kasir yang sudah pairing.</p>
             </div>
 
-            <form method="GET" action="{{ route('admin.transactions') }}" class="grid w-full gap-3 sm:w-auto sm:min-w-[36rem] sm:grid-cols-[1.2fr_1fr_1fr_auto_auto] sm:items-end">
+            <form method="GET" action="{{ route('admin.transactions') }}" class="grid w-full gap-3 sm:w-auto sm:min-w-[38rem] sm:grid-cols-[1.2fr_1fr_1fr_auto_auto] sm:items-end">
                 <div class="flex flex-col gap-2">
                     <label for="device-filter" class="text-xs font-semibold uppercase tracking-wide text-slate-500">Perangkat Kasir</label>
                     <select
                         id="device-filter"
                         name="device"
-                        class="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 shadow-sm outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                        class="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 shadow-sm outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-slate-100"
                         onchange="this.form.submit()"
                     >
                         <option value="all" @selected($selectedDevice === 'all')>Semua perangkat</option>
@@ -36,7 +36,7 @@
                         type="date"
                         name="date_from"
                         value="{{ $dateFrom }}"
-                        class="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 shadow-sm outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                        class="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 shadow-sm outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-slate-100"
                     >
                 </div>
                 <div class="flex flex-col gap-2">
@@ -46,17 +46,20 @@
                         type="date"
                         name="date_to"
                         value="{{ $dateTo }}"
-                        class="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 shadow-sm outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                        class="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 shadow-sm outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-slate-100"
                     >
                 </div>
-                <button type="submit" class="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+                <button type="submit" class="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-[0.98]">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg>
                     Filter
                 </button>
                 <button
                     type="submit"
                     formaction="{{ route('admin.transactions.export') }}"
-                    class="h-11 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+                    class="inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 active:scale-[0.98]"
+                    style="background-color: var(--accent)"
                 >
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
                     Export Excel
                 </button>
             </form>

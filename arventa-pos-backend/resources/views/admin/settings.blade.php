@@ -108,7 +108,7 @@
                             <p class="text-xs leading-5 text-slate-500">PNG, JPG, WebP, atau SVG. Maksimal 2MB.</p>
                         </div>
                     </div>
-                    <input name="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" @change="preview.logoUrl = $event.target.files?.[0] ? URL.createObjectURL($event.target.files[0]) : preview.logoUrl" class="w-full rounded-xl border border-dashed border-slate-300 bg-white px-3 py-3 text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-950 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white">
+                    <input name="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" @change="preview.logoUrl = $event.target.files?.[0] ? URL.createObjectURL($event.target.files[0]) : preview.logoUrl" class="arventa-file-input w-full rounded-xl border border-dashed border-slate-300 bg-white px-3 py-3 text-sm text-slate-600">
                     @error('logo')<p class="text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                 </div>
                 <div>
@@ -227,7 +227,7 @@
                                 <p class="text-sm font-semibold text-slate-950">QR Struk</p>
                                 <p class="mt-1 text-sm leading-6 text-slate-500">Untuk website, katalog, ulasan, loyalty, atau link toko di bagian struk.</p>
                             </div>
-                            <input name="receipt_qr_image" type="file" accept="image/png,image/jpeg,image/webp" @change="preview.receiptQrUrl = $event.target.files?.[0] ? URL.createObjectURL($event.target.files[0]) : preview.receiptQrUrl" class="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-950 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white">
+                            <input name="receipt_qr_image" type="file" accept="image/png,image/jpeg,image/webp" @change="preview.receiptQrUrl = $event.target.files?.[0] ? URL.createObjectURL($event.target.files[0]) : preview.receiptQrUrl" class="arventa-file-input w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600">
                             @error('receipt_qr_image')<p class="text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                         </div>
                     </div>
@@ -271,7 +271,7 @@
                             <p class="text-sm font-semibold text-slate-950">Pembayaran QRIS</p>
                             <p class="mt-1 text-sm leading-6 text-slate-500">Dipakai di checkout Android saat kasir memilih metode QRIS.</p>
                         </div>
-                        <input name="qris_image" type="file" accept="image/png,image/jpeg,image/webp" @change="preview.qrisUrl = $event.target.files?.[0] ? URL.createObjectURL($event.target.files[0]) : preview.qrisUrl" class="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-950 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white">
+                        <input name="qris_image" type="file" accept="image/png,image/jpeg,image/webp" @change="preview.qrisUrl = $event.target.files?.[0] ? URL.createObjectURL($event.target.files[0]) : preview.qrisUrl" class="arventa-file-input w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600">
                         @error('qris_image')<p class="text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                     </div>
                 </div>
@@ -503,4 +503,27 @@
             Simpan Password
         </button>
     </form>
+
+    <style>
+        .arventa-file-input::file-selector-button {
+            margin-right: 0.75rem;
+            border: 0;
+            border-radius: 0.625rem;
+            background: var(--accent);
+            color: #fff;
+            padding: 0.625rem 0.875rem;
+            font-size: 0.875rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 160ms ease, transform 160ms ease;
+        }
+
+        .arventa-file-input::file-selector-button:hover {
+            opacity: 0.9;
+        }
+
+        .arventa-file-input::file-selector-button:active {
+            transform: scale(0.98);
+        }
+    </style>
 </x-admin.shell>
