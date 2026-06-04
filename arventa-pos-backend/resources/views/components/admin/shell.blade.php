@@ -55,7 +55,7 @@
             :style="admin.sidebarStyle === 'accent' ? `background-color: ${admin.themeColor}` : ''"
         >
             <div class="flex h-16 items-center gap-3 border-b border-slate-200/70 px-5">
-                <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-slate-950 shadow-sm shadow-slate-950/20">
+                <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 shadow-sm shadow-slate-950/20" style="background-color: var(--accent)">
                     <img src="{{ $appLogoUrl }}" alt="Arventa POS logo" class="h-full w-full object-contain p-1.5">
                 </div>
                 <div class="min-w-0">
@@ -70,11 +70,14 @@
                     <a
                         href="{{ $item['href'] }}"
                         @click="sidebarOpen = false"
-                        class="group flex items-center gap-3 rounded-lg px-3 text-sm font-medium transition duration-200 active:scale-[0.97] {{ $isActive ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950' }}"
+                        class="group flex items-center gap-3 rounded-lg px-3 text-sm font-medium transition duration-200 active:scale-[0.97] {{ $isActive ? 'text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950' }}"
                         :class="[
                             admin.density === 'compact' ? 'py-2' : 'py-2.5',
                             admin.sidebarStyle === 'light' ? '' : '{{ $isActive ? 'bg-white/15 text-white shadow-sm' : 'text-white/75 hover:bg-white/10 hover:text-white' }}'
                         ]"
+                        @if ($isActive)
+                            :style="admin.sidebarStyle === 'accent' ? '' : `background-color: ${admin.themeColor}`"
+                        @endif
                     >
                         @if ($item['icon'] === 'layout-dashboard')
                             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
@@ -113,7 +116,7 @@
                         <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-[0.97] lg:hidden" @click="sidebarOpen = true">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
                         </button>
-                        <div class="hidden h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-950 shadow-sm shadow-slate-950/10 sm:flex">
+                        <div class="hidden h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 shadow-sm shadow-slate-950/10 sm:flex" style="background-color: var(--accent)">
                             <img src="{{ $appLogoUrl }}" alt="Arventa POS logo" class="h-full w-full object-contain p-1.5">
                         </div>
                         <div class="min-w-0">
@@ -131,7 +134,7 @@
                                     <img src="{{ $logoUrl }}" alt="{{ $setting->store_name }} logo" class="h-full w-full object-contain p-0.5">
                                 </span>
                             @else
-                                <span class="h-2.5 w-2.5 rounded-full" style="background-color: var(--app-accent)"></span>
+                                <span class="h-2.5 w-2.5 rounded-full" style="background-color: var(--accent)"></span>
                             @endif
                             {{ $currentAdmin?->name ?? $setting->store_name }}
                         </div>

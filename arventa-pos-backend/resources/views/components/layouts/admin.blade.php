@@ -6,6 +6,9 @@
     <title>{{ $title ?? 'Arventa POS Admin' }}</title>
     <meta name="arventa-build" content="{{ env('ARVENTA_BUILD_SHA', 'local') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="icon" type="image/png" href="{{ asset('arventa-logo.png') }}">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('arventa-logo.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('arventa-logo.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-slate-50 text-slate-950 antialiased">

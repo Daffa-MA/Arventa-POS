@@ -456,7 +456,7 @@
 
         </div>
 
-        <button class="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 active:scale-[0.97]" type="submit">
+        <button class="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 active:scale-[0.97]" style="background-color: var(--accent)" type="submit">
             <svg x-show="loading" x-cloak class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4z"/></svg>
             <span x-text="loading ? 'Menyimpan...' : (done ? 'Tersimpan' : 'Simpan Setting')">Simpan Setting</span>
         </button>
@@ -499,7 +499,7 @@
             </div>
         </div>
 
-        <button class="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 active:scale-[0.97] sm:w-auto" type="submit">
+        <button class="mt-5 inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 active:scale-[0.97] sm:w-auto" style="background-color: var(--accent)" type="submit">
             Simpan Password
         </button>
     </form>
