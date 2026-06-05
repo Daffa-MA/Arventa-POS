@@ -7,6 +7,7 @@ use App\Models\PosInstance;
 use App\Models\StoreSetting;
 use App\Models\User;
 use App\Services\PosDeploymentService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class DeveloperPosController extends Controller
@@ -58,83 +60,93 @@ class DeveloperPosController extends Controller
         $adminUsername = $this->uniqueAdminUsername($data['admin_username'] ?? 'admin_'.str_replace('-', '_', $subdomain));
         $plainPassword = ($data['admin_password'] ?? null) ?: 'Arv-'.Str::password(12, true, true, false, false);
 
-        $instance = DB::transaction(function () use ($data, $subdomain, $domain, $databaseName, $packageName, $adminUsername, $plainPassword): PosInstance {
-            $instance = PosInstance::query()->create([
-                'store_name' => $data['store_name'],
-                'buyer_name' => $data['buyer_name'],
-                'contact' => $data['contact'],
-                'owner_name' => $data['buyer_name'],
-                'owner_phone' => $data['contact'],
-                'subdomain' => $subdomain,
-                'domain' => $domain,
-                'database_name' => $databaseName,
-                'package_name' => $packageName,
-                'app_package_name' => $packageName,
-                'admin_username' => $adminUsername,
-                'admin_password' => $plainPassword,
-                'admin_password_hash' => Hash::make($plainPassword),
-                'status' => 'pending',
-                'deployment_status' => 'pending',
-                'deployment_notes' => $this->deploymentNotes($domain, $databaseName, $packageName),
-            ]);
+        try {
+            $instance = DB::transaction(function () use ($data, $subdomain, $domain, $databaseName, $packageName, $adminUsername, $plainPassword): PosInstance {
+                $instance = PosInstance::query()->create([
+                    'store_name' => $data['store_name'],
+                    'buyer_name' => $data['buyer_name'],
+                    'contact' => $data['contact'],
+                    'owner_name' => $data['buyer_name'],
+                    'owner_phone' => $data['contact'],
+                    'subdomain' => $subdomain,
+                    'domain' => $domain,
+                    'database_name' => $databaseName,
+                    'package_name' => $packageName,
+                    'app_package_name' => $packageName,
+                    'admin_username' => $adminUsername,
+                    'admin_password' => $plainPassword,
+                    'admin_password_hash' => Hash::make($plainPassword),
+                    'status' => 'pending',
+                    'deployment_status' => 'pending',
+                    'deployment_notes' => $this->deploymentNotes($domain, $databaseName, $packageName),
+                ]);
 
-            $adminEmailDomain = Str::of($domain)->replaceMatches('/^https?:\/\//', '')->replace('/', '')->toString();
+                $adminEmailDomain = Str::of($domain)->replaceMatches('/^https?:\/\//', '')->replace('/', '')->toString();
 
-            User::query()->create([
-                'name' => $data['store_name'].' Admin',
-                'email' => $adminUsername.'@'.$adminEmailDomain,
-                'username' => $adminUsername,
-                'password' => $plainPassword,
-                'role' => 'admin',
-                'is_active' => true,
-                'pos_instance_id' => $instance->id,
-            ]);
+                User::query()->create([
+                    'name' => $data['store_name'].' Admin',
+                    'email' => $adminUsername.'@'.$adminEmailDomain,
+                    'username' => $adminUsername,
+                    'password' => $plainPassword,
+                    'role' => 'admin',
+                    'is_active' => true,
+                    'pos_instance_id' => $instance->id,
+                ]);
 
-            StoreSetting::query()->create([
-                'pos_instance_id' => $instance->id,
-                'store_name' => $data['store_name'],
-                'business_type' => 'retail',
-                'admin_brand_name' => $data['store_name'],
-                'admin_console_label' => 'Admin Console',
-                'theme_color' => '#2563EB',
-                'app_text_color' => '#0F172A',
-                'app_secondary_text_color' => '#64748B',
-                'app_price_text_color' => '#0F172A',
-                'admin_theme_color' => '#0F172A',
-                'admin_sidebar_style' => 'light',
-                'admin_density' => 'comfortable',
-                'app_layout' => 'grid',
-                'product_card_style' => 'minimal',
-                'pos_orientation' => 'portrait',
-                'show_sku_on_app' => false,
-                'show_stock_on_app' => true,
-                'show_search_on_app' => true,
-                'show_cart_on_app' => true,
-                'cart_position' => 'bottom',
-                'checkout_position' => 'bottom',
-                'show_order_summary_on_app' => true,
-                'receipt_footer' => 'Terima kasih.',
-                'receipt_header_title' => null,
-                'receipt_header_subtitle' => null,
-                'receipt_header_notes' => null,
-                'receipt_header_alignment' => 'center',
-                'receipt_show_store_name' => true,
-                'receipt_template' => 'classic',
-                'receipt_paper_size' => '58',
-                'receipt_show_logo' => false,
-                'receipt_show_address' => true,
-                'receipt_show_datetime' => true,
-                'receipt_show_qris' => false,
-                'receipt_show_business_type' => true,
-                'receipt_show_payment_method' => true,
-                'receipt_show_item_price' => true,
-                'tax_rate' => 11,
-                'service_charge_rate' => 0,
-                'currency' => 'IDR',
-            ]);
+                StoreSetting::query()->create([
+                    'pos_instance_id' => $instance->id,
+                    'store_name' => $data['store_name'],
+                    'business_type' => 'retail',
+                    'admin_brand_name' => $data['store_name'],
+                    'admin_console_label' => 'Admin Console',
+                    'theme_color' => '#2563EB',
+                    'app_text_color' => '#0F172A',
+                    'app_secondary_text_color' => '#64748B',
+                    'app_price_text_color' => '#0F172A',
+                    'admin_theme_color' => '#0F172A',
+                    'admin_sidebar_style' => 'light',
+                    'admin_density' => 'comfortable',
+                    'app_layout' => 'grid',
+                    'product_card_style' => 'minimal',
+                    'pos_orientation' => 'portrait',
+                    'show_sku_on_app' => false,
+                    'show_stock_on_app' => true,
+                    'show_search_on_app' => true,
+                    'show_cart_on_app' => true,
+                    'cart_position' => 'bottom',
+                    'checkout_position' => 'bottom',
+                    'show_order_summary_on_app' => true,
+                    'receipt_footer' => 'Terima kasih.',
+                    'receipt_header_title' => null,
+                    'receipt_header_subtitle' => null,
+                    'receipt_header_notes' => null,
+                    'receipt_header_alignment' => 'center',
+                    'receipt_show_store_name' => true,
+                    'receipt_template' => 'classic',
+                    'receipt_paper_size' => '58',
+                    'receipt_show_logo' => false,
+                    'receipt_show_address' => true,
+                    'receipt_show_datetime' => true,
+                    'receipt_show_qris' => false,
+                    'receipt_show_business_type' => true,
+                    'receipt_show_payment_method' => true,
+                    'receipt_show_item_price' => true,
+                    'tax_rate' => 11,
+                    'service_charge_rate' => 0,
+                    'currency' => 'IDR',
+                ]);
 
-            return $instance;
-        });
+                return $instance;
+            });
+        } catch (QueryException $exception) {
+            if ($exception->errorInfo[1] ?? null === 1062) {
+                throw ValidationException::withMessages([
+                    'admin_username' => ['Username/email admin bentrok di database. Jalankan migration terbaru atau gunakan username lain.'],
+                ]);
+            }
+
+            throw $exception;
+        }
 
         if ($request->wantsJson()) {
             return response()->json(['message' => 'POS berhasil digenerate.', 'instance' => $this->instancePayload($instance->fresh())], 201);
