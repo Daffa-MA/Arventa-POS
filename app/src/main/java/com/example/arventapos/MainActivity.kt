@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothSocket
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -101,6 +102,7 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import java.io.ByteArrayOutputStream
 import java.io.BufferedReader
+import java.io.OutputStream
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
@@ -1805,6 +1807,7 @@ private fun PrinterSetupDialog(setting: StoreSetting, onDismiss: () -> Unit) {
     var testing by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
     var scanReceiver by remember { mutableStateOf<BroadcastReceiver?>(null) }
+    var pendingPermissionAction by remember { mutableStateOf<(() -> Unit)?>(null) }
 
     fun stopScan() {
         runCatching { BluetoothReceiptPrinter.stopScan(context) }
@@ -1851,8 +1854,10 @@ private fun PrinterSetupDialog(setting: StoreSetting, onDismiss: () -> Unit) {
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
         val granted = bluetoothRuntimePermissions().all { grants[it] == true || ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
+        val action = pendingPermissionAction
+        pendingPermissionAction = null
         if (granted) {
-            loadPairedPrinters()
+            action?.invoke() ?: loadPairedPrinters()
         } else {
             message = "Izin Bluetooth/Location dibutuhkan untuk scan dan test printer."
         }
@@ -1865,6 +1870,7 @@ private fun PrinterSetupDialog(setting: StoreSetting, onDismiss: () -> Unit) {
         if (missing.isEmpty()) {
             action()
         } else {
+            pendingPermissionAction = action
             permissionLauncher.launch(missing.toTypedArray())
         }
     }
@@ -2505,13 +2511,52 @@ private object BluetoothReceiptPrinter {
         val device = adapter.getRemoteDevice(address)
         adapter.cancelDiscovery()
 
-        device.createRfcommSocketToServiceRecord(sppUuid).use { socket ->
-            socket.connect()
+        connectPrinterSocket(device).use { socket ->
             socket.outputStream.use { output ->
-                output.write(buildReceipt(setting, sale))
-                output.flush()
+                writeReceiptPayload(output, buildReceipt(setting, sale))
             }
         }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun connectPrinterSocket(device: BluetoothDevice): BluetoothSocket {
+        val secureSocket = device.createRfcommSocketToServiceRecord(sppUuid)
+
+        return runCatching {
+            secureSocket.connect()
+            secureSocket
+        }.getOrElse { secureError ->
+            runCatching { secureSocket.close() }
+            val insecureSocket = device.createInsecureRfcommSocketToServiceRecord(sppUuid)
+
+            runCatching {
+                insecureSocket.connect()
+                insecureSocket
+            }.getOrElse { insecureError ->
+                runCatching { insecureSocket.close() }
+                val detail = insecureError.message ?: secureError.message
+                throw IllegalStateException(
+                    listOfNotNull(
+                        "Gagal konek printer.",
+                        "Pastikan printer menyala, jaraknya dekat, dan tidak sedang dipakai aplikasi lain.",
+                        detail,
+                    ).joinToString(" "),
+                )
+            }
+        }
+    }
+
+    private fun writeReceiptPayload(output: OutputStream, payload: ByteArray) {
+        var offset = 0
+        while (offset < payload.size) {
+            val length = minOf(256, payload.size - offset)
+            output.write(payload, offset, length)
+            output.flush()
+            offset += length
+            Thread.sleep(18)
+        }
+        output.flush()
+        Thread.sleep(350)
     }
 
     suspend fun printTest(context: Context, address: String, setting: StoreSetting) {
