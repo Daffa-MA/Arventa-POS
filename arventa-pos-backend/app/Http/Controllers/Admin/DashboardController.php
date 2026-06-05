@@ -9,10 +9,11 @@ use App\Models\Sale;
 use App\Models\StoreSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -79,27 +80,76 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function exportTransactions(Request $request): Response
+    public function exportTransactions(Request $request): StreamedResponse
     {
         $posInstanceId = $this->posInstanceId($request);
         $setting = $this->setting($request);
         $sales = $this->transactionQuery($request, $posInstanceId)->get();
         $timestamp = now()->format('Ymd-His');
-        $filename = 'arventa-transaksi-'.$timestamp.'.xls';
+        $storeSlug = Str::slug($setting->store_name ?: 'arventa');
+        $filename = "arventa-transaksi-{$storeSlug}-{$timestamp}.csv";
 
-        return response()
-            ->view('admin.transactions-export', [
-                'setting' => $setting,
-                'sales' => $sales,
-                'filters' => [
-                    'device' => $request->query('device', 'all'),
-                    'date_from' => $request->query('date_from'),
-                    'date_to' => $request->query('date_to'),
-                ],
-                'exportedAt' => now(),
-            ], 200, [
-                'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
-                'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        return response()->streamDownload(function () use ($sales) {
+            $output = fopen('php://output', 'w');
+
+            fwrite($output, "\xEF\xBB\xBF");
+            fputcsv($output, [
+                'Invoice',
+                'Tanggal',
+                'Jam',
+                'Perangkat Kasir',
+                'Kasir',
+                'Metode Bayar',
+                'Item',
+                'Qty',
+                'Satuan',
+                'Harga Satuan',
+                'Total Item',
+                'Subtotal',
+                'Pajak',
+                'Service',
+                'Total',
+                'Dibayar',
+                'Kembalian',
+            ], ';');
+
+            foreach ($sales as $sale) {
+                $items = $sale->items->isNotEmpty()
+                    ? $sale->items
+                    : collect([(object) [
+                        'name' => '-',
+                        'quantity' => 0,
+                        'unit' => '-',
+                        'unit_price' => 0,
+                        'line_total' => 0,
+                    ]]);
+
+                foreach ($items as $item) {
+                    fputcsv($output, [
+                        $sale->invoice_number,
+                        $sale->created_at->format('d/m/Y'),
+                        $sale->created_at->format('H:i:s'),
+                        $sale->cashier_device_name ?? $sale->cashierDevice?->device_name ?? 'Tanpa perangkat',
+                        $sale->cashier?->name ?? 'Kasir',
+                        strtoupper($sale->payment_method ?? 'cash'),
+                        $item->name,
+                        (float) $item->quantity,
+                        $item->unit,
+                        (float) $item->unit_price,
+                        (float) $item->line_total,
+                        (float) $sale->subtotal,
+                        (float) $sale->tax_total,
+                        (float) $sale->service_charge_total,
+                        (float) $sale->grand_total,
+                        (float) $sale->paid_amount,
+                        (float) $sale->change_amount,
+                    ], ';');
+                }
+            }
+
+            fclose($output);
+        }, $filename, [
+                'Content-Type' => 'text/csv; charset=UTF-8',
                 'Cache-Control' => 'max-age=0, no-cache, no-store, must-revalidate',
             ]);
     }

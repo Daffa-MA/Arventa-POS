@@ -58,8 +58,10 @@
                     Filter
                 </button>
                 <button
-                    type="submit"
-                    formaction="{{ route('admin.transactions.export') }}"
+                    type="button"
+                    data-turbo="false"
+                    data-export-url="{{ route('admin.transactions.export') }}"
+                    onclick="const params = new URLSearchParams(new FormData(this.form)); window.location.href = this.dataset.exportUrl + '?' + params.toString();"
                     class="inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 active:scale-[0.98]"
                     style="background-color: var(--accent)"
                 >
