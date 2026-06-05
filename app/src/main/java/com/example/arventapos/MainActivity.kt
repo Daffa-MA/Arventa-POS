@@ -825,7 +825,7 @@ fun PosScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = { StoreHeader(setting, cashierName, onRefresh, { printerSetupOpen = true }, onDisconnect) },
         bottomBar = {
-            if (setting.checkoutPosition == "bottom" && !useSideCart) {
+            if (setting.checkoutPosition == "bottom" && !useSideCart && !setting.showCart) {
                 CheckoutBar(setting, subtotal, tax, service, total, checkoutLines.isNotEmpty(), openCheckout)
             }
         },
@@ -1447,7 +1447,7 @@ private fun CartPanel(
                 SummaryLine("Service", service, setting, setting.secondaryTextColor, setting.priceTextColor)
                 SummaryLine("Total", total, setting, setting.textColor, setting.priceTextColor, true)
             }
-            if (setting.checkoutPosition == "cart") {
+            if (setting.checkoutPosition == "cart" || setting.checkoutPosition == "bottom") {
                 CheckoutActionButton(setting, canCheckout, onCheckout, Modifier.fillMaxWidth(), "Checkout")
             }
         }

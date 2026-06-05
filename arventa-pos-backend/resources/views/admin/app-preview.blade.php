@@ -49,7 +49,7 @@
             step(product) {
                 return {
                     pcs: 1,
-                    ml: 50,
+                    ml: 5,
                     gram: 100,
                     kg: 0.1,
                     meter: 0.1,
@@ -71,11 +71,11 @@
                 }
             },
             selectedProduct() {
-                return this.previewProducts.find((product) => this.qty(product) > 0) || this.previewProducts[0] || null
+                return this.previewProducts.find((product) => this.qty(product) > 0) || null
             },
             selectedQuantity() {
                 const product = this.selectedProduct()
-                return product ? Math.max(this.qty(product), this.step(product)) : 0
+                return product ? this.qty(product) : 0
             },
             formatCurrency(value) {
                 const currency = this.preview.currency || 'IDR'
@@ -106,6 +106,8 @@
                 }[this.preview.imageRatio]
             },
             gridClass() {
+                if (this.preview.orientation === 'portrait') return 'grid-cols-1'
+
                 return this.preview.productCardStyle === 'image' && this.preview.imageSize === 'large'
                     ? 'grid-cols-1'
                     : 'grid-cols-2'
@@ -142,6 +144,12 @@
             },
             isBottomCart() {
                 return this.preview.showCart && !this.isSideCart()
+            },
+            cartCheckoutVisible() {
+                return this.preview.checkoutPosition === 'cart' || this.preview.checkoutPosition === 'bottom'
+            },
+            bottomCheckoutBarVisible() {
+                return this.preview.checkoutPosition === 'bottom' && !this.preview.showCart
             },
             productAreaClass() {
                 return this.isSideCart()
@@ -265,9 +273,21 @@
 
         <div class="mx-auto w-full self-start border border-slate-300 bg-slate-950 p-3 shadow-2xl shadow-slate-950/20 transition-all duration-300" :class="deviceFrameClass()">
             <div class="relative overflow-hidden bg-slate-50 transition-all duration-300" :class="deviceScreenClass()">
-                <div class="px-4 py-4 text-white" :style="`background-color: ${preview.themeColor}`">
-                    <p class="text-sm font-semibold" x-text="preview.storeName"></p>
-                    <p class="text-[11px] text-white/80" x-text="preview.businessType"></p>
+                <div class="flex items-center gap-3 px-4 py-4 text-white" :style="`background-color: ${preview.themeColor}`">
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15 text-sm font-bold shadow-sm ring-1 ring-white/10">
+                        <span x-text="(preview.storeName || 'A').charAt(0).toUpperCase()"></span>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-semibold" x-text="preview.storeName"></p>
+                        <p class="truncate text-[11px] text-white/80" x-text="preview.businessType"></p>
+                    </div>
+                    <button type="button" class="shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold text-white/95 transition active:scale-[0.97]">Sync</button>
+                    <button type="button" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition active:scale-[0.97]" aria-label="Printer">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h20a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+                    </button>
+                    <button type="button" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition active:scale-[0.97]" aria-label="Keluar">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/></svg>
+                    </button>
                 </div>
                 <div class="p-4 transition-all duration-300" :class="contentHeightClass()">
                     <div :class="productAreaClass()">
@@ -347,7 +367,7 @@
                                 <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold" :style="`color: ${preview.secondaryTextColor}`" x-text="selectedProduct() ? formatQty(selectedQuantity()) + ' item' : '0 item'"></span>
                             </div>
                             <div class="mt-3 rounded-xl bg-slate-50 p-3">
-                                <p class="text-xs font-semibold" :style="`color: ${preview.textColor}`" x-text="previewProducts[0]?.name || 'Cart kosong'"></p>
+                                <p class="text-xs font-semibold" :style="`color: ${preview.textColor}`" x-text="selectedProduct()?.name || 'Cart kosong'"></p>
                                 <p class="mt-1 text-[10px]" :style="`color: ${preview.secondaryTextColor}`" x-text="selectedProduct() ? formatQty(selectedQuantity()) + ' ' + selectedProduct().unit + ' x ' + selectedProduct().price : 'Pilih item terlebih dulu'"></p>
                             </div>
                             <div x-show="preview.showOrderSummary" class="mt-3 space-y-1 text-[10px]" :style="`color: ${preview.secondaryTextColor}`">
@@ -355,27 +375,48 @@
                                 <div class="flex justify-between"><span>Pajak</span><span x-text="formatCurrency(0)"></span></div>
                                 <div class="flex justify-between font-bold" :style="`color: ${preview.priceTextColor}`"><span>Total</span><span x-text="formatCurrency(cartTotal() || (selectedProduct()?.priceValue || 0) * selectedQuantity())"></span></div>
                             </div>
-                            <button x-show="preview.checkoutPosition === 'cart'" class="mt-3 w-full rounded-xl py-2 text-xs font-semibold text-white" :style="`background-color: ${preview.themeColor}`">Checkout</button>
+                            <button x-show="cartCheckoutVisible()" class="mt-3 w-full rounded-xl py-2 text-xs font-semibold text-white" :style="`background-color: ${preview.themeColor}`">Checkout</button>
                         </aside>
                     </div>
 
                     <div x-show="isBottomCart()" x-transition class="mt-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
                         <div class="flex items-center justify-between gap-3">
-                            <div class="min-w-0">
-                                <p class="text-xs font-bold" :style="`color: ${preview.textColor}`">Cart</p>
-                                <p class="truncate text-[10px]" :style="`color: ${preview.secondaryTextColor}`" x-text="cartLabel()"></p>
+                            <p class="text-xs font-bold" :style="`color: ${preview.textColor}`">Cart</p>
+                            <span class="text-xs" :style="`color: ${preview.secondaryTextColor}`" x-text="selectedProduct() ? formatQty(selectedQuantity()) + ' item' : '0 item'"></span>
+                        </div>
+                        <div class="mt-2 space-y-1">
+                            <template x-if="selectedProduct()">
+                                <div class="flex items-start justify-between gap-3">
+                                    <p class="min-w-0 truncate text-[11px]" :style="`color: ${preview.secondaryTextColor}`" x-text="cartLabel()"></p>
+                                    <p class="shrink-0 text-xs font-bold" :style="`color: ${preview.priceTextColor}`" x-text="formatCurrency(cartTotal() || (selectedProduct()?.priceValue || 0) * selectedQuantity())"></p>
+                                </div>
+                            </template>
+                            <template x-if="!selectedProduct()">
+                                <p class="text-[11px]" :style="`color: ${preview.secondaryTextColor}`">Belum ada item dipilih</p>
+                            </template>
+                        </div>
+                        <div x-show="preview.showOrderSummary" class="mt-3 space-y-2 text-[11px]" :style="`color: ${preview.secondaryTextColor}`">
+                            <div class="flex justify-between gap-3">
+                                <span>Subtotal</span>
+                                <span :style="`color: ${preview.priceTextColor}`" x-text="formatCurrency(cartTotal() || (selectedProduct()?.priceValue || 0) * selectedQuantity())"></span>
                             </div>
-                            <p class="shrink-0 text-xs font-bold" :style="`color: ${preview.priceTextColor}`" x-text="formatCurrency(cartTotal() || (selectedProduct()?.priceValue || 0) * selectedQuantity())"></p>
+                            <div class="flex justify-between gap-3">
+                                <span>Pajak</span>
+                                <span :style="`color: ${preview.priceTextColor}`" x-text="formatCurrency(0)"></span>
+                            </div>
+                            <div class="flex justify-between gap-3">
+                                <span>Service</span>
+                                <span :style="`color: ${preview.priceTextColor}`" x-text="formatCurrency(0)"></span>
+                            </div>
+                            <div class="flex justify-between gap-3 font-bold" :style="`color: ${preview.textColor}`">
+                                <span>Total</span>
+                                <span :style="`color: ${preview.priceTextColor}`" x-text="formatCurrency(cartTotal() || (selectedProduct()?.priceValue || 0) * selectedQuantity())"></span>
+                            </div>
                         </div>
-                        <div x-show="preview.showOrderSummary" class="mt-2 grid grid-cols-3 gap-2 text-[10px]" :style="`color: ${preview.secondaryTextColor}`">
-                            <span>Subtotal</span>
-                            <span class="text-center">Pajak 0</span>
-                            <span class="text-right font-bold" :style="`color: ${preview.priceTextColor}`" x-text="formatCurrency(cartTotal() || (selectedProduct()?.priceValue || 0) * selectedQuantity())"></span>
-                        </div>
-                        <button x-show="preview.checkoutPosition === 'cart'" class="mt-3 w-full rounded-xl py-2 text-xs font-semibold text-white" :style="`background-color: ${preview.themeColor}`">Checkout</button>
+                        <button x-show="cartCheckoutVisible()" class="mt-3 w-full rounded-xl py-2 text-xs font-semibold text-white" :style="`background-color: ${preview.themeColor}`">Checkout</button>
                     </div>
                 </div>
-                <div x-show="preview.checkoutPosition === 'bottom'" class="border-t border-slate-200 bg-white p-4">
+                <div x-show="bottomCheckoutBarVisible()" class="border-t border-slate-200 bg-white p-4">
                     <button class="w-full rounded-xl py-2.5 text-sm font-semibold text-white" :style="`background-color: ${preview.themeColor}`" x-text="checkoutLabel()"></button>
                 </div>
                 <button x-show="preview.checkoutPosition === 'floating'" x-transition class="absolute bottom-4 right-4 rounded-full px-5 py-3 text-sm font-semibold text-white shadow-xl shadow-slate-950/20" :style="`background-color: ${preview.themeColor}`" x-text="checkoutLabel()"></button>
